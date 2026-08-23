@@ -805,8 +805,8 @@
       {
         label: '订单备注',
         key: 'orderRemark',
-        type: 'input',
-        span: 16,
+        type: 'textarea',
+        span: 24,
         props: { maxlength: 200, placeholder: '请输入订单备注' }
       }
     ]),
