@@ -1683,6 +1683,117 @@ declare global {
           }
         >
       }
+
+      namespace TransportEvent {
+        interface WaybillSnapshot {
+          id: string
+          waybillNo: string
+          status: string
+          originCity?: string | null
+          destinationCity?: string | null
+          plannedUnloadTime?: string | null
+        }
+
+        interface Record {
+          id: string
+          tenantId: string
+          waybillId: string
+          eventType: string
+          eventTime: string
+          operatorName?: string | null
+          locationText?: string | null
+          remark?: string | null
+          createTime: string
+          waybill?: WaybillSnapshot | null
+          delayed: boolean
+        }
+
+        interface SearchParams extends Api.Common.CommonSearchParams {
+          keyword?: string
+          eventType?: string
+          eventTimeRange?: string[]
+        }
+
+        interface Overview {
+          eventCount7d: number
+          activeWaybillCount: number
+          delayedWaybillCount: number
+          exceptionEventCount: number
+        }
+      }
+
+      namespace RoutePerformance {
+        interface Record {
+          id: string
+          originCity: string
+          destinationCity: string
+          completedTrips: number
+          scheduledTrips: number
+          onTimeTrips: number
+          onTimeRate?: number | null
+          averageDurationHours?: number | null
+          averageDelayHours?: number | null
+          cargoWeightTon: number
+          activeTrips: number
+          delayedActiveTrips: number
+        }
+
+        interface Overview {
+          generatedAt: string
+          periodDays: number
+          totalRecords: number
+          returnedRecords: number
+          truncated: boolean
+          routeCount: number
+          completedTrips: number
+          activeTrips: number
+          delayedActiveTrips: number
+          onTimeRate?: number
+          cargoWeightTon: number
+          records: Record[]
+        }
+      }
+
+      namespace CapacityPlanning {
+        type PeriodDays = 7 | 14 | 30
+
+        interface DailyCapacity {
+          date: string
+          demandTrips: number
+          demandTon: number
+          assignedVehicles: number
+          unassignedTrips: number
+          fleetCapacityTon: number
+          loadRate?: number | null
+        }
+
+        interface BacklogWaybill {
+          id: string
+          waybillNo: string
+          status: string
+          originCity?: string | null
+          destinationCity?: string | null
+          plannedLoadTime?: string | null
+          cargoWeightTon?: number | null
+          waitingHours: number
+        }
+
+        interface Overview {
+          generatedAt: string
+          periodDays: PeriodDays
+          activeFleetCount: number
+          fleetCapacityTon: number
+          activeWaybillCount: number
+          assignedVehicleCount: number
+          availableVehicleCount: number
+          unassignedActiveCount: number
+          backlogCount: number
+          returnedBacklogCount: number
+          truncated: boolean
+          daily: DailyCapacity[]
+          backlog: BacklogWaybill[]
+        }
+      }
     }
   }
 }

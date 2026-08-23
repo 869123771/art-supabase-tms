@@ -149,6 +149,12 @@ export {
   subscribeInTransitMonitorChanges
 } from '@tms/api/modules/in-transit'
 export {
+  fetchTransportEventList,
+  fetchTransportEventOverview
+} from '@tms/api/modules/transport-event'
+export { fetchRoutePerformance } from '@tms/api/modules/route-performance'
+export { fetchCapacityPlanning } from '@tms/api/modules/capacity-planning'
+export {
   analyzeWaybillReceiptByAi,
   createReceiptExceptionWorkOrder,
   exportDeliveryList,

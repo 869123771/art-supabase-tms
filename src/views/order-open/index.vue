@@ -330,23 +330,27 @@
           >
             仅开单
           </ElButton>
-          <ElDropdown trigger="click" @command="handleFooterCommand">
+          <ElDropdown
+            v-if="hasFooterSecondaryActions"
+            trigger="click"
+            @command="handleFooterCommand"
+          >
             <ElButton size="large" plain>
               更多操作
               <ArtSvgIcon icon="ri:arrow-down-s-line" />
             </ElButton>
             <template #dropdown>
               <ElDropdownMenu>
-                <ElDropdownItem v-auth="'TmsOrderOpen:AiFill'" command="ai">
+                <ElDropdownItem v-if="hasAuth('TmsOrderOpen:AiFill')" command="ai">
                   AI 智能填单
                 </ElDropdownItem>
-                <ElDropdownItem v-auth="'TmsOrderOpen:PrintWaybill'" command="print-waybill">
+                <ElDropdownItem v-if="hasAuth('TmsOrderOpen:PrintWaybill')" command="print-waybill">
                   打印运单
                 </ElDropdownItem>
-                <ElDropdownItem v-auth="'TmsOrderOpen:PrintLabel'" command="print-label">
+                <ElDropdownItem v-if="hasAuth('TmsOrderOpen:PrintLabel')" command="print-label">
                   打印标签
                 </ElDropdownItem>
-                <ElDropdownItem v-auth="'TmsOrderOpen:DoublePrint'" command="double-print">
+                <ElDropdownItem v-if="hasAuth('TmsOrderOpen:DoublePrint')" command="double-print">
                   双打
                 </ElDropdownItem>
               </ElDropdownMenu>
@@ -384,6 +388,7 @@
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import { useAmapGeocoder } from '@/hooks/core/useAmapGeocoder'
+  import { useAuth } from '@/hooks/core/useAuth'
   import type { ColumnOption } from '@/types'
   import { formatNameCodeOption } from '@/utils/form'
   import { canEditField, canViewField, getFieldAccess } from '@/utils/field-permission'
@@ -550,6 +555,7 @@
   const route = useRoute()
   const router = useRouter()
   const userStore = useUserStore()
+  const { hasAuth, hasAnyAuth } = useAuth()
   const { geocodeAddress } = useAmapGeocoder()
   const { getDictMap } = storeToRefs(userStore)
   const stationFormRef = ref<FormExpose>()
@@ -577,6 +583,14 @@
   ]
 
   const isNewOrder = computed(() => !getOrderId())
+  const hasFooterSecondaryActions = computed(() =>
+    hasAnyAuth([
+      'TmsOrderOpen:AiFill',
+      'TmsOrderOpen:PrintWaybill',
+      'TmsOrderOpen:PrintLabel',
+      'TmsOrderOpen:DoublePrint'
+    ])
+  )
   const orderNumberRule = computed(() => numberRules.value['tms.order'])
   const cargoNumberRule = computed(() => numberRules.value['tms.order_cargo'])
 
