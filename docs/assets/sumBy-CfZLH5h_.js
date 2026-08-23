@@ -1,0 +1,1 @@
+import{a as e}from"./style-COY0Dq4E.js";import{t}from"./_baseSum-D65xQ18S.js";function n(n,r){return n&&n.length?t(n,e(r,2)):0}export{n as t};
