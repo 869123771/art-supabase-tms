@@ -1,0 +1,1 @@
+import{v as e}from"./style-P2Tdj9cU.js";import{a as t,i as n}from"./style-BPguiA_U.js";import{n as r}from"./omit-BfAVL5ss.js";import{i}from"./table-multiple-DcbOAbKa.js";var a=t(function(t,a){var o=r(a);return n(o)&&(o=void 0),n(t)?i(t,e(a,1,n,!0),void 0,o):[]});export{a as t};

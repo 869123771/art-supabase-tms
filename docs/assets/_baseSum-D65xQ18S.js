@@ -1,0 +1,1 @@
+function e(e,t){for(var n,r=-1,i=e.length;++r<i;){var a=t(e[r]);a!==void 0&&(n=n===void 0?a:n+a)}return n}export{e as t};
