@@ -1,0 +1,1 @@
+import{Ii as e}from"./file-Veel70a5.js";function t(e,t,n,r){for(var i=e.length,a=n+(r?1:-1);r?a--:++a<i;)if(t(e[a],a,e))return a;return-1}var n=(e=``)=>e.replace(/[|\\{}()[\]^$+*?.]/g,`\\$&`).replace(/-/g,`\\x2d`),r=t=>e(t);export{n,t as r,r as t};

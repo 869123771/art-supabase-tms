@@ -1,1 +1,0 @@
-import{n as e}from"./use-wheel-CzZ0bzVu.js";import{a as t}from"./style-K5IpWbqa.js";function n(n,r){return n&&n.length?e(n,t(r,2)):[]}export{n as t};
