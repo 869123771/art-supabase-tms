@@ -1,9 +1,11 @@
 <template>
-  <section class="ai-order-result art-card-xs">
-    <div class="ai-order-result__heading">
-      <ArtSectionTitle :show-line="false">识别结果</ArtSectionTitle>
-      <ElTag :type="confidenceTagType">可信度 {{ confidencePercent }}%</ElTag>
-    </div>
+  <ArtSectionCard class="ai-order-result" preserve-content-structure>
+    <template #header>
+      <div class="ai-order-result__heading">
+        <ArtSectionTitle :show-line="false">识别结果</ArtSectionTitle>
+        <ElTag :type="confidenceTagType">可信度 {{ confidencePercent }}%</ElTag>
+      </div>
+    </template>
 
     <div class="ai-order-result__summary">
       <ArtSvgIcon icon="ri:checkbox-circle-line" />
@@ -44,15 +46,16 @@
       context-label="AI 智能填单"
       class="ai-order-result__feedback"
     />
-  </section>
+  </ArtSectionCard>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { trim } from 'lodash-es'
   import ArtAiFeedback from '@/components/core/base/art-ai-feedback/index.vue'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
 
   defineOptions({ name: 'TmsAiOrderResultPanel' })
 

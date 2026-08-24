@@ -42,8 +42,7 @@
     </section>
 
     <div class="contract-detail__content">
-      <section class="contract-detail__section art-card-xs">
-        <ArtSectionTitle>基础信息</ArtSectionTitle>
+      <ArtSectionCard class="contract-detail__section" preserve-content-structure title="基础信息">
         <ArtDescriptions :data="descriptionData" :items="baseDescriptionItems" :columns="4">
           <template #item-contractStatus>
             <ElTag
@@ -55,19 +54,25 @@
             <span v-else>--</span>
           </template>
         </ArtDescriptions>
-      </section>
+      </ArtSectionCard>
 
-      <section class="contract-detail__section art-card-xs">
-        <ArtSectionTitle>计费与履约</ArtSectionTitle>
+      <ArtSectionCard
+        class="contract-detail__section"
+        preserve-content-structure
+        title="计费与履约"
+      >
         <ArtDescriptions
           :data="descriptionData"
           :items="fulfillmentDescriptionItems"
           :columns="4"
         />
-      </section>
+      </ArtSectionCard>
 
-      <section class="contract-detail__section art-card-xs">
-        <ArtSectionTitle>运输合同明细</ArtSectionTitle>
+      <ArtSectionCard
+        class="contract-detail__section"
+        preserve-content-structure
+        title="运输合同明细"
+      >
         <ArtTable
           :data="transportDetails"
           :columns="transportDetailColumns"
@@ -76,18 +81,22 @@
           empty-description="当前合同尚未维护按货物拆分的数量和价格。"
           empty-height="160px"
         />
-      </section>
+      </ArtSectionCard>
 
-      <section class="contract-detail__section art-card-xs">
-        <ArtSectionTitle>运输路线与合同约定</ArtSectionTitle>
-        <ArtDescriptions :data="descriptionData" :items="termsDescriptionItems" :columns="4" />
-      </section>
-
-      <section
-        v-if="canViewSensitiveField('attachments')"
-        class="contract-detail__section art-card-xs"
+      <ArtSectionCard
+        class="contract-detail__section"
+        preserve-content-structure
+        title="运输路线与合同约定"
       >
-        <ArtSectionTitle>合同附件</ArtSectionTitle>
+        <ArtDescriptions :data="descriptionData" :items="termsDescriptionItems" :columns="4" />
+      </ArtSectionCard>
+
+      <ArtSectionCard
+        v-if="canViewSensitiveField('attachments')"
+        class="contract-detail__section"
+        preserve-content-structure
+        title="合同附件"
+      >
         <div v-if="attachments.length" class="contract-detail__attachments">
           <ArtAttachmentLink
             v-for="attachment in attachments"
@@ -96,7 +105,7 @@
           />
         </div>
         <span v-else>--</span>
-      </section>
+      </ArtSectionCard>
 
       <section v-if="detail.data?.id" class="contract-detail__section art-card-xs">
         <WorkflowBusinessHistory business-type="tms_contract" :business-id="detail.data.id" />
@@ -106,11 +115,11 @@
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { isNil } from 'lodash-es'
   import { ElTag } from 'element-plus'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtAttachmentLink from '@/components/core/media/art-file-viewer/attachment-link.vue'
   import WorkflowBusinessHistory from '@/components/business/workflow-business-history/index.vue'

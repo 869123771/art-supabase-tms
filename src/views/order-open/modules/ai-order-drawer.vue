@@ -30,8 +30,11 @@
           @generate-example="handleGenerateExample"
         />
 
-        <section class="ai-order-drawer__guide art-card-xs">
-          <ArtSectionTitle>三步完成智能填单</ArtSectionTitle>
+        <ArtSectionCard
+          class="ai-order-drawer__guide"
+          preserve-content-structure
+          title="三步完成智能填单"
+        >
           <div class="ai-order-drawer__guide-list">
             <div>
               <strong>01</strong>
@@ -53,7 +56,7 @@
             :closable="false"
             show-icon
           />
-        </section>
+        </ArtSectionCard>
       </div>
 
       <template v-else>
@@ -134,6 +137,7 @@
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import type { UnwrapNestedRefs } from 'vue'
@@ -141,7 +145,6 @@
   import { ElMessage } from 'element-plus'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
   import { analyzeOrderByAi, generateAiOrderExample } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'
   import { getBuiltInOrderExample } from './ai-order-examples'

@@ -33,8 +33,7 @@
     </section>
 
     <div class="rate-card-detail__content">
-      <section class="rate-card-detail__section art-card-xs">
-        <ArtSectionTitle>运输路线</ArtSectionTitle>
+      <ArtSectionCard class="rate-card-detail__section" preserve-content-structure title="运输路线">
         <div class="rate-card-detail__route">
           <div class="rate-card-detail__route-point"
             ><span>始发地</span><strong>{{ detail.data?.originRegion || '--' }}</strong></div
@@ -45,10 +44,13 @@
           >
         </div>
         <ArtDescriptions :data="descriptionData" :items="routeItems" :columns="4" />
-      </section>
+      </ArtSectionCard>
 
-      <section class="rate-card-detail__section art-card-xs">
-        <ArtSectionTitle>承运主体与运力</ArtSectionTitle>
+      <ArtSectionCard
+        class="rate-card-detail__section"
+        preserve-content-structure
+        title="承运主体与运力"
+      >
         <div class="rate-card-detail__split">
           <article class="rate-card-detail__panel">
             <div class="rate-card-detail__panel-heading"
@@ -65,10 +67,13 @@
             <ArtDescriptions :data="descriptionData" :items="capacityItems" :columns="2" />
           </article>
         </div>
-      </section>
+      </ArtSectionCard>
 
-      <section class="rate-card-detail__section art-card-xs">
-        <ArtSectionTitle>货物与拆分成本</ArtSectionTitle>
+      <ArtSectionCard
+        class="rate-card-detail__section"
+        preserve-content-structure
+        title="货物与拆分成本"
+      >
         <ArtTable
           :data="cargoItems"
           :columns="cargoColumns"
@@ -77,36 +82,41 @@
           empty-description="当前承运商价格未维护货物或拆分成本。"
           empty-height="150px"
         />
-      </section>
+      </ArtSectionCard>
 
-      <section
+      <ArtSectionCard
         v-if="canViewSensitiveField('costAmounts')"
-        class="rate-card-detail__section art-card-xs"
+        class="rate-card-detail__section"
+        preserve-content-structure
+        title="成本与计费"
       >
-        <ArtSectionTitle>成本与计费</ArtSectionTitle>
         <ArtDescriptions :data="descriptionData" :items="costItems" :columns="4" />
-      </section>
+      </ArtSectionCard>
 
-      <section
+      <ArtSectionCard
         v-if="canViewSensitiveField('paymentAmounts')"
-        class="rate-card-detail__section art-card-xs"
+        class="rate-card-detail__section"
+        preserve-content-structure
+        title="付款方式"
       >
-        <ArtSectionTitle>付款方式</ArtSectionTitle>
         <ArtDescriptions :data="descriptionData" :items="paymentItems" :columns="4" />
-      </section>
+      </ArtSectionCard>
 
-      <section class="rate-card-detail__section art-card-xs">
-        <ArtSectionTitle>备注与审计信息</ArtSectionTitle>
+      <ArtSectionCard
+        class="rate-card-detail__section"
+        preserve-content-structure
+        title="备注与审计信息"
+      >
         <ArtDescriptions :data="descriptionData" :items="auditItems" :columns="4" />
-      </section>
+      </ArtSectionCard>
     </div>
   </ArtPageShell>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import type { ColumnOption } from '@/types'
   import { fetchCarrierPriceDetail } from '@tms/api'

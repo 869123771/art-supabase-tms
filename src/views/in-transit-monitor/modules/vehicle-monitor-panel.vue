@@ -91,7 +91,7 @@
 
 <script setup lang="ts">
   import { Search, Van } from '@element-plus/icons-vue'
-  import ArtAsyncState from '@/components/core/layouts/art-async-state/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import MonitorRouteCard from './monitor-route-card.vue'
   import type { MonitorOrder, MonitorOverview } from './monitor-types'
 

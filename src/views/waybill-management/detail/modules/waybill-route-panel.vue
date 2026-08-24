@@ -1,25 +1,27 @@
 <template>
-  <section class="waybill-route art-card-xs">
-    <div class="waybill-route__heading">
-      <div>
-        <ArtSectionTitle title="节点轨迹与定位" />
-        <p>业务节点、费用定位与自动停车点统一落在车辆轨迹上，并明确标记坐标来源。</p>
+  <ArtSectionCard class="waybill-route" preserve-content-structure>
+    <template #header>
+      <div class="waybill-route__heading">
+        <div>
+          <ArtSectionTitle title="节点轨迹与定位" />
+          <p>业务节点、费用定位与自动停车点统一落在车辆轨迹上，并明确标记坐标来源。</p>
+        </div>
+        <div class="waybill-route__heading-tags" aria-label="轨迹概览">
+          <ElTag :type="locationPoints.length ? 'success' : 'info'" effect="plain">
+            {{ locationPoints.length }} 个定位节点
+          </ElTag>
+          <ElTag v-if="derivedPointCount" type="warning" effect="plain">
+            {{ derivedPointCount }} 个推导坐标
+          </ElTag>
+          <ElTag v-if="energyPointCount" type="primary" effect="plain">
+            {{ energyPointCount }} 个能源节点
+          </ElTag>
+          <ElTag v-if="stopPointCount" type="danger" effect="plain">
+            {{ stopPointCount }} 个停车点
+          </ElTag>
+        </div>
       </div>
-      <div class="waybill-route__heading-tags" aria-label="轨迹概览">
-        <ElTag :type="locationPoints.length ? 'success' : 'info'" effect="plain">
-          {{ locationPoints.length }} 个定位节点
-        </ElTag>
-        <ElTag v-if="derivedPointCount" type="warning" effect="plain">
-          {{ derivedPointCount }} 个推导坐标
-        </ElTag>
-        <ElTag v-if="energyPointCount" type="primary" effect="plain">
-          {{ energyPointCount }} 个能源节点
-        </ElTag>
-        <ElTag v-if="stopPointCount" type="danger" effect="plain">
-          {{ stopPointCount }} 个停车点
-        </ElTag>
-      </div>
-    </div>
+    </template>
 
     <div v-if="locationPoints.length" class="waybill-route__layout">
       <div class="waybill-route__map-card">
@@ -96,13 +98,14 @@
       size="compact"
       :visual-size="92"
     />
-  </section>
+  </ArtSectionCard>
 </template>
 
 <script setup lang="ts">
-  import ArtAsyncState from '@/components/core/layouts/art-async-state/index.vue'
-  import ArtEmptyState from '@/components/core/layouts/art-empty-state/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import { useAmapSdk } from '@/hooks/core/useAmapSdk'
   import { formatWithDayjs } from '@/utils/time'
   import {

@@ -1,12 +1,14 @@
 <template>
-  <section class="price-cargo-section art-card-xs">
-    <div class="price-cargo-section__header">
-      <ArtSectionTitle :show-line="false">货物信息</ArtSectionTitle>
-      <div v-if="editable" class="price-cargo-section__actions">
-        <ElButton plain :icon="Collection" @click="emit('select-cargo')">批量选货物</ElButton>
-        <ElButton type="primary" plain :icon="Plus" @click="emit('add-cargo')">添加</ElButton>
+  <ArtSectionCard class="price-cargo-section" preserve-content-structure>
+    <template #header>
+      <div class="price-cargo-section__header">
+        <ArtSectionTitle :show-line="false">货物信息</ArtSectionTitle>
+        <div v-if="editable" class="price-cargo-section__actions">
+          <ElButton plain :icon="Collection" @click="emit('select-cargo')">批量选货物</ElButton>
+          <ElButton type="primary" plain :icon="Plus" @click="emit('add-cargo')">添加</ElButton>
+        </div>
       </div>
-    </div>
+    </template>
 
     <slot />
 
@@ -20,13 +22,14 @@
     </div>
 
     <slot name="after" />
-  </section>
+  </ArtSectionCard>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { ElButton } from 'element-plus'
   import { Collection, Plus } from '@element-plus/icons-vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
 
   withDefaults(
     defineProps<{

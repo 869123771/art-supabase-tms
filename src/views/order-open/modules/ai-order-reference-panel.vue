@@ -1,15 +1,19 @@
 <template>
-  <section class="ai-order-reference art-card-xs">
-    <div class="ai-order-reference__heading">
-      <div>
-        <ArtSectionTitle :show-line="false">主数据匹配</ArtSectionTitle>
-        <p>系统已按当前租户检索可关联档案。</p>
+  <ArtSectionCard class="ai-order-reference" preserve-content-structure>
+    <template #header>
+      <div class="ai-order-reference__heading">
+        <div>
+          <ArtSectionTitle :show-line="false">主数据匹配</ArtSectionTitle>
+          <p>系统已按当前租户检索可关联档案。</p>
+        </div>
+        <div>
+          <ElTag type="success" effect="plain">已匹配 {{ matchedCount }}</ElTag>
+          <ElTag v-if="pendingCount" type="warning" effect="plain">
+            待建档 {{ pendingCount }}
+          </ElTag>
+        </div>
       </div>
-      <div>
-        <ElTag type="success" effect="plain">已匹配 {{ matchedCount }}</ElTag>
-        <ElTag v-if="pendingCount" type="warning" effect="plain"> 待建档 {{ pendingCount }} </ElTag>
-      </div>
-    </div>
+    </template>
     <div class="ai-order-reference__list">
       <div v-for="item in rows" :key="item.key">
         <span class="ai-order-reference__item-label">{{ item.label }}</span>
@@ -24,12 +28,13 @@
     <p class="ai-order-reference__hint">
       已匹配资料会直接关联；未匹配且资料完整的项目可在下方确认后一键建档。
     </p>
-  </section>
+  </ArtSectionCard>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { trim } from 'lodash-es'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import type { AiOrderReferenceMatches, AiReferenceStatus } from './ai-order-types'
 
   defineOptions({ name: 'TmsAiOrderReferencePanel' })

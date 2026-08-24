@@ -1,27 +1,33 @@
 <template>
-  <section class="contract-transport-details art-card-xs" aria-label="运输合同明细">
-    <div class="contract-transport-details__header">
-      <div>
-        <ArtSectionTitle :show-line="false">运输合同明细</ArtSectionTitle>
-        <p>
-          {{
-            editable
-              ? '按货物维护合同数量、计量单位和运输价格，运费自动按数量与单价计算。'
-              : '当前字段权限仅允许查看运输明细，修改需获得明细价格可编辑权限。'
-          }}
-        </p>
+  <ArtSectionCard
+    class="contract-transport-details"
+    aria-label="运输合同明细"
+    preserve-content-structure
+  >
+    <template #header>
+      <div class="contract-transport-details__header">
+        <div>
+          <ArtSectionTitle :show-line="false">运输合同明细</ArtSectionTitle>
+          <p>
+            {{
+              editable
+                ? '按货物维护合同数量、计量单位和运输价格，运费自动按数量与单价计算。'
+                : '当前字段权限仅允许查看运输明细，修改需获得明细价格可编辑权限。'
+            }}
+          </p>
+        </div>
+        <div v-if="editable" class="contract-transport-details__actions">
+          <ElButton plain @click="openCargoSelector">
+            <template #icon><ArtSvgIcon icon="ri:archive-stack-line" /></template>
+            批量选货物
+          </ElButton>
+          <ElButton type="primary" plain @click="addDetail">
+            <template #icon><ArtSvgIcon icon="ri:add-line" /></template>
+            新增明细
+          </ElButton>
+        </div>
       </div>
-      <div v-if="editable" class="contract-transport-details__actions">
-        <ElButton plain @click="openCargoSelector">
-          <template #icon><ArtSvgIcon icon="ri:archive-stack-line" /></template>
-          批量选货物
-        </ElButton>
-        <ElButton type="primary" plain @click="addDetail">
-          <template #icon><ArtSvgIcon icon="ri:add-line" /></template>
-          新增明细
-        </ElButton>
-      </div>
-    </div>
+    </template>
 
     <ArtTable
       :data="modelValue"
@@ -33,10 +39,11 @@
     />
 
     <CargoMultipleSelect ref="cargoSelectorRef" @confirm="handleCargoSelectorConfirm" />
-  </section>
+  </ArtSectionCard>
 </template>
 
 <script setup lang="tsx">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { round } from 'lodash-es'
   import {
     ElAutocomplete,
@@ -49,7 +56,7 @@
   } from 'element-plus'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import type { ColumnOption } from '@/types'
   import { fetchCargoList } from '@tms/api'

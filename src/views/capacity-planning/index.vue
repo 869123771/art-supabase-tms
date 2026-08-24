@@ -43,16 +43,18 @@
         :description="decision.description"
       />
 
-      <section class="capacity-planning-page__timeline art-card-xs">
-        <header>
-          <div>
-            <ArtSectionTitle :show-line="false">每日需求与承载</ArtSectionTitle>
-            <p>容量利用率按当日货重 ÷ 在营车辆核载总吨位估算，更新时间 {{ generatedAt }}</p>
-          </div>
-          <ElTag type="info" effect="plain" round>
-            核载 {{ formatNumberValue(overview.fleetCapacityTon) }} 吨
-          </ElTag>
-        </header>
+      <ArtSectionCard class="capacity-planning-page__timeline" preserve-content-structure>
+        <template #header
+          ><header>
+            <div>
+              <ArtSectionTitle :show-line="false">每日需求与承载</ArtSectionTitle>
+              <p>容量利用率按当日货重 ÷ 在营车辆核载总吨位估算，更新时间 {{ generatedAt }}</p>
+            </div>
+            <ElTag type="info" effect="plain" round>
+              核载 {{ formatNumberValue(overview.fleetCapacityTon) }} 吨
+            </ElTag>
+          </header></template
+        >
         <ElEmpty v-if="!overview.daily.length" description="当前周期暂无运输需求" />
         <div v-else class="capacity-planning-page__days">
           <article
@@ -83,18 +85,20 @@
             </ElTag>
           </article>
         </div>
-      </section>
+      </ArtSectionCard>
 
-      <section class="capacity-planning-page__backlog art-card-xs">
-        <header>
-          <div>
-            <ArtSectionTitle :show-line="false">未配车任务</ArtSectionTitle>
-            <p>按计划装货时间和创建时间排序，优先处理已等待较久的运单。</p>
-          </div>
-          <ElTag :type="overview.backlogCount ? 'warning' : 'success'" effect="plain" round>
-            {{ overview.backlogCount }} 单待安排
-          </ElTag>
-        </header>
+      <ArtSectionCard class="capacity-planning-page__backlog" preserve-content-structure>
+        <template #header
+          ><header>
+            <div>
+              <ArtSectionTitle :show-line="false">未配车任务</ArtSectionTitle>
+              <p>按计划装货时间和创建时间排序，优先处理已等待较久的运单。</p>
+            </div>
+            <ElTag :type="overview.backlogCount ? 'warning' : 'success'" effect="plain" round>
+              {{ overview.backlogCount }} 单待安排
+            </ElTag>
+          </header></template
+        >
         <ElAlert
           v-if="overview.truncated"
           type="warning"
@@ -131,18 +135,19 @@
             </ElTag>
           </li>
         </ol>
-      </section>
+      </ArtSectionCard>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { ElMessage } from 'element-plus'
   import BusinessRecordLink from '@/components/business/business-record-link/index.vue'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import { useAuth } from '@/hooks/core/useAuth'
   import { formatWithDayjs } from '@/utils/time'
   import { formatNumberValue } from '@/utils/ui'

@@ -1,25 +1,27 @@
 <template>
-  <section class="receipt-ocr art-card-xs">
-    <header class="receipt-ocr__header">
-      <div class="receipt-ocr__identity">
-        <span class="receipt-ocr__icon"><ArtSvgIcon icon="ri-file-search-line" /></span>
-        <div>
-          <span class="receipt-ocr__eyebrow">AI 回单核验</span>
-          <h3>识别签收信息与异常</h3>
-          <p>核对运单号、时间、货量及破损、少货、拒收等风险。</p>
+  <ArtSectionCard class="receipt-ocr" preserve-content-structure>
+    <template #header>
+      <header class="receipt-ocr__header">
+        <div class="receipt-ocr__identity">
+          <span class="receipt-ocr__icon"><ArtSvgIcon icon="ri-file-search-line" /></span>
+          <div>
+            <span class="receipt-ocr__eyebrow">AI 回单核验</span>
+            <h3>识别签收信息与异常</h3>
+            <p>核对运单号、时间、货量及破损、少货、拒收等风险。</p>
+          </div>
         </div>
-      </div>
-      <ElButton
-        v-auth="'TmsDeliveryManagement:OcrReceipt'"
-        type="primary"
-        :loading="analyzing"
-        :disabled="!imageUrls.length"
-        @click="handleAnalyze"
-      >
-        <ArtSvgIcon v-if="!analyzing" icon="ri-sparkling-2-line" />
-        {{ result ? '重新核验' : '开始核验' }}
-      </ElButton>
-    </header>
+        <ElButton
+          v-auth="'TmsDeliveryManagement:OcrReceipt'"
+          type="primary"
+          :loading="analyzing"
+          :disabled="!imageUrls.length"
+          @click="handleAnalyze"
+        >
+          <ArtSvgIcon v-if="!analyzing" icon="ri-sparkling-2-line" />
+          {{ result ? '重新核验' : '开始核验' }}
+        </ElButton>
+      </header>
+    </template>
 
     <div class="receipt-ocr__context">
       <span
@@ -134,10 +136,11 @@
         />
       </div>
     </div>
-  </section>
+  </ArtSectionCard>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import dayjs from 'dayjs'
   import { ElMessage } from 'element-plus'

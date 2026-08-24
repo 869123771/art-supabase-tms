@@ -25,8 +25,7 @@
     </ArtPageHeader>
 
     <div class="carrier-detail__content">
-      <section class="carrier-detail__section art-card-xs">
-        <ArtSectionTitle>基础信息</ArtSectionTitle>
+      <ArtSectionCard class="carrier-detail__section" preserve-content-structure title="基础信息">
         <ArtDescriptions :data="descriptionData" :items="basicItems" :columns="4">
           <template #item-businessLicenseUrl>
             <ElImage
@@ -60,20 +59,17 @@
             </ElButton>
           </template>
         </ArtDescriptions>
-      </section>
+      </ArtSectionCard>
 
-      <section class="carrier-detail__section art-card-xs">
-        <ArtSectionTitle>联系人信息</ArtSectionTitle>
+      <ArtSectionCard class="carrier-detail__section" preserve-content-structure title="联系人信息">
         <ArtDescriptions :data="descriptionData" :items="contactItems" :columns="4" />
-      </section>
+      </ArtSectionCard>
 
-      <section class="carrier-detail__section art-card-xs">
-        <ArtSectionTitle>财务信息</ArtSectionTitle>
+      <ArtSectionCard class="carrier-detail__section" preserve-content-structure title="财务信息">
         <ArtDescriptions :data="descriptionData" :items="financeItems" :columns="4" />
-      </section>
+      </ArtSectionCard>
 
-      <section class="carrier-detail__section art-card-xs">
-        <ArtSectionTitle>合同信息</ArtSectionTitle>
+      <ArtSectionCard class="carrier-detail__section" preserve-content-structure title="合同信息">
         <ArtDescriptions :data="descriptionData" :items="contractItems" :columns="2">
           <template #item-contractAttachmentUrl>
             <ArtAttachmentLink
@@ -86,13 +82,15 @@
             <span v-else>--</span>
           </template>
         </ArtDescriptions>
-      </section>
+      </ArtSectionCard>
 
-      <section class="carrier-detail__section art-card-xs">
-        <div class="carrier-detail__section-header">
-          <ArtSectionTitle :show-line="false">名下司机</ArtSectionTitle>
-          <ElButton type="primary" plain @click="goDriverManage">司机管理</ElButton>
-        </div>
+      <ArtSectionCard class="carrier-detail__section" preserve-content-structure>
+        <template #header>
+          <div class="carrier-detail__section-header">
+            <ArtSectionTitle :show-line="false">名下司机</ArtSectionTitle>
+            <ElButton type="primary" plain @click="goDriverManage">司机管理</ElButton>
+          </div>
+        </template>
         <CarrierRelationTable
           :data="relationData.drivers"
           :columns="driverColumns"
@@ -100,13 +98,15 @@
           empty-height="180px"
           table-layout="auto"
         />
-      </section>
+      </ArtSectionCard>
 
-      <section class="carrier-detail__section art-card-xs">
-        <div class="carrier-detail__section-header">
-          <ArtSectionTitle :show-line="false">名下车辆</ArtSectionTitle>
-          <ElButton type="primary" plain @click="goVehicleManage">车辆管理</ElButton>
-        </div>
+      <ArtSectionCard class="carrier-detail__section" preserve-content-structure>
+        <template #header>
+          <div class="carrier-detail__section-header">
+            <ArtSectionTitle :show-line="false">名下车辆</ArtSectionTitle>
+            <ElButton type="primary" plain @click="goVehicleManage">车辆管理</ElButton>
+          </div>
+        </template>
         <CarrierRelationTable
           :data="relationData.vehicles"
           :columns="vehicleColumns"
@@ -114,7 +114,7 @@
           empty-height="180px"
           table-layout="auto"
         />
-      </section>
+      </ArtSectionCard>
     </div>
 
     <CarrierPerformanceAdvisorDrawer ref="performanceAdvisorRef" />
@@ -122,6 +122,7 @@
 </template>
 
 <script setup lang="tsx">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { isNil } from 'lodash-es'
   import { ElButton, ElImage, ElMessage } from 'element-plus'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
@@ -129,7 +130,7 @@
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtAttachmentLink from '@/components/core/media/art-file-viewer/attachment-link.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import {
     fetchCarrierDetail,
     fetchDriverListByCarrierId,

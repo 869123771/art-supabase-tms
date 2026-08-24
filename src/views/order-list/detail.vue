@@ -42,14 +42,17 @@
       </div>
     </section>
 
-    <section
+    <ArtSectionCard
       v-if="detail.relatedWaybills.length"
-      class="order-detail__section order-detail__waybills art-card-xs"
+      class="order-detail__section order-detail__waybills"
+      preserve-content-structure
     >
-      <div class="order-detail__waybill-heading">
-        <ArtSectionTitle title="关联运单" />
-        <span>共 {{ detail.relatedWaybills.length }} 张执行运单</span>
-      </div>
+      <template #header
+        ><div class="order-detail__waybill-heading">
+          <ArtSectionTitle title="关联运单" />
+          <span>共 {{ detail.relatedWaybills.length }} 张执行运单</span>
+        </div></template
+      >
       <div class="order-detail__waybill-list">
         <button
           v-for="waybill in detail.relatedWaybills"
@@ -71,10 +74,9 @@
           <ArtSvgIcon icon="ri:arrow-right-s-line" aria-hidden="true" />
         </button>
       </div>
-    </section>
+    </ArtSectionCard>
 
-    <section class="order-detail__section art-card-xs">
-      <ArtSectionTitle title="基础信息" />
+    <ArtSectionCard class="order-detail__section" preserve-content-structure title="基础信息">
       <ArtDescriptions :data="descriptionData" :items="basicItems" :columns="4" />
 
       <div class="order-detail__contact-card">
@@ -103,10 +105,9 @@
           />
         </div>
       </div>
-    </section>
+    </ArtSectionCard>
 
-    <section class="order-detail__section art-card-xs">
-      <ArtSectionTitle title="货物信息" />
+    <ArtSectionCard class="order-detail__section" preserve-content-structure title="货物信息">
       <ArtTable
         :data="detail.cargoItems"
         :columns="detail.cargoColumns"
@@ -127,47 +128,47 @@
           <strong>{{ formatNumber(detail.data?.cargoVolumeTotal, 3) }} 方</strong>
         </div>
       </div>
-    </section>
+    </ArtSectionCard>
 
     <div class="order-detail__finance-grid">
-      <section v-if="canViewOrderField('freightAmounts')" class="order-detail__section art-card-xs">
-        <ArtSectionTitle title="费用信息" />
+      <ArtSectionCard
+        v-if="canViewOrderField('freightAmounts')"
+        class="order-detail__section"
+        preserve-content-structure
+        title="费用信息"
+      >
         <ArtDescriptions :data="descriptionData" :items="feeItems" :columns="2" />
-      </section>
+      </ArtSectionCard>
 
-      <section class="order-detail__section art-card-xs">
-        <ArtSectionTitle title="付款方式" />
+      <ArtSectionCard class="order-detail__section" preserve-content-structure title="付款方式">
         <ArtDescriptions :data="descriptionData" :items="paymentItems" :columns="2" />
-      </section>
+      </ArtSectionCard>
     </div>
 
     <div class="order-detail__support-grid">
-      <section class="order-detail__section art-card-xs">
-        <ArtSectionTitle title="其他信息" />
+      <ArtSectionCard class="order-detail__section" preserve-content-structure title="其他信息">
         <ArtDescriptions :data="descriptionData" :items="otherItems" :columns="2" />
-      </section>
+      </ArtSectionCard>
 
-      <section class="order-detail__section art-card-xs">
-        <ArtSectionTitle title="物流信息" />
-        <ArtEmptyState
-          title="暂无物流跟踪信息"
-          description="产生运输节点后，轨迹会显示在这里。"
-          :visual-size="76"
-          size="compact"
-        />
-      </section>
+      <ArtSectionCard
+        class="order-detail__section"
+        title="物流信息"
+        empty
+        empty-title="暂无物流跟踪信息"
+        empty-description="产生运输节点后，轨迹会显示在这里。"
+        :empty-visual-size="76"
+      />
     </div>
   </ArtPageShell>
 </template>
 
 <script setup lang="tsx">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import { toNumber } from 'lodash-es'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
-  import ArtEmptyState from '@/components/core/layouts/art-empty-state/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import type { ColumnOption } from '@/types'

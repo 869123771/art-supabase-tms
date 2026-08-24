@@ -1,22 +1,24 @@
 <template>
-  <section class="ai-order-source art-card-xs">
-    <div class="ai-order-source__heading">
-      <div>
-        <ArtSectionTitle :show-line="false">提供开单资料</ArtSectionTitle>
-        <p>支持客户聊天、运输委托和订单截图，文字与图片至少提供一项。</p>
+  <ArtSectionCard class="ai-order-source" preserve-content-structure>
+    <template #header>
+      <div class="ai-order-source__heading">
+        <div>
+          <ArtSectionTitle :show-line="false">提供开单资料</ArtSectionTitle>
+          <p>支持客户聊天、运输委托和订单截图，文字与图片至少提供一项。</p>
+        </div>
+        <ElButton
+          class="ai-order-source__example-button"
+          type="primary"
+          plain
+          :loading="generatingExample"
+          :disabled="analyzing"
+          @click="emit('generate-example')"
+        >
+          <ArtSvgIcon icon="ri:magic-line" />
+          AI生成示例
+        </ElButton>
       </div>
-      <ElButton
-        class="ai-order-source__example-button"
-        type="primary"
-        plain
-        :loading="generatingExample"
-        :disabled="analyzing"
-        @click="emit('generate-example')"
-      >
-        <ArtSvgIcon icon="ri:magic-line" />
-        AI生成示例
-      </ElButton>
-    </div>
+    </template>
 
     <div class="ai-order-source__input-area">
       <div>
@@ -55,12 +57,13 @@
         开始智能识别
       </ElButton>
     </div>
-  </section>
+  </ArtSectionCard>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import { AI_ORDER_PROMPT_PLACEHOLDER } from './ai-order-examples'
   import type { AiOrderInputModel } from './ai-order-types'

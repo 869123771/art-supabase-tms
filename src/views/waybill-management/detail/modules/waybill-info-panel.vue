@@ -1,8 +1,11 @@
 <template>
   <div class="waybill-info-panel">
     <div class="waybill-info-panel__top-grid">
-      <section class="waybill-info-panel__section art-card-xs">
-        <ArtSectionTitle title="执行概览" />
+      <ArtSectionCard
+        class="waybill-info-panel__section"
+        preserve-content-structure
+        title="执行概览"
+      >
         <div class="waybill-info-panel__route">
           <div class="waybill-info-panel__route-endpoint">
             <span class="is-origin">发</span>
@@ -34,13 +37,14 @@
             <dd>{{ item.value }}</dd>
           </div>
         </dl>
-      </section>
+      </ArtSectionCard>
 
-      <section
+      <ArtSectionCard
         v-if="canView('freightAmounts') || canView('settlementAmounts')"
-        class="waybill-info-panel__section art-card-xs"
+        class="waybill-info-panel__section"
+        preserve-content-structure
+        title="费用与结算"
       >
-        <ArtSectionTitle title="费用与结算" />
         <div class="waybill-info-panel__amount">
           <div v-if="canView('freightAmounts')">
             <small>运单运费</small>
@@ -63,11 +67,10 @@
           <span>应收/付款合计</span>
           <strong>{{ money(waybill.order?.paymentTotal) }}</strong>
         </div>
-      </section>
+      </ArtSectionCard>
     </div>
 
-    <section class="waybill-info-panel__section art-card-xs">
-      <ArtSectionTitle title="承运资源" />
+    <ArtSectionCard class="waybill-info-panel__section" preserve-content-structure title="承运资源">
       <div class="waybill-info-panel__resource-grid">
         <article>
           <span class="waybill-info-panel__resource-icon">
@@ -106,10 +109,13 @@
           </div>
         </article>
       </div>
-    </section>
+    </ArtSectionCard>
 
-    <section class="waybill-info-panel__section art-card-xs">
-      <ArtSectionTitle title="发收货与联系信息" />
+    <ArtSectionCard
+      class="waybill-info-panel__section"
+      preserve-content-structure
+      title="发收货与联系信息"
+    >
       <div class="waybill-info-panel__contact-grid">
         <article>
           <div class="waybill-info-panel__contact-heading">
@@ -149,11 +155,14 @@
           >
         </article>
       </div>
-    </section>
+    </ArtSectionCard>
 
     <div class="waybill-info-panel__bottom-grid">
-      <section class="waybill-info-panel__section art-card-xs">
-        <ArtSectionTitle title="货物明细" />
+      <ArtSectionCard
+        class="waybill-info-panel__section"
+        preserve-content-structure
+        title="货物明细"
+      >
         <div class="waybill-info-panel__cargo-summary">
           <div>
             <span><ArtSvgIcon icon="ri:stack-line" aria-hidden="true" /></span>
@@ -193,10 +202,13 @@
           size="compact"
           :visual-size="64"
         />
-      </section>
+      </ArtSectionCard>
 
-      <section class="waybill-info-panel__section art-card-xs">
-        <ArtSectionTitle title="关联与审计" />
+      <ArtSectionCard
+        class="waybill-info-panel__section"
+        preserve-content-structure
+        title="关联与审计"
+      >
         <div v-if="waybill.order" class="waybill-info-panel__order">
           <div>
             <small>订单号</small>
@@ -256,15 +268,15 @@
             <p>{{ waybill.order?.dispatchRemark || '无' }}</p>
           </div>
         </div>
-      </section>
+      </ArtSectionCard>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
-  import ArtEmptyState from '@/components/core/layouts/art-empty-state/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import { formatWithDayjs } from '@/utils/time'
   import { formatCurrencyValue } from '@/utils/ui'
   import { canViewField } from '@/utils/field-permission'

@@ -1,7 +1,10 @@
 <template>
   <div class="waybill-operation-panel">
-    <section class="waybill-operation-panel__section art-card-xs">
-      <ArtSectionTitle title="装卸作业" />
+    <ArtSectionCard
+      class="waybill-operation-panel__section"
+      preserve-content-structure
+      title="装卸作业"
+    >
       <div class="waybill-operation-panel__operation-grid">
         <article v-for="card in operationCards" :key="card.type" :class="`is-${card.type}`">
           <div class="waybill-operation-panel__card-heading">
@@ -94,10 +97,13 @@
           </div>
         </article>
       </div>
-    </section>
+    </ArtSectionCard>
 
-    <section class="waybill-operation-panel__section art-card-xs">
-      <ArtSectionTitle title="司机执行记录" />
+    <ArtSectionCard
+      class="waybill-operation-panel__section"
+      preserve-content-structure
+      title="司机执行记录"
+    >
       <ElAlert
         v-if="returnArchiveMismatch"
         class="waybill-operation-panel__archive-alert"
@@ -148,10 +154,13 @@
         size="compact"
         :visual-size="72"
       />
-    </section>
+    </ArtSectionCard>
 
-    <section class="waybill-operation-panel__section art-card-xs">
-      <ArtSectionTitle title="作业数据完整性" />
+    <ArtSectionCard
+      class="waybill-operation-panel__section"
+      preserve-content-structure
+      title="作业数据完整性"
+    >
       <div class="waybill-operation-panel__integrity-grid">
         <article v-for="item in integrityItems" :key="item.label">
           <span :class="{ 'is-complete': item.complete }">
@@ -166,13 +175,13 @@
           >
         </article>
       </div>
-    </section>
+    </ArtSectionCard>
   </div>
 </template>
 
 <script setup lang="ts">
-  import ArtEmptyState from '@/components/core/layouts/art-empty-state/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import { formatWithDayjs } from '@/utils/time'
   import { canViewField } from '@/utils/field-permission'
 

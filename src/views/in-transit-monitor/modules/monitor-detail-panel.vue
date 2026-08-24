@@ -163,7 +163,7 @@
 <script setup lang="ts">
   import { MagicStick, MoreFilled, Phone, Warning } from '@element-plus/icons-vue'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
-  import ArtAsyncState from '@/components/core/layouts/art-async-state/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import { formatWithDayjs } from '@/utils/time'
   import type { MonitorOrder } from './monitor-types'
 

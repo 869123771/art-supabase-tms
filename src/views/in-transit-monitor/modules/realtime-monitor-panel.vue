@@ -169,7 +169,7 @@
     Van
   } from '@element-plus/icons-vue'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
-  import ArtAsyncState from '@/components/core/layouts/art-async-state/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import type { MonitorOrder, MonitorOverview, RegionOption, TransitStatus } from './monitor-types'
 
   defineOptions({ name: 'TmsRealtimeMonitorPanel' })

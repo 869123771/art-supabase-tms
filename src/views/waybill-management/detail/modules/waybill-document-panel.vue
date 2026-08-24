@@ -1,16 +1,18 @@
 <template>
   <div class="waybill-document-panel">
-    <section class="waybill-document-panel__section art-card-xs">
-      <div class="waybill-document-panel__heading">
-        <div>
-          <ArtSectionTitle title="单证影像中心" />
-          <p>汇总订单附件、装卸照片、磅单、回单与签名，按来源统一归档。</p>
+    <ArtSectionCard class="waybill-document-panel__section" preserve-content-structure>
+      <template #header>
+        <div class="waybill-document-panel__heading">
+          <div>
+            <ArtSectionTitle title="单证影像中心" />
+            <p>汇总订单附件、装卸照片、磅单、回单与签名，按来源统一归档。</p>
+          </div>
+          <div class="waybill-document-panel__heading-meta">
+            <strong>{{ documents.length }}</strong>
+            <span>份归档资料</span>
+          </div>
         </div>
-        <div class="waybill-document-panel__heading-meta">
-          <strong>{{ documents.length }}</strong>
-          <span>份归档资料</span>
-        </div>
-      </div>
+      </template>
 
       <div class="waybill-document-panel__summary">
         <button
@@ -29,7 +31,7 @@
           >
         </button>
       </div>
-    </section>
+    </ArtSectionCard>
 
     <section class="waybill-document-panel__section art-card-xs">
       <div class="waybill-document-panel__toolbar">
@@ -110,8 +112,11 @@
       />
     </section>
 
-    <section class="waybill-document-panel__section art-card-xs">
-      <ArtSectionTitle title="归档覆盖" />
+    <ArtSectionCard
+      class="waybill-document-panel__section"
+      preserve-content-structure
+      title="归档覆盖"
+    >
       <div class="waybill-document-panel__coverage">
         <article v-for="item in coverageItems" :key="item.label">
           <span :class="{ 'is-covered': item.count > 0 }">
@@ -126,14 +131,15 @@
           </div>
         </article>
       </div>
-    </section>
+    </ArtSectionCard>
   </div>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { uniqBy } from 'lodash-es'
-  import ArtEmptyState from '@/components/core/layouts/art-empty-state/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import { formatWithDayjs } from '@/utils/time'
 
   defineOptions({ name: 'TmsWaybillDocumentPanel' })

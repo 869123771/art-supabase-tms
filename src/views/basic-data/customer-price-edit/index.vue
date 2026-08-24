@@ -15,9 +15,11 @@
     />
 
     <div ref="pageRef" class="customer-price-edit__content">
-      <section class="customer-price-edit__section art-card-xs">
-        <ArtSectionTitle>客户与运输路线</ArtSectionTitle>
-
+      <ArtSectionCard
+        class="customer-price-edit__section"
+        preserve-content-structure
+        title="客户与运输路线"
+      >
         <ol class="customer-price-edit__workflow" aria-label="客户价格维护步骤">
           <li
             v-for="(step, index) in workflowSteps"
@@ -229,7 +231,7 @@
             </ArtForm>
           </div>
         </div>
-      </section>
+      </ArtSectionCard>
 
       <PriceCargoSection
         :quantity-text="form.cargoQuantityText"
@@ -249,8 +251,11 @@
         />
       </PriceCargoSection>
 
-      <section class="customer-price-edit__section art-card-xs">
-        <ArtSectionTitle>需求车辆</ArtSectionTitle>
+      <ArtSectionCard
+        class="customer-price-edit__section"
+        preserve-content-structure
+        title="需求车辆"
+      >
         <ArtForm
           ref="vehicleFormRef"
           v-model="form.data"
@@ -263,13 +268,14 @@
           :show-reset="false"
           :show-submit="false"
         />
-      </section>
+      </ArtSectionCard>
 
-      <section
+      <ArtSectionCard
         v-if="canViewSensitiveField('quoteAmounts')"
-        class="customer-price-edit__section art-card-xs"
+        class="customer-price-edit__section"
+        preserve-content-structure
+        title="费用信息"
       >
-        <ArtSectionTitle>费用信息</ArtSectionTitle>
         <ArtForm
           ref="feeFormRef"
           v-model="form.data"
@@ -282,13 +288,14 @@
           :show-reset="false"
           :show-submit="false"
         />
-      </section>
+      </ArtSectionCard>
 
-      <section
+      <ArtSectionCard
         v-if="canViewSensitiveField('paymentAmounts')"
-        class="customer-price-edit__section art-card-xs"
+        class="customer-price-edit__section"
+        preserve-content-structure
+        title="付款方式"
       >
-        <ArtSectionTitle>付款方式</ArtSectionTitle>
         <ArtForm
           ref="paymentFormRef"
           v-model="form.data"
@@ -301,7 +308,7 @@
           :show-reset="false"
           :show-submit="false"
         />
-      </section>
+      </ArtSectionCard>
     </div>
 
     <ArtStickyActionBar
@@ -362,6 +369,7 @@
 </template>
 
 <script setup lang="tsx">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import { cloneDeep } from 'lodash-es'
   import type { FormRules, TagProps } from 'element-plus'
@@ -387,7 +395,6 @@
     DataSelectRecord
   } from '@/components/core/forms/art-data-select/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import type { ColumnOption } from '@/types'
   import { formatNameCodeOption } from '@/utils/form'

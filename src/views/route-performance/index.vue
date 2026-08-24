@@ -19,18 +19,20 @@
       :refresh-loading="loading"
       @refresh="loadOverview"
     />
-    <section class="route-performance-page__workspace art-card-xs">
-      <header class="route-performance-page__toolbar">
-        <div
-          ><ArtSectionTitle :show-line="false">线路排行榜</ArtSectionTitle
-          ><p>按完成趟次排序，更新时间 {{ generatedAt }}</p></div
-        >
-        <ElRadioGroup v-model="periodDays" size="small" @change="loadOverview">
-          <ElRadioButton :value="30">近 30 天</ElRadioButton>
-          <ElRadioButton :value="90">近 90 天</ElRadioButton>
-          <ElRadioButton :value="180">近 180 天</ElRadioButton>
-        </ElRadioGroup>
-      </header>
+    <ArtSectionCard class="route-performance-page__workspace" preserve-content-structure>
+      <template #header>
+        <header class="route-performance-page__toolbar">
+          <div
+            ><ArtSectionTitle :show-line="false">线路排行榜</ArtSectionTitle
+            ><p>按完成趟次排序，更新时间 {{ generatedAt }}</p></div
+          >
+          <ElRadioGroup v-model="periodDays" size="small" @change="loadOverview">
+            <ElRadioButton :value="30">近 30 天</ElRadioButton>
+            <ElRadioButton :value="90">近 90 天</ElRadioButton>
+            <ElRadioButton :value="180">近 180 天</ElRadioButton>
+          </ElRadioGroup>
+        </header>
+      </template>
       <ElAlert
         v-if="overview?.truncated"
         class="route-performance-page__capacity-alert"
@@ -84,16 +86,17 @@
           </ElTag>
         </li>
       </ol>
-    </section>
+    </ArtSectionCard>
   </div>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { ElMessage } from 'element-plus'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import { formatNumberValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'

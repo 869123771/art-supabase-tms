@@ -27,8 +27,11 @@
         :description="policyDescription"
       />
 
-      <section class="cargo-operation-dialog__checkin art-card-xs">
-        <ArtSectionTitle :show-line="false">定位打卡</ArtSectionTitle>
+      <ArtSectionCard
+        class="cargo-operation-dialog__checkin"
+        preserve-content-structure
+        title="定位打卡"
+      >
         <div v-if="context?.operation" class="cargo-operation-dialog__checkin-grid">
           <div
             ><span>打卡时间</span><strong>{{ checkinTimeText }}</strong></div
@@ -53,7 +56,7 @@
             获取定位并打卡
           </ElButton>
         </div>
-      </section>
+      </ArtSectionCard>
 
       <ArtForm
         v-if="!checkinOnly"
@@ -106,12 +109,12 @@
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ComputedRef } from 'vue'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import {
     checkInWaybillCargoOperation,

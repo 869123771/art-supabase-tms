@@ -149,22 +149,24 @@
         </div>
       </section>
 
-      <section class="order-open__section art-card-xs">
-        <div class="order-open__section-header">
-          <ArtSectionTitle :show-line="false">货品信息</ArtSectionTitle>
-          <div class="order-open__section-actions">
-            <ElButton
-              v-if="canEditOrderField('cargoPricing')"
-              plain
-              @click="openContractDetailSelector"
-            >
-              <template #icon><ArtSvgIcon icon="ri:file-list-3-line" /></template>
-              批量选合同明细
-            </ElButton>
-            <ElButton plain :icon="Collection" @click="openCargoSelector">批量选货物</ElButton>
-            <ElButton type="primary" plain :icon="Plus" @click="addCargoItem">添加</ElButton>
-          </div>
-        </div>
+      <ArtSectionCard class="order-open__section" preserve-content-structure>
+        <template #header
+          ><div class="order-open__section-header">
+            <ArtSectionTitle :show-line="false">货品信息</ArtSectionTitle>
+            <div class="order-open__section-actions">
+              <ElButton
+                v-if="canEditOrderField('cargoPricing')"
+                plain
+                @click="openContractDetailSelector"
+              >
+                <template #icon><ArtSvgIcon icon="ri:file-list-3-line" /></template>
+                批量选合同明细
+              </ElButton>
+              <ElButton plain :icon="Collection" @click="openCargoSelector">批量选货物</ElButton>
+              <ElButton type="primary" plain :icon="Plus" @click="addCargoItem">添加</ElButton>
+            </div>
+          </div></template
+        >
         <ArtTable
           :data="form.cargoItems"
           :columns="form.cargoColumns"
@@ -180,10 +182,14 @@
           <span>总重量：{{ form.cargoWeightText }}kg</span>
           <span>总体积：{{ form.cargoVolumeText }}方</span>
         </div>
-      </section>
+      </ArtSectionCard>
 
-      <section v-if="canViewOrderField('freightAmounts')" class="order-open__section art-card-xs">
-        <ArtSectionTitle>运费设置</ArtSectionTitle>
+      <ArtSectionCard
+        v-if="canViewOrderField('freightAmounts')"
+        class="order-open__section"
+        preserve-content-structure
+        title="运费设置"
+      >
         <ArtForm
           ref="feeFormRef"
           v-model="form.data"
@@ -195,10 +201,9 @@
           :show-reset="false"
           :show-submit="false"
         />
-      </section>
+      </ArtSectionCard>
 
-      <section class="order-open__section art-card-xs">
-        <ArtSectionTitle>付款设置</ArtSectionTitle>
+      <ArtSectionCard class="order-open__section" preserve-content-structure title="付款设置">
         <ArtForm
           ref="paymentFormRef"
           v-model="form.data"
@@ -211,10 +216,9 @@
           :show-reset="false"
           :show-submit="false"
         />
-      </section>
+      </ArtSectionCard>
 
-      <section class="order-open__section art-card-xs">
-        <ArtSectionTitle>其他信息</ArtSectionTitle>
+      <ArtSectionCard class="order-open__section" preserve-content-structure title="其他信息">
         <ArtForm
           ref="otherFormRef"
           v-model="form.data"
@@ -237,7 +241,7 @@
             :readonly="!canEditOrderField('proofAttachments')"
           />
         </div>
-      </section>
+      </ArtSectionCard>
 
       <ArtStickyActionBar class="order-open__footer">
         <template #summary>
@@ -376,6 +380,7 @@
 </template>
 
 <script setup lang="tsx">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import { useDateFormat, useNow } from '@vueuse/core'
   import { cloneDeep, isNil, round } from 'lodash-es'
@@ -384,7 +389,7 @@
   import { Collection, Plus } from '@element-plus/icons-vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import { useAmapGeocoder } from '@/hooks/core/useAmapGeocoder'

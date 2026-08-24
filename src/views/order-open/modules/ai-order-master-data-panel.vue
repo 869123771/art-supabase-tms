@@ -1,17 +1,19 @@
 <template>
-  <section class="ai-order-master-data art-card-xs">
-    <div class="ai-order-master-data__heading">
-      <div>
-        <ArtSectionTitle :show-line="false">前置资料一键建档</ArtSectionTitle>
-        <p>勾选资料完整的项目，统一创建后自动重新匹配到当前订单。</p>
+  <ArtSectionCard class="ai-order-master-data" preserve-content-structure>
+    <template #header>
+      <div class="ai-order-master-data__heading">
+        <div>
+          <ArtSectionTitle :show-line="false">前置资料一键建档</ArtSectionTitle>
+          <p>勾选资料完整的项目，统一创建后自动重新匹配到当前订单。</p>
+        </div>
+        <div class="ai-order-master-data__counts">
+          <ElTag type="success" effect="plain">可创建 {{ readyCount }} 项</ElTag>
+          <ElTag v-if="blockedCount" type="danger" effect="plain">
+            待补充 {{ blockedCount }} 项
+          </ElTag>
+        </div>
       </div>
-      <div class="ai-order-master-data__counts">
-        <ElTag type="success" effect="plain">可创建 {{ readyCount }} 项</ElTag>
-        <ElTag v-if="blockedCount" type="danger" effect="plain">
-          待补充 {{ blockedCount }} 项
-        </ElTag>
-      </div>
-    </div>
+    </template>
 
     <ElCheckboxGroup
       :model-value="selectedKeys"
@@ -44,11 +46,12 @@
       <ArtSvgIcon icon="ri:shield-check-line" />
       <span>仅写入当前租户的所选档案；整批失败会全部回滚，订单仍需手动保存。</span>
     </div>
-  </section>
+  </ArtSectionCard>
 </template>
 
 <script setup lang="ts">
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import type { AiOrderMasterDataTask } from './ai-order-types'
 
   defineOptions({ name: 'TmsAiOrderMasterDataPanel' })

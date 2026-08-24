@@ -1,12 +1,14 @@
 <template>
-  <section class="waybill-tracking art-card-xs">
-    <div class="waybill-tracking__heading">
-      <div>
-        <ArtSectionTitle title="全流程跟踪" />
-        <p>司机端、Web 端与系统节点统一按发生时间归档，历史记录只读展示。</p>
+  <ArtSectionCard class="waybill-tracking" preserve-content-structure>
+    <template #header>
+      <div class="waybill-tracking__heading">
+        <div>
+          <ArtSectionTitle title="全流程跟踪" />
+          <p>司机端、Web 端与系统节点统一按发生时间归档，历史记录只读展示。</p>
+        </div>
+        <ElTag type="info" effect="plain">共 {{ nodes.length }} 个节点</ElTag>
       </div>
-      <ElTag type="info" effect="plain">共 {{ nodes.length }} 个节点</ElTag>
-    </div>
+    </template>
 
     <ElScrollbar v-if="nodes.length" max-height="760px" always class="waybill-tracking__scrollbar">
       <ElTimeline class="waybill-tracking__timeline">
@@ -94,14 +96,15 @@
       size="compact"
       :visual-size="88"
     />
-  </section>
+  </ArtSectionCard>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { TagProps, TimelineItemProps } from 'element-plus'
   import { compact, uniq } from 'lodash-es'
-  import ArtEmptyState from '@/components/core/layouts/art-empty-state/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import { formatWithDayjs } from '@/utils/time'
   import { canViewField } from '@/utils/field-permission'
 

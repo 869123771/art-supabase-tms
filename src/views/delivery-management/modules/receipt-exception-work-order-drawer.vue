@@ -11,26 +11,28 @@
     </template>
 
     <div class="exception-work-orders">
-      <section class="exception-work-orders__overview art-card-xs">
-        <header class="exception-work-orders__overview-header">
-          <div class="exception-work-orders__identity">
-            <span class="exception-work-orders__hero-icon" aria-hidden="true">
-              <ArtSvgIcon icon="ri:shield-check-line" />
-            </span>
-            <div>
-              <span class="exception-work-orders__eyebrow"><i />AI EXCEPTION WORKFLOW</span>
-              <h3>签收异常处置中心</h3>
-              <p>聚合 AI 识别风险，支持人工认领、核实、解决与关闭，全过程留痕。</p>
+      <ArtSectionCard class="exception-work-orders__overview" preserve-content-structure>
+        <template #header>
+          <header class="exception-work-orders__overview-header">
+            <div class="exception-work-orders__identity">
+              <span class="exception-work-orders__hero-icon" aria-hidden="true">
+                <ArtSvgIcon icon="ri:shield-check-line" />
+              </span>
+              <div>
+                <span class="exception-work-orders__eyebrow"><i />AI EXCEPTION WORKFLOW</span>
+                <h3>签收异常处置中心</h3>
+                <p>聚合 AI 识别风险，支持人工认领、核实、解决与关闭，全过程留痕。</p>
+              </div>
             </div>
-          </div>
-          <ElTag :type="isPlatformSuper ? 'primary' : 'info'" effect="plain" round>
-            <ArtSvgIcon
-              :icon="isPlatformSuper ? 'ri:verified-badge-line' : 'ri:eye-line'"
-              aria-hidden="true"
-            />
-            {{ isPlatformSuper ? '可执行工单流转' : '只读查看模式' }}
-          </ElTag>
-        </header>
+            <ElTag :type="isPlatformSuper ? 'primary' : 'info'" effect="plain" round>
+              <ArtSvgIcon
+                :icon="isPlatformSuper ? 'ri:verified-badge-line' : 'ri:eye-line'"
+                aria-hidden="true"
+              />
+              {{ isPlatformSuper ? '可执行工单流转' : '只读查看模式' }}
+            </ElTag>
+          </header>
+        </template>
 
         <div class="exception-work-orders__metrics">
           <article v-for="metric in metrics" :key="metric.label" :class="`is-${metric.tone}`">
@@ -44,16 +46,18 @@
             </div>
           </article>
         </div>
-      </section>
+      </ArtSectionCard>
 
-      <section class="exception-work-orders__workspace art-card-xs">
-        <header class="exception-work-orders__workspace-header">
-          <div>
-            <ArtSectionTitle :show-line="false">异常工单列表</ArtSectionTitle>
-            <p>优先处理严重风险与已超过处置时限的工单</p>
-          </div>
-          <span>{{ state.rows.length }} 个结果</span>
-        </header>
+      <ArtSectionCard class="exception-work-orders__workspace" preserve-content-structure>
+        <template #header>
+          <header class="exception-work-orders__workspace-header">
+            <div>
+              <ArtSectionTitle :show-line="false">异常工单列表</ArtSectionTitle>
+              <p>优先处理严重风险与已超过处置时限的工单</p>
+            </div>
+            <span>{{ state.rows.length }} 个结果</span>
+          </header>
+        </template>
 
         <div class="exception-work-orders__toolbar">
           <ElTooltip content="刷新异常工单" placement="top">
@@ -186,20 +190,21 @@
             </article>
           </div>
         </ArtAsyncState>
-      </section>
+      </ArtSectionCard>
     </div>
   </ArtDrawer>
 </template>
 
 <script setup lang="ts">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { createFriendlySupabaseError } from '@/utils/supabase'
   import dayjs from 'dayjs'
   import { ElMessage } from 'element-plus'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
-  import ArtAsyncState from '@/components/core/layouts/art-async-state/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
   import { fetchReceiptExceptionWorkOrders, transitionReceiptExceptionWorkOrder } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'

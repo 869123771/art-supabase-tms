@@ -22,22 +22,25 @@
         :editable="canEditTransportDetails"
       />
 
-      <section
+      <ArtSectionCard
         v-if="canViewSensitiveField('attachments')"
-        class="contract-dialog__section art-card-xs"
+        class="contract-dialog__section"
+        preserve-content-structure
       >
-        <div class="contract-dialog__section-header">
-          <ArtSectionTitle :show-line="false">合同附件</ArtSectionTitle>
-          <ArtExcelImport
-            accept=""
-            :parse-excel="false"
-            :disabled="form.attachmentUploading || !canEditSensitiveField('attachments')"
-            :button-props="{ type: 'primary', plain: true, loading: form.attachmentUploading }"
-            @file-change="handleAttachmentUpload"
-          >
-            上传附件
-          </ArtExcelImport>
-        </div>
+        <template #header
+          ><div class="contract-dialog__section-header">
+            <ArtSectionTitle :show-line="false">合同附件</ArtSectionTitle>
+            <ArtExcelImport
+              accept=""
+              :parse-excel="false"
+              :disabled="form.attachmentUploading || !canEditSensitiveField('attachments')"
+              :button-props="{ type: 'primary', plain: true, loading: form.attachmentUploading }"
+              @file-change="handleAttachmentUpload"
+            >
+              上传附件
+            </ArtExcelImport>
+          </div></template
+        >
         <ArtTable
           :data="form.data.attachments"
           :columns="attachmentColumns"
@@ -45,7 +48,7 @@
           :show-table-header="false"
           empty-height="160px"
         />
-      </section>
+      </ArtSectionCard>
     </div>
 
     <template #footer="{ loading, api }">
@@ -70,6 +73,7 @@
 </template>
 
 <script setup lang="tsx">
+  import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
@@ -81,7 +85,7 @@
   import ArtExcelImport from '@/components/core/forms/art-excel-import/index.vue'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
-  import ArtSectionTitle from '@/components/core/forms/art-section-title/index.vue'
+  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
   import { renderAttachmentLink } from '@/components/core/media/art-file-viewer/render'
