@@ -667,7 +667,7 @@
       height: 34px;
       font-size: 19px;
       background: color-mix(in srgb, currentcolor 10%, transparent);
-      border-radius: 10px;
+      border-radius: var(--art-control-radius);
     }
 
     &__delivery-audit-copy {
@@ -752,15 +752,15 @@
       justify-content: center;
       width: 28px;
       height: 28px;
-      color: #fff;
+      color: var(--el-color-white);
       border-radius: var(--el-border-radius-base);
 
       &--send {
-        background: #37c2ff;
+        background: var(--el-color-primary);
       }
 
       &--receive {
-        background: #f4c430;
+        background: var(--el-color-warning);
       }
     }
 

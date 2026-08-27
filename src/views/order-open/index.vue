@@ -55,7 +55,12 @@
         </template>
       </ArtPageHeader>
 
-      <section class="order-open__section order-open__section--compact art-card-xs">
+      <ArtSectionCard
+        class="order-open__section order-open__section--route"
+        title="运输路线"
+        subtitle="确认始发、到达与配送方式，线路信息将用于后续调度。"
+        preserve-content-structure
+      >
         <ArtForm
           ref="stationFormRef"
           v-model="form.data"
@@ -68,9 +73,14 @@
           :show-reset="false"
           :show-submit="false"
         />
-      </section>
+      </ArtSectionCard>
 
-      <section class="order-open__section art-card-xs">
+      <ArtSectionCard
+        class="order-open__section order-open__section--contacts"
+        title="收发信息"
+        subtitle="选择客户常用地址后仍可按本次运输需要补充联系人与详细地址。"
+        preserve-content-structure
+      >
         <div class="order-open__contact-grid">
           <div class="order-open__contact-panel">
             <div class="order-open__contact-heading">
@@ -147,7 +157,7 @@
             />
           </div>
         </div>
-      </section>
+      </ArtSectionCard>
 
       <ArtSectionCard class="order-open__section" preserve-content-structure>
         <template #header
@@ -185,61 +195,143 @@
       </ArtSectionCard>
 
       <ArtSectionCard
-        v-if="canViewOrderField('freightAmounts')"
         class="order-open__section"
         preserve-content-structure
-        title="运费设置"
+        title="结算信息"
+        subtitle="集中维护本单应收费用、款项分配与结算方式。"
       >
-        <ArtForm
-          ref="feeFormRef"
-          v-model="form.data"
-          :items="form.feeItems"
-          :span="5"
-          :gutter="22"
-          label-width="80px"
-          root-class="order-open__form"
-          :show-reset="false"
-          :show-submit="false"
-        />
+        <div class="order-open__settlement-grid">
+          <section v-if="canViewOrderField('freightAmounts')" class="order-open__settlement-panel">
+            <header class="order-open__panel-heading">
+              <span class="order-open__panel-icon is-receivable" aria-hidden="true">
+                <ArtSvgIcon icon="ri:money-cny-circle-line" />
+              </span>
+              <div>
+                <strong>应收运费</strong>
+                <small>录入本单运输及附加服务费用</small>
+              </div>
+            </header>
+            <ArtForm
+              ref="feeFormRef"
+              v-model="form.data"
+              :items="form.feeItems"
+              :span="24"
+              :gutter="18"
+              label-width="76px"
+              root-class="order-open__form order-open__form--settlement"
+              :show-reset="false"
+              :show-submit="false"
+            />
+            <footer class="order-open__panel-total">
+              <span>应收运费合计</span>
+              <strong>￥{{ form.totalFeeText }}</strong>
+            </footer>
+          </section>
+
+          <section
+            v-if="canViewOrderField('settlementAmounts')"
+            class="order-open__settlement-panel"
+          >
+            <header class="order-open__panel-heading">
+              <span class="order-open__panel-icon is-allocation" aria-hidden="true">
+                <ArtSvgIcon icon="ri:wallet-3-line" />
+              </span>
+              <div>
+                <strong>款项分配</strong>
+                <small>拆分现付、到付、月结与代收款项</small>
+              </div>
+            </header>
+            <ArtForm
+              ref="paymentFormRef"
+              v-model="form.data"
+              :items="form.paymentItems"
+              :span="24"
+              :gutter="18"
+              label-width="76px"
+              root-class="order-open__form order-open__form--settlement"
+              :show-reset="false"
+              :show-submit="false"
+            />
+            <footer class="order-open__panel-total">
+              <span>款项分配合计</span>
+              <strong>￥{{ form.paymentTotalText }}</strong>
+            </footer>
+          </section>
+
+          <section class="order-open__settlement-panel order-open__settlement-panel--summary">
+            <header class="order-open__panel-heading">
+              <span class="order-open__panel-icon is-summary" aria-hidden="true">
+                <ArtSvgIcon icon="ri:file-list-3-line" />
+              </span>
+              <div>
+                <strong>结算方式</strong>
+                <small>确认付款口径与货物声明价值</small>
+              </div>
+            </header>
+            <ArtForm
+              ref="settlementFormRef"
+              v-model="form.data"
+              :items="form.settlementItems"
+              :rules="form.rules"
+              :span="24"
+              label-width="76px"
+              root-class="order-open__form order-open__form--settlement-summary"
+              :show-reset="false"
+              :show-submit="false"
+            />
+            <dl class="order-open__settlement-overview">
+              <div>
+                <dt>当前付款方式</dt>
+                <dd>{{ form.paymentMethodLabel || '待选择' }}</dd>
+              </div>
+              <div v-if="canViewOrderField('freightAmounts')">
+                <dt>本单应收</dt>
+                <dd>￥{{ form.totalFeeText }}</dd>
+              </div>
+              <div v-if="canViewOrderField('settlementAmounts')">
+                <dt>已分配款项</dt>
+                <dd>￥{{ form.paymentTotalText }}</dd>
+              </div>
+            </dl>
+          </section>
+        </div>
       </ArtSectionCard>
 
-      <ArtSectionCard class="order-open__section" preserve-content-structure title="付款设置">
-        <ArtForm
-          ref="paymentFormRef"
-          v-model="form.data"
-          :items="form.paymentItems"
-          :rules="form.rules"
-          :span="5"
-          :gutter="22"
-          label-width="88px"
-          root-class="order-open__form"
-          :show-reset="false"
-          :show-submit="false"
-        />
-      </ArtSectionCard>
-
-      <ArtSectionCard class="order-open__section" preserve-content-structure title="其他信息">
-        <ArtForm
-          ref="otherFormRef"
-          v-model="form.data"
-          :items="form.otherItems"
-          :span="8"
-          :gutter="22"
-          label-width="80px"
-          root-class="order-open__form"
-          :show-reset="false"
-          :show-submit="false"
-        />
-        <div v-if="canViewOrderField('proofAttachments')" class="order-open__upload-row">
-          <span>图片上传</span>
-          <ArtUploadImage
-            v-model="form.data.imageUrls"
-            title="上传图片"
-            :size="104"
-            :limit="3"
-            multiple
-            :readonly="!canEditOrderField('proofAttachments')"
-          />
+      <ArtSectionCard
+        class="order-open__section"
+        preserve-content-structure
+        title="运输信息"
+        subtitle="补充运输方式、业务备注与随单图片，便于调度和现场人员核对。"
+      >
+        <div class="order-open__transport-grid">
+          <section class="order-open__transport-panel">
+            <ArtSectionTitle :show-line="false">运输方式与备注</ArtSectionTitle>
+            <ArtForm
+              ref="otherFormRef"
+              v-model="form.data"
+              :items="form.otherItems"
+              :span="24"
+              label-width="80px"
+              root-class="order-open__form order-open__form--transport"
+              :show-reset="false"
+              :show-submit="false"
+            />
+          </section>
+          <section
+            v-if="canViewOrderField('proofAttachments')"
+            class="order-open__transport-panel order-open__transport-panel--upload"
+          >
+            <ArtSectionTitle :show-line="false">业务附件</ArtSectionTitle>
+            <p>可上传货物、包装或交接凭证，最多 3 张。</p>
+            <ArtUploadImage
+              v-model="form.data.imageUrls"
+              title="上传业务图片"
+              :size="112"
+              :limit="3"
+              multiple
+              :readonly="!canEditOrderField('proofAttachments')"
+            />
+          </section>
         </div>
       </ArtSectionCard>
 
@@ -543,6 +635,7 @@
     receivingItems: ComputedRef<FormItem[]>
     feeItems: ComputedRef<FormItem[]>
     paymentItems: ComputedRef<FormItem[]>
+    settlementItems: ComputedRef<FormItem[]>
     otherItems: ComputedRef<FormItem[]>
     rules: ComputedRef<FormRules<OrderForm>>
     cargoColumns: ComputedRef<ColumnOption<CargoItem>[]>
@@ -554,6 +647,7 @@
     cargoWeightText: ComputedRef<string>
     cargoVolumeText: ComputedRef<string>
     totalFeeText: ComputedRef<string>
+    paymentTotalText: ComputedRef<string>
   }
 
   const pageRef = ref<HTMLElement>()
@@ -568,6 +662,7 @@
   const receivingFormRef = ref<FormExpose>()
   const feeFormRef = ref<FormExpose>()
   const paymentFormRef = ref<FormExpose>()
+  const settlementFormRef = ref<FormExpose>()
   const otherFormRef = ref<FormExpose>()
   const customerDialogRef = ref<CustomerSelectorExpose>()
   const favoriteRouteDialogRef = ref<FavoriteRouteSelectorExpose>()
@@ -578,7 +673,7 @@
   const aiArtifactId = ref<string>()
   const initializedOrderId = ref<string>()
   const numberRules = ref<Record<string, Api.SystemManage.DocumentNumberRuleItem>>({})
-  const validatedFormRefs = [stationFormRef, shippingFormRef, receivingFormRef, paymentFormRef]
+  const validatedFormRefs = [stationFormRef, shippingFormRef, receivingFormRef, settlementFormRef]
 
   const dictCodes = [
     'tmsOrderDeliveryMethod',
@@ -792,17 +887,9 @@
         { label: '其他费用', key: 'otherFee', type: 'number', props }
       ]
     }),
-    paymentItems: computed<FormItem[]>(() => [
-      {
-        label: '付款方式',
-        key: 'paymentMethod',
-        type: 'radioGroup',
-        span: 24,
-        props: { options: form.paymentMethodOptions }
-      },
-      ...(canViewOrderField('settlementAmounts')
+    paymentItems: computed<FormItem[]>(() =>
+      canViewOrderField('settlementAmounts')
         ? [
-            { label: '声明价值', key: 'declaredValue', type: 'number' as const },
             { label: '现付', key: 'cashAmount', type: 'number' as const },
             { label: '到付', key: 'collectAmount', type: 'number' as const },
             { label: '月结', key: 'monthlyAmount', type: 'number' as const },
@@ -812,6 +899,25 @@
             ...item,
             props: { ...moneyProps, disabled: !canEditOrderField('settlementAmounts') }
           }))
+        : []
+    ),
+    settlementItems: computed<FormItem[]>(() => [
+      {
+        label: '付款方式',
+        key: 'paymentMethod',
+        type: 'radioGroup',
+        span: 24,
+        props: { options: form.paymentMethodOptions }
+      },
+      ...(canViewOrderField('settlementAmounts')
+        ? [
+            {
+              label: '声明价值',
+              key: 'declaredValue',
+              type: 'number' as const,
+              props: { ...moneyProps, disabled: !canEditOrderField('settlementAmounts') }
+            }
+          ]
         : [])
     ]),
     otherItems: computed<FormItem[]>(() => [
@@ -980,7 +1086,14 @@
         prop: 'operation',
         label: '操作',
         width: 90,
-        formatter: (row) => <ArtButtonTable type="delete" onClick={() => removeCargoItem(row)} />
+        formatter: (row) => (
+          <ArtButtonTable
+            type="delete"
+            permission="TmsOrderOpen:Create"
+            label="移除货品"
+            onClick={() => removeCargoItem(row)}
+          />
+        )
       }
     ]),
     cargoItems: computed(() => form.data.cargoItems ?? []),
@@ -1003,7 +1116,8 @@
     cargoQuantityText: computed(() => formatNumber(form.cargoSummary.quantity, 0)),
     cargoWeightText: computed(() => formatNumber(form.cargoSummary.weight, 2)),
     cargoVolumeText: computed(() => formatNumber(form.cargoSummary.volume, 3)),
-    totalFeeText: computed(() => formatNumber(form.data.totalFee, 2))
+    totalFeeText: computed(() => formatNumber(form.data.totalFee, 2)),
+    paymentTotalText: computed(() => formatNumber(form.data.paymentTotal, 2))
   })
 
   const feeFields: Array<keyof OrderForm> = [

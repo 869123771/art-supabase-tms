@@ -60,7 +60,7 @@
     margin-bottom: var(--art-space-4);
     background: var(--el-fill-color-lighter);
     border: 1px solid var(--el-border-color-lighter);
-    border-radius: 10px;
+    border-radius: var(--art-control-radius);
   }
 
   &__route-point {
@@ -108,7 +108,7 @@
     padding: 18px;
     background: var(--el-fill-color-blank);
     border: 1px solid var(--el-border-color-lighter);
-    border-radius: 10px;
+    border-radius: var(--art-control-radius);
   }
 
   &__panel-heading {
@@ -124,17 +124,29 @@
       width: 40px;
       height: 40px;
       font-size: 18px;
-      color: #fff;
-      background: linear-gradient(135deg, #6758ff, #4f46e5);
-      border-radius: 10px;
+      color: var(--el-color-white);
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary-light-3),
+        var(--el-color-primary-dark-2)
+      );
+      border-radius: var(--art-control-radius);
     }
 
     b.is-green {
-      background: linear-gradient(135deg, #17cfa4, #0aaa84);
+      background: linear-gradient(
+        135deg,
+        var(--el-color-success-light-3),
+        var(--el-color-success-dark-2)
+      );
     }
 
     b.is-orange {
-      background: linear-gradient(135deg, #ffad4d, #f07c20);
+      background: linear-gradient(
+        135deg,
+        var(--el-color-warning-light-3),
+        var(--el-color-warning-dark-2)
+      );
     }
 
     div {

@@ -497,11 +497,22 @@
     }
 
     &__section-header {
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
       gap: 12px;
       align-items: center;
-      justify-content: space-between;
+      min-width: 0;
       margin-bottom: 12px;
+
+      :deep(.art-section-title) {
+        min-width: 0;
+        margin: 0;
+      }
+
+      :deep(.el-button) {
+        margin-left: 0;
+        white-space: nowrap;
+      }
     }
 
     &__image {
@@ -522,7 +533,7 @@
 
     @media (width <= 768px) {
       &__section-header {
-        flex-direction: column;
+        grid-template-columns: 1fr;
         align-items: flex-start;
       }
     }

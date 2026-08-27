@@ -1,0 +1,1 @@
+import{d as e}from"./focus-trap-CWLzaXnX.js";import{o as t,s as n}from"./style-C15YZomw.js";import{n as r}from"./omit-Ch5_4sLf.js";import{i}from"./table-multiple-dZf2ekmU.js";var a=n(function(n,a){var o=r(a);return t(o)&&(o=void 0),t(n)?i(n,e(a,1,t,!0),void 0,o):[]});export{a as t};

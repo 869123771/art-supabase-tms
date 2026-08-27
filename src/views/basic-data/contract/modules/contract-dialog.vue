@@ -30,15 +30,17 @@
         <template #header
           ><div class="contract-dialog__section-header">
             <ArtSectionTitle :show-line="false">合同附件</ArtSectionTitle>
-            <ArtExcelImport
-              accept=""
-              :parse-excel="false"
-              :disabled="form.attachmentUploading || !canEditSensitiveField('attachments')"
-              :button-props="{ type: 'primary', plain: true, loading: form.attachmentUploading }"
-              @file-change="handleAttachmentUpload"
-            >
-              上传附件
-            </ArtExcelImport>
+            <div class="contract-dialog__section-actions" aria-label="合同附件操作">
+              <ArtExcelImport
+                accept=""
+                :parse-excel="false"
+                :disabled="form.attachmentUploading || !canEditSensitiveField('attachments')"
+                :button-props="{ type: 'primary', plain: true, loading: form.attachmentUploading }"
+                @file-change="handleAttachmentUpload"
+              >
+                上传附件
+              </ArtExcelImport>
+            </div>
           </div></template
         >
         <ArtTable
@@ -921,11 +923,26 @@
     }
 
     &__section-header {
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
       gap: 12px;
       align-items: center;
-      justify-content: space-between;
+      min-width: 0;
       margin-bottom: 12px;
+
+      :deep(.art-section-title) {
+        min-width: 0;
+        margin: 0;
+      }
+    }
+
+    &__section-actions {
+      display: flex;
+      flex: none;
+      flex-wrap: nowrap;
+      gap: var(--art-space-2);
+      align-items: center;
+      white-space: nowrap;
     }
 
     &__footer {
@@ -955,9 +972,17 @@
         margin-left: 0 !important;
       }
 
-      &__section-header,
+      &__section-header {
+        grid-template-columns: 1fr;
+      }
+
+      &__section-actions,
       &__footer {
         flex-wrap: wrap;
+      }
+
+      &__section-actions {
+        justify-content: flex-start;
       }
     }
   }

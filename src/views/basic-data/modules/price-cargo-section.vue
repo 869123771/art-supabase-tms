@@ -3,7 +3,7 @@
     <template #header>
       <div class="price-cargo-section__header">
         <ArtSectionTitle :show-line="false">货物信息</ArtSectionTitle>
-        <div v-if="editable" class="price-cargo-section__actions">
+        <div v-if="editable" class="price-cargo-section__actions" aria-label="货物信息操作">
           <ElButton plain :icon="Collection" @click="emit('select-cargo')">批量选货物</ElButton>
           <ElButton type="primary" plain :icon="Plus" @click="emit('add-cargo')">添加</ElButton>
         </div>
@@ -56,23 +56,31 @@
     padding: 18px 20px 24px;
 
     &__header {
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
       gap: 12px;
       align-items: center;
-      justify-content: space-between;
+      min-width: 0;
       margin-bottom: 14px;
+
+      :deep(.art-section-title) {
+        min-width: 0;
+        margin: 0;
+      }
     }
 
     &__actions {
       display: flex;
       flex: 0 0 auto;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       gap: 10px;
       align-items: center;
       justify-content: flex-end;
+      white-space: nowrap;
 
       :deep(.el-button) {
         flex: 0 0 auto;
+        margin-left: 0;
         white-space: nowrap;
       }
     }
@@ -97,7 +105,6 @@
 
   @media (width <= 900px) {
     .price-cargo-section {
-      &__header,
       &__summary {
         flex-direction: column;
         align-items: flex-start;
@@ -110,6 +117,21 @@
         div {
           justify-content: flex-start;
         }
+      }
+    }
+  }
+
+  @media (width <= 640px) {
+    .price-cargo-section {
+      padding: var(--art-space-4);
+
+      &__header {
+        grid-template-columns: 1fr;
+      }
+
+      &__actions {
+        flex-wrap: wrap;
+        justify-content: flex-start;
       }
     }
   }

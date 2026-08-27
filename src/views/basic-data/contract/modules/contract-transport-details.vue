@@ -16,7 +16,11 @@
             }}
           </p>
         </div>
-        <div v-if="editable" class="contract-transport-details__actions">
+        <div
+          v-if="editable"
+          class="contract-transport-details__actions"
+          aria-label="运输合同明细操作"
+        >
           <ElButton plain @click="openCargoSelector">
             <template #icon><ArtSvgIcon icon="ri:archive-stack-line" /></template>
             批量选货物
@@ -323,11 +327,16 @@
     padding: 16px;
 
     &__header {
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
       gap: 16px;
       align-items: flex-start;
-      justify-content: space-between;
+      min-width: 0;
       margin-bottom: 12px;
+
+      > div:first-child {
+        min-width: 0;
+      }
 
       p {
         margin: 5px 0 0;
@@ -340,9 +349,10 @@
     &__actions {
       display: flex;
       flex: none;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       gap: 10px;
       justify-content: flex-end;
+      white-space: nowrap;
 
       :deep(.el-button) {
         flex: none;
@@ -358,9 +368,11 @@
 
     @media (width <= 680px) {
       &__header {
-        flex-direction: column;
+        grid-template-columns: 1fr;
 
         .contract-transport-details__actions {
+          flex-wrap: wrap;
+          justify-content: flex-start;
           width: 100%;
 
           :deep(.el-button) {

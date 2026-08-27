@@ -1444,7 +1444,7 @@
 
       &.is-complete {
         .carrier-price-edit__workflow-index {
-          color: #fff;
+          color: var(--el-color-white);
           background: var(--theme-color);
           border-color: var(--theme-color);
         }
@@ -1578,7 +1578,7 @@
       height: 36px;
       font-size: 16px;
       font-weight: 600;
-      color: #fff;
+      color: var(--el-color-white);
       background: var(--theme-color);
       border-radius: var(--el-border-radius-base);
 
