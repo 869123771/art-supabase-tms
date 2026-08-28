@@ -1,50 +1,89 @@
-# Art Supabase TMS
+<div align="center">
+  <h1>Art Supabase TMS</h1>
+  <p><strong>覆盖主数据、开单、调度、运输执行、在途监控与签收协同的智慧运输应用</strong></p>
+  <p>把客户委托、运输资源、履约过程、移动司机端与财务结算连接成一条可追踪的运输链路。</p>
 
-TMS 智慧运输业务模块。这个仓库只维护运输领域代码，不包含登录、租户、菜单、权限、布局、路由、公共组件、公共 store 或 Supabase 客户端。
+  <p>
+    <a href="https://gitee.com/wangyanghub/art-supabase-tms">Gitee</a>
+    ·
+    <a href="https://github.com/869123771/art-supabase-tms">GitHub</a>
+    ·
+    <a href="https://gitee.com/wangyanghub/art-supabase-pro">主平台</a>
+    ·
+    <a href="https://gitee.com/wangyanghub/supabase-mobile-tms-driver">司机端</a>
+    ·
+    <a href="https://869123771.github.io/art-supabase-doc/modules/tms">使用文档</a>
+  </p>
+</div>
 
-## 仓库内容
+## 项目定位
 
-- `src/views`：TMS 页面与页面内业务组件；仓名已经代表 TMS，不再嵌套 `views/tms`。
-- `src/api/index.ts`：TMS API 门面，`src/api/modules` 为运输业务数据访问实现。
-- `src/types/api.d.ts`：TMS 专属业务类型。
-- `supabase/functions`：TMS 专属 Edge Functions 与业务规则。
-- `tests/unit`：TMS 领域模型、AI 合约和业务规则测试。
+Art Supabase TMS 是 Art Supabase Pro 的运输管理业务应用，面向物流运输从主数据、订单和运单生成，到配载、在途、签收与财务协作的完整履约过程。
 
-## 独立运行与部署
+本仓只维护 TMS 页面、业务 API、领域类型、运输规则与专属 Edge Functions。认证、租户、菜单、权限、布局、路由、公共组件、Store 和 Supabase 公共客户端由 [`art-supabase-pro`](https://gitee.com/wangyanghub/art-supabase-pro) 统一提供。
 
-TMS 可以独立启动和部署，但公共运行时仍只维护在 `art-supabase-pro`。安装依赖时会拉取主平台的固定提交，复用同一套登录、租户、菜单、权限、布局、路由、公共组件、store 和 Supabase 客户端；本仓只注册 TMS 页面。
+![AI 智能填单](screenshots/ai-order-copilot.png)
+
+![实时在途监控](screenshots/in-transit-monitor.png)
+
+## 核心能力
+
+| 领域       | 已覆盖能力                                                                |
+| ---------- | ------------------------------------------------------------------------- |
+| 运输主数据 | 客户、客户地址、常用线路、货物、承运商、司机、站点、合同与客户/承运商价格 |
+| 开单与订单 | 工作区开单、AI 文本/图片识别、主数据匹配、订单列表、订单详情与状态跟踪    |
+| 运力与调度 | 运力规划、待运载、配载、司机车辆组合与运输资源校验                        |
+| 运输执行   | 运单详情、运输事件、装卸货、发车、到达、签收、回单与异常处置              |
+| 运营监控   | 实时在途地图、车辆/运单视图、线路绩效、运输告警与 AI 异常研判             |
+| 跨域协同   | 司机移动端执行、VMS 车辆引用、FMS 费用/结算与平台审批工作流               |
+
+## 标准履约链路
+
+```text
+客户委托
+  → 开单 / AI 识别
+  → 订单与运单
+  → 运力规划与配载
+  → 装货 / 发车 / 在途
+  → 到达 / 卸货 / 签收
+  → 回单 / 费用 / 对账与利润
+```
+
+AI 智能填单只生成可复核草稿；调度推荐和异常研判只提供辅助判断。保存、改派、签收、费用与状态变化仍由有权限的操作人员确认，并由服务端业务规则约束。
+
+## 司机端协同
+
+独立的 [`supabase-mobile-tms-driver`](https://gitee.com/wangyanghub/supabase-mobile-tms-driver) 提供 H5 与微信小程序司机工作台。司机可接单，完成装卸货定位打卡、发车、到达、签收、收车、凭证上传与费用上报；所有记录通过受控契约回流同一条 TMS 运单履约链路。
+
+## 独立运行
+
+环境要求：Node.js `>= 22.0.0`、pnpm `>= 11.9.0`。
 
 ```powershell
 pnpm install
 pnpm dev
 ```
 
-开发端口为 `3016`。生产构建统一输出到 `docs/`，默认静态路径为 `/art-supabase-tms/`：
+默认访问 `http://localhost:3016`。使用在途地图时还需配置高德地图浏览器 Key、安全码和允许域名。
 
 ```powershell
+pnpm check
 pnpm build
 pnpm preview
 ```
 
-`docs/.nojekyll` 会随构建自动生成，可将 `docs/` 直接作为 Pages 发布目录。若部署在域名根目录，可在构建时覆盖 `VITE_BASE_URL=/`。
+生产构建输出到 `docs/`，默认公共路径为 `/art-supabase-tms/`，可作为 Pages 发布目录。
 
-## 由主平台统一运行
+## 与主仓协作
 
-主仓通过 Git submodule 固定本仓提交，并以 `@tms/*` 装载同一份 TMS 源码：
+TMS 业务修改在本仓提交并推送，随后在主仓更新 `modules/art-supabase-tms` 子模块指针。数据库菜单继续使用稳定的 `/tms/...` 路由前缀；跨模块读取通过租户隔离、字段最小化的 API/RPC 契约完成，本仓不直接导入其他业务仓源码。
 
-```powershell
-git clone --recurse-submodules https://gitee.com/wangyanghub/art-supabase-pro.git
-cd art-supabase-pro
-pnpm install
-pnpm dev
-```
+## 安全原则
 
-更新 TMS 后，先在本仓提交并推送，再在主仓更新 `modules/art-supabase-tms` 的提交指针。这样 TMS 业务只维护一份，同时独立部署和主平台构建都可复现。
+- 前端菜单和按钮只改善交互，RLS、RPC 与 Edge Functions 才是最终授权边界。
+- 普通用户只使用租户范围内的安全数据；受控写入和状态变化必须经过服务端校验。
+- 前端只配置 Supabase `anon` / publishable key，服务端密钥不得进入 Vite 环境变量。
 
-## 路由与依赖边界
+## 许可证
 
-- 数据库菜单继续使用稳定的 `/tms/...` 路由前缀；主仓加载器负责映射到本仓 `src/views/...`。
-- 独立运行时不显示多余的“ TMS 智慧运输”外层目录，主平台全景菜单仍保留该领域分组。
-- `@tms/*` 只引用本仓业务代码；`@/*` 引用主仓提供的公共运行时。
-- TMS 不直接导入其他业务仓前端源码；跨模块数据通过租户隔离、字段最小化的 API/RPC 契约读取。
-- 数据库 RLS、租户隔离、菜单与权限配置继续由主平台统一治理。
+本项目采用 [MulanPSL-2.0](LICENSE) 许可证。
