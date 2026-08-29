@@ -1,45 +1,50 @@
 <template>
-  <div
-    v-auth="'TmsTransportEvent:View'"
-    class="transport-event-page business-workspace-page art-full-height"
-  >
-    <BusinessWorkspaceHeader
-      eyebrow="TRANSPORT EVENT STREAM"
-      title="运输事件中心"
-      description="集中检索运单接单、装货、发车、到达、签收等全链路事件，快速定位延误与异常状态变更。"
-      icon="ri:route-line"
-      :tags="[
-        { label: '全链路轨迹', type: 'primary' },
-        { label: '租户数据隔离', type: 'success' },
-        { label: '异常优先', type: 'warning' }
-      ]"
-      :metrics="metrics"
-      refreshable
-      refresh-label="刷新运输事件"
-      :refresh-loading="summaryLoading"
-      @refresh="refreshAll"
-    />
-
-    <ElAlert v-if="summaryError" type="warning" show-icon :closable="false" :title="summaryError" />
-
-    <section class="transport-event-page__workspace art-card-xs">
-      <ArtTableQuery
-        ref="tableRef"
-        v-model="table.search"
-        :search-items="searchItems"
-        :api-fn="fetchTableData"
-        :columns-factory="columnsFactory"
-        :search-bar-props="{ span: 8, labelWidth: 82 }"
-        :table-props="{
-          rowKey: 'id',
-          tableLayout: 'fixed',
-          emptyText: '暂无运输事件',
-          emptyDescription: '调整事件类型或日期范围后重试。'
-        }"
-        focusable
+  <ArtPermissionGuard permission="TmsTransportEvent:View">
+    <div class="transport-event-page business-workspace-page art-full-height">
+      <BusinessWorkspaceHeader
+        eyebrow="TRANSPORT EVENT STREAM"
+        title="运输事件中心"
+        description="集中检索运单接单、装货、发车、到达、签收等全链路事件，快速定位延误与异常状态变更。"
+        icon="ri:route-line"
+        :tags="[
+          { label: '全链路轨迹', type: 'primary' },
+          { label: '租户数据隔离', type: 'success' },
+          { label: '异常优先', type: 'warning' }
+        ]"
+        :metrics="metrics"
+        refreshable
+        refresh-label="刷新运输事件"
+        :refresh-loading="summaryLoading"
+        @refresh="refreshAll"
       />
-    </section>
-  </div>
+
+      <ElAlert
+        v-if="summaryError"
+        type="warning"
+        show-icon
+        :closable="false"
+        :title="summaryError"
+      />
+
+      <section class="transport-event-page__workspace art-card-xs">
+        <ArtTableQuery
+          ref="tableRef"
+          v-model="table.search"
+          :search-items="searchItems"
+          :api-fn="fetchTableData"
+          :columns-factory="columnsFactory"
+          :search-bar-props="{ span: 8, labelWidth: 82 }"
+          :table-props="{
+            rowKey: 'id',
+            tableLayout: 'fixed',
+            emptyText: '暂无运输事件',
+            emptyDescription: '调整事件类型或日期范围后重试。'
+          }"
+          focusable
+        />
+      </section>
+    </div>
+  </ArtPermissionGuard>
 </template>
 
 <script setup lang="tsx">

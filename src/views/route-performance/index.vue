@@ -1,93 +1,92 @@
 <template>
-  <div
-    v-auth="'TmsRoutePerformance:View'"
-    class="route-performance-page business-workspace-page art-full-height"
-  >
-    <BusinessWorkspaceHeader
-      eyebrow="ROUTE PERFORMANCE"
-      title="线路效能"
-      description="按起讫城市聚合完成趟次、准点率、运输时长与当前延误，快速识别稳定线路和需要优化的运输走廊。"
-      icon="ri:road-map-line"
-      :tags="[
-        { label: `${periodDays} 天窗口`, type: 'primary' },
-        { label: '准点与时长', type: 'success' },
-        { label: '在途延误', type: 'warning' }
-      ]"
-      :metrics="metrics"
-      refreshable
-      refresh-label="刷新线路效能"
-      :refresh-loading="loading"
-      @refresh="loadOverview"
-    />
-    <ArtSectionCard class="route-performance-page__workspace" preserve-content-structure>
-      <template #header>
-        <header class="route-performance-page__toolbar">
-          <div
-            ><ArtSectionTitle :show-line="false">线路排行榜</ArtSectionTitle
-            ><p>按完成趟次排序，更新时间 {{ generatedAt }}</p></div
-          >
-          <ElRadioGroup v-model="periodDays" size="small" @change="loadOverview">
-            <ElRadioButton :value="30">近 30 天</ElRadioButton>
-            <ElRadioButton :value="90">近 90 天</ElRadioButton>
-            <ElRadioButton :value="180">近 180 天</ElRadioButton>
-          </ElRadioGroup>
-        </header>
-      </template>
-      <ElAlert
-        v-if="overview?.truncated"
-        class="route-performance-page__capacity-alert"
-        type="warning"
-        show-icon
-        :closable="false"
-        :title="`线路数量较大，当前展示 ${overview.returnedRecords} / ${overview.totalRecords} 条`"
-        description="排行榜和汇总指标基于当前返回的高频线路。"
+  <ArtPermissionGuard permission="TmsRoutePerformance:View">
+    <div class="route-performance-page business-workspace-page art-full-height">
+      <BusinessWorkspaceHeader
+        eyebrow="ROUTE PERFORMANCE"
+        title="线路效能"
+        description="按起讫城市聚合完成趟次、准点率、运输时长与当前延误，快速识别稳定线路和需要优化的运输走廊。"
+        icon="ri:road-map-line"
+        :tags="[
+          { label: `${periodDays} 天窗口`, type: 'primary' },
+          { label: '准点与时长', type: 'success' },
+          { label: '在途延误', type: 'warning' }
+        ]"
+        :metrics="metrics"
+        refreshable
+        refresh-label="刷新线路效能"
+        :refresh-loading="loading"
+        @refresh="loadOverview"
       />
-      <ElAlert v-if="errorMessage" type="error" show-icon :closable="false" :title="errorMessage">
-        <template #default
-          ><ElButton type="primary" link @click="loadOverview">重新加载</ElButton></template
-        >
-      </ElAlert>
-      <ElSkeleton v-else-if="loading && !overview" :rows="7" animated />
-      <ElEmpty v-else-if="!overview?.records.length" description="当前周期暂无可分析的线路数据" />
-      <ol v-else class="route-performance-page__list">
-        <li v-for="(record, index) in overview.records" :key="record.id">
-          <span class="route-performance-page__rank">{{ index + 1 }}</span>
-          <div class="route-performance-page__route">
-            <strong
-              >{{ record.originCity }} <ArtSvgIcon icon="ri:arrow-right-line" />
-              {{ record.destinationCity }}</strong
-            >
-            <small
-              >{{ record.completedTrips }} 趟完成 · {{ record.activeTrips }} 趟在途 ·
-              {{ formatNumber(record.cargoWeightTon) }} 吨</small
-            >
-          </div>
-          <div class="route-performance-page__rate">
-            <span
-              >准点率 <strong>{{ formatRate(record.onTimeRate) }}</strong></span
-            >
-            <ElProgress
-              :percentage="record.onTimeRate ?? 0"
-              :stroke-width="7"
-              :show-text="false"
-              :status="(record.onTimeRate ?? 0) >= 90 ? 'success' : undefined"
-            />
-          </div>
-          <dl>
+      <ArtSectionCard class="route-performance-page__workspace" preserve-content-structure>
+        <template #header>
+          <header class="route-performance-page__toolbar">
             <div
-              ><dt>平均时长</dt><dd>{{ formatHours(record.averageDurationHours) }}</dd></div
+              ><ArtSectionTitle :show-line="false">线路排行榜</ArtSectionTitle
+              ><p>按完成趟次排序，更新时间 {{ generatedAt }}</p></div
             >
-            <div
-              ><dt>平均延误</dt><dd>{{ formatHours(record.averageDelayHours) }}</dd></div
-            >
-          </dl>
-          <ElTag :type="record.delayedActiveTrips ? 'danger' : 'success'" effect="light" round>
-            {{ record.delayedActiveTrips ? `${record.delayedActiveTrips} 趟延误` : '在途正常' }}
-          </ElTag>
-        </li>
-      </ol>
-    </ArtSectionCard>
-  </div>
+            <ElRadioGroup v-model="periodDays" size="small" @change="loadOverview">
+              <ElRadioButton :value="30">近 30 天</ElRadioButton>
+              <ElRadioButton :value="90">近 90 天</ElRadioButton>
+              <ElRadioButton :value="180">近 180 天</ElRadioButton>
+            </ElRadioGroup>
+          </header>
+        </template>
+        <ElAlert
+          v-if="overview?.truncated"
+          class="route-performance-page__capacity-alert"
+          type="warning"
+          show-icon
+          :closable="false"
+          :title="`线路数量较大，当前展示 ${overview.returnedRecords} / ${overview.totalRecords} 条`"
+          description="排行榜和汇总指标基于当前返回的高频线路。"
+        />
+        <ElAlert v-if="errorMessage" type="error" show-icon :closable="false" :title="errorMessage">
+          <template #default
+            ><ElButton type="primary" link @click="loadOverview">重新加载</ElButton></template
+          >
+        </ElAlert>
+        <ElSkeleton v-else-if="loading && !overview" :rows="7" animated />
+        <ElEmpty v-else-if="!overview?.records.length" description="当前周期暂无可分析的线路数据" />
+        <ol v-else class="route-performance-page__list">
+          <li v-for="(record, index) in overview.records" :key="record.id">
+            <span class="route-performance-page__rank">{{ index + 1 }}</span>
+            <div class="route-performance-page__route">
+              <strong
+                >{{ record.originCity }} <ArtSvgIcon icon="ri:arrow-right-line" />
+                {{ record.destinationCity }}</strong
+              >
+              <small
+                >{{ record.completedTrips }} 趟完成 · {{ record.activeTrips }} 趟在途 ·
+                {{ formatNumber(record.cargoWeightTon) }} 吨</small
+              >
+            </div>
+            <div class="route-performance-page__rate">
+              <span
+                >准点率 <strong>{{ formatRate(record.onTimeRate) }}</strong></span
+              >
+              <ElProgress
+                :percentage="record.onTimeRate ?? 0"
+                :stroke-width="7"
+                :show-text="false"
+                :status="(record.onTimeRate ?? 0) >= 90 ? 'success' : undefined"
+              />
+            </div>
+            <dl>
+              <div
+                ><dt>平均时长</dt><dd>{{ formatHours(record.averageDurationHours) }}</dd></div
+              >
+              <div
+                ><dt>平均延误</dt><dd>{{ formatHours(record.averageDelayHours) }}</dd></div
+              >
+            </dl>
+            <ElTag :type="record.delayedActiveTrips ? 'danger' : 'success'" effect="light" round>
+              {{ record.delayedActiveTrips ? `${record.delayedActiveTrips} 趟延误` : '在途正常' }}
+            </ElTag>
+          </li>
+        </ol>
+      </ArtSectionCard>
+    </div>
+  </ArtPermissionGuard>
 </template>
 
 <script setup lang="ts">

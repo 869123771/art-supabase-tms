@@ -31,18 +31,15 @@
           ><div class="contract-dialog__section-header">
             <ArtSectionTitle :show-line="false">合同附件</ArtSectionTitle>
             <div class="contract-dialog__section-actions" aria-label="合同附件操作">
-              <ArtExcelImport
-                accept=""
-                :parse-excel="false"
-                :disabled="form.attachmentUploading || !canEditSensitiveField('attachments')"
-                :button-props="{ type: 'primary', plain: true, loading: form.attachmentUploading }"
-                @file-change="handleAttachmentUpload"
-              >
-                上传附件
-              </ArtExcelImport>
-            </div>
-          </div></template
-        >
+              <ArtUploadFile
+                title="上传附件"
+                :disabled="!canEditSensitiveField('attachments')"
+                :show-file-list="false"
+                :show-tip="false"
+                @upload-success="handleAttachmentUpload"
+              />
+            </div> </div
+        ></template>
         <ArtTable
           :data="form.data.attachments"
           :columns="attachmentColumns"
@@ -76,7 +73,6 @@
 
 <script setup lang="tsx">
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
-  import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import { cloneDeep, omit } from 'lodash-es'
@@ -84,7 +80,7 @@
   import { ElButton, ElMessage } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
-  import ArtExcelImport from '@/components/core/forms/art-excel-import/index.vue'
+  import ArtUploadFile from '@/components/core/forms/art-upload-file/index.vue'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
@@ -101,7 +97,6 @@
     fetchCustomerOptions,
     submitContractForApproval
   } from '@tms/api'
-  import { uploadAttachment } from '@/api/common'
   import { useUserStore } from '@/store/modules/user'
   import { downloadAttachment, getFileExtension } from '@/utils/file'
   import { canEditField, canViewField, getFieldAccess } from '@/utils/field-permission'
@@ -135,7 +130,6 @@
     rules: FormRules<Contract>
     carrierOptions: CarrierOption[]
     customerOptions: CustomerOption[]
-    attachmentUploading: boolean
   }
 
   interface Emits {
@@ -227,7 +221,6 @@
     data: createInitialForm(),
     carrierOptions: [],
     customerOptions: [],
-    attachmentUploading: false,
     items: computed<FormItem[]>(() => [
       { label: '基础信息', key: 'baseSection', type: 'divider', span: 24 },
       {
@@ -858,33 +851,25 @@
     })
   }
 
-  const handleAttachmentUpload = async (file: File): Promise<void> => {
+  const handleAttachmentUpload = (resource: Api.DataCenter.Resources.ResourceListItem): void => {
     if (!canEditSensitiveField('attachments')) return
-    form.attachmentUploading = true
-    try {
-      const [resource] = await uploadAttachment(file)
-      if (!resource?.url) throw new Error('附件上传失败')
-
-      if ((form.data.attachments ?? []).some((attachment) => attachment.url === resource.url)) {
-        ElMessage.info('该附件已在当前合同中，无需重复添加')
-        return
-      }
-
-      form.data.attachments = [
-        ...(form.data.attachments ?? []),
-        {
-          name: resource.originName || file.name,
-          url: resource.url,
-          fileType: getFileExtension(file.name, resource.suffix),
-          fileSize: resource.sizeInfo
-        }
-      ]
-      ElMessage.success('附件上传成功')
-    } catch (error) {
-      ElMessage.error(getFriendlySupabaseErrorMessage(error, '附件上传失败'))
-    } finally {
-      form.attachmentUploading = false
+    if (!resource.url) return
+    if ((form.data.attachments ?? []).some((attachment) => attachment.url === resource.url)) {
+      ElMessage.info('该附件已在当前合同中，无需重复添加')
+      return
     }
+
+    const fileName = resource.originName || resource.objectName || '附件'
+    form.data.attachments = [
+      ...(form.data.attachments ?? []),
+      {
+        name: fileName,
+        url: resource.url,
+        fileType: getFileExtension(fileName, resource.suffix),
+        fileSize: resource.sizeInfo
+      }
+    ]
+    ElMessage.success('附件上传成功')
   }
 
   const removeAttachment = async (row: ContractAttachment): Promise<void> => {
