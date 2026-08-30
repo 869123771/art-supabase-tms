@@ -15,14 +15,17 @@
     show-pagination
     :page-size="10"
     empty-text="暂无可用合同明细"
+    empty-description="请先维护运输合同及有效合同明细，并确保合同已审核通过且在有效期内。"
     @confirm="handleConfirm"
   >
     <template #trigger></template>
+    <template #empty><TmsDataSourceEmptyActions source="contract" /></template>
   </ArtTableMultipleSelect>
 </template>
 
 <script setup lang="ts">
   import ArtTableMultipleSelect from '@/components/core/forms/art-data-select/table-multiple.vue'
+  import TmsDataSourceEmptyActions from '../../components/tms-data-source-empty-actions.vue'
   import type {
     ArtDataSelectExpose,
     DataSelectColumn,

@@ -10,17 +10,21 @@
     :label-key="getCustomerLabel"
     :description-key="getCustomerDescription"
     search-placeholder="请输入客户名称、联系人、电话或地址"
+    empty-text="暂无可选客户"
+    empty-description="当前租户没有匹配的启用客户，请先维护客户主数据。"
     dialog-width="lg"
     show-pagination
     :page-size="10"
     @confirm="handleConfirm"
   >
     <template #trigger></template>
+    <template #empty><TmsDataSourceEmptyActions source="customer" /></template>
   </ArtTableSingleSelect>
 </template>
 
 <script setup lang="ts">
   import ArtTableSingleSelect from '@/components/core/forms/art-data-select/table-single.vue'
+  import TmsDataSourceEmptyActions from '../../components/tms-data-source-empty-actions.vue'
   import type {
     ArtDataSelectExpose,
     DataSelectColumn,

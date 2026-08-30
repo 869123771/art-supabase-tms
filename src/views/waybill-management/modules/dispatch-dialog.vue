@@ -111,12 +111,16 @@
             row-key="id"
             label-key="plateNo"
             description-key="companyName"
+            empty-text="暂无可配载车辆"
+            empty-description="当前没有符合配载条件的车辆，请先完善车辆档案并确认车辆处于可用状态。"
             :api-fn="fetchVehicleSelectData"
             :columns="form.vehicleColumns"
             :show-pagination="true"
             @confirm="handleVehicleConfirm"
             @clear="handleVehicleClear"
-          />
+          >
+            <template #empty><TmsDataSourceEmptyActions source="vehicle" /></template>
+          </ArtTableSingleSelect>
         </template>
       </ArtForm>
 
@@ -159,6 +163,7 @@
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtTableSingleSelect from '@/components/core/forms/art-data-select/table-single.vue'
+  import TmsDataSourceEmptyActions from '../../components/tms-data-source-empty-actions.vue'
   import type {
     DataSelectColumn,
     DataSelectFetchParams,

@@ -24,6 +24,8 @@
           :description-key="getEmployeeDescription"
           placeholder="请选择员工，或直接填写司机资料"
           search-placeholder="员工工号、姓名、所属组织或岗位"
+          empty-text="暂无可建档员工"
+          empty-description="请先在员工花名册维护在职或试用员工；已经建立司机档案的员工不会重复显示。"
           dialog-width="xl"
           show-pagination
           :page-size="10"
@@ -31,7 +33,9 @@
           @update:selected-data="handleEmployeeRowsChange"
           @confirm="handleEmployeeConfirm"
           @clear="handleEmployeeClear"
-        />
+        >
+          <template #empty><TmsDataSourceEmptyActions source="employee" /></template>
+        </ArtTableSingleSelect>
       </template>
       <template #idCardFrontUrl>
         <ArtUploadImage
@@ -80,6 +84,7 @@
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtTableSingleSelect from '@/components/core/forms/art-data-select/table-single.vue'
+  import TmsDataSourceEmptyActions from '../../../components/tms-data-source-empty-actions.vue'
   import type {
     DataSelectColumn,
     DataSelectFetchParams,

@@ -11,17 +11,21 @@
     label-key="cargoName"
     description-key="cargoCode"
     search-placeholder="请输入货物名称、编码、单位或备注"
+    empty-text="暂无可选货物"
+    empty-description="当前租户还没有启用的货物资料，请先维护货物编码、名称和计量单位。"
     dialog-width="xl"
     show-pagination
     :page-size="10"
     @confirm="handleConfirm"
   >
     <template #trigger></template>
+    <template #empty><TmsDataSourceEmptyActions source="cargo" /></template>
   </ArtTableMultipleSelect>
 </template>
 
 <script setup lang="ts">
   import ArtTableMultipleSelect from '@/components/core/forms/art-data-select/table-multiple.vue'
+  import TmsDataSourceEmptyActions from '../components/tms-data-source-empty-actions.vue'
   import type {
     ArtDataSelectExpose,
     DataSelectColumn,

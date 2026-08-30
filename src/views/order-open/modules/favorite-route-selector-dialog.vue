@@ -12,18 +12,21 @@
     :description-key="getRouteDescription"
     :disabled-key="isRouteUnavailable"
     search-placeholder="请输入线路名称或备注"
-    empty-text="暂无可用常用线路，请先在基础资料中维护"
+    empty-text="暂无可用常用线路"
+    empty-description="请先维护常用线路；选择后可直接带入发货与收货地址。"
     dialog-width="xl"
     show-pagination
     :page-size="10"
     @confirm="handleConfirm"
   >
     <template #trigger></template>
+    <template #empty><TmsDataSourceEmptyActions source="favorite-route" /></template>
   </ArtTableSingleSelect>
 </template>
 
 <script setup lang="ts">
   import ArtTableSingleSelect from '@/components/core/forms/art-data-select/table-single.vue'
+  import TmsDataSourceEmptyActions from '../../components/tms-data-source-empty-actions.vue'
   import type {
     ArtDataSelectExpose,
     DataSelectColumn,

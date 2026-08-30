@@ -338,12 +338,15 @@
       :label-key="getAddressLabel"
       :description-key="getAddressDescription"
       search-placeholder="请输入联系人/电话/地址搜索"
+      empty-text="暂无可选客户地址"
+      empty-description="请先为当前客户维护启用的发货或收货地址。"
       dialog-width="xl"
       show-pagination
       :page-size="10"
       @confirm="handleAddressSelectorConfirm"
     >
       <template #trigger></template>
+      <template #empty><TmsDataSourceEmptyActions source="customer-address" /></template>
     </ArtTableSingleSelect>
 
     <ArtTableMultipleSelect
@@ -358,12 +361,15 @@
       label-key="cargoName"
       description-key="cargoCode"
       search-placeholder="请输入货物名称、编码、单位或备注"
+      empty-text="暂无可选货物"
+      empty-description="当前租户还没有启用的货物资料，请先维护货物编码、名称和计量单位。"
       dialog-width="xl"
       show-pagination
       :page-size="10"
       @confirm="handleCargoSelectorConfirm"
     >
       <template #trigger></template>
+      <template #empty><TmsDataSourceEmptyActions source="cargo" /></template>
     </ArtTableMultipleSelect>
   </ArtPageShell>
 </template>
@@ -388,6 +394,7 @@
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtTableMultipleSelect from '@/components/core/forms/art-data-select/table-multiple.vue'
   import ArtTableSingleSelect from '@/components/core/forms/art-data-select/table-single.vue'
+  import TmsDataSourceEmptyActions from '../../components/tms-data-source-empty-actions.vue'
   import type {
     ArtDataSelectExpose,
     DataSelectColumn,
