@@ -93,7 +93,7 @@
     </section>
 
     <section v-if="detail.data" class="waybill-detail__workspace">
-      <ElTabs v-model="detail.activeTab" class="waybill-detail__tabs">
+      <ElTabs v-model="detail.activeTab" class="waybill-detail__tabs" stretch>
         <ElTabPane label="业务总览" name="overview">
           <WaybillInfoPanel :waybill="detail.data" @open-order="openOrderDetail" />
         </ElTabPane>
