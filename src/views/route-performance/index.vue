@@ -46,7 +46,11 @@
           >
         </ElAlert>
         <ElSkeleton v-else-if="loading && !overview" :rows="7" animated />
-        <ElEmpty v-else-if="!overview?.records.length" description="当前周期暂无可分析的线路数据" />
+        <ArtEmptyState
+          v-else-if="!overview?.records.length"
+          title="当前周期暂无可分析的线路数据"
+          :visual-size="96"
+        />
         <ol v-else class="route-performance-page__list">
           <li v-for="(record, index) in overview.records" :key="record.id">
             <span class="route-performance-page__rank">{{ index + 1 }}</span>
@@ -91,6 +95,7 @@
 
 <script setup lang="ts">
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import { ElMessage } from 'element-plus'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric

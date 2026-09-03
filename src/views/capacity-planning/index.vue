@@ -53,7 +53,12 @@
               </ElTag>
             </header></template
           >
-          <ElEmpty v-if="!overview.daily.length" description="当前周期暂无运输需求" />
+          <ArtEmptyState
+            v-if="!overview.daily.length"
+            title="当前周期暂无运输需求"
+            size="compact"
+            :visual-size="72"
+          />
           <div v-else class="capacity-planning-page__days">
             <article
               v-for="day in overview.daily"
@@ -104,7 +109,12 @@
             :closable="false"
             :title="`待配车任务较多，当前展示 ${overview.returnedBacklogCount} / ${overview.backlogCount} 单`"
           />
-          <ElEmpty v-if="!overview.backlog.length" description="当前没有未配车任务" />
+          <ArtEmptyState
+            v-if="!overview.backlog.length"
+            title="当前没有未配车任务"
+            size="compact"
+            :visual-size="72"
+          />
           <ol v-else>
             <li v-for="item in overview.backlog.slice(0, 30)" :key="item.id">
               <div class="capacity-planning-page__waybill">
@@ -143,6 +153,7 @@
 
 <script setup lang="ts">
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import { ElMessage } from 'element-plus'
   import BusinessRecordLink from '@/components/business/business-record-link/index.vue'
   import BusinessWorkspaceHeader, {
