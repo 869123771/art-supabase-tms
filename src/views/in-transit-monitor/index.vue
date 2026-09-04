@@ -30,7 +30,11 @@
                 >
                   <ArtSvgIcon icon="ri:arrow-left-line" />
                 </button>
-                <h1>TMS 运输在途监控</h1>
+                <div class="transit-screen__title-copy">
+                  <span>FLEET CONTROL TOWER</span>
+                  <h1>运输在途控制塔</h1>
+                  <p>TMS · 车辆、运单与异常统一态势</p>
+                </div>
               </div>
               <ElScrollbar class="screen-tabs-scrollbar">
                 <nav class="screen-tabs" aria-label="监控模式">
@@ -47,6 +51,19 @@
                 </nav>
               </ElScrollbar>
               <div class="header-status">
+                <div class="header-kpis" aria-label="实时运输指标">
+                  <span
+                    ><b>{{ overview.transporting }}</b
+                    >在途</span
+                  >
+                  <span
+                    ><b>{{ overview.onTimeRate }}%</b>准时</span
+                  >
+                  <span :class="{ 'is-alert': alertItems.length }"
+                    ><b>{{ alertItems.length }}</b
+                    >异常</span
+                  >
+                </div>
                 <time :datetime="currentTime">{{ headerTimeText }}</time>
                 <span><i />系统运行正常</span>
               </div>
