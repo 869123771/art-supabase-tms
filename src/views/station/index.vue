@@ -212,18 +212,20 @@
       prop: 'enabled',
       label: '状态',
       width: 100,
-      formatter: (row) =>
-        hasAuth('TmsStation:Toggle') ? (
+      formatter: (row) => {
+        const previous = Boolean(row.enabled)
+        return hasAuth('TmsStation:Toggle') ? (
           <ElSwitch
-            modelValue={row.enabled}
+            v-model={row.enabled}
             inlinePrompt
             activeText="启"
             inactiveText="停"
-            onChange={(value) => handleStatusChange(row, Boolean(value))}
+            onChange={(value) => handleStatusChange(row, previous, Boolean(value))}
           />
         ) : (
           <ArtDictDisplay dictCode="commonBoolean" value={String(row.enabled)} display="tag" />
         )
+      }
     },
     {
       prop: 'operation',
@@ -323,9 +325,12 @@
       : tableQueryRef.value?.refreshUpdate())
   }
 
-  const handleStatusChange = async (row: Station, enabled: boolean): Promise<void> => {
+  const handleStatusChange = async (
+    row: Station,
+    previous: boolean,
+    enabled: boolean
+  ): Promise<void> => {
     if (!row.id) return
-    const previous = row.enabled
     row.enabled = enabled
     try {
       await updateStationEnabled(row.id, enabled)

@@ -1019,12 +1019,12 @@
         width: 150,
         formatter: (row) => (
           <ElInputNumber
-            modelValue={row.quantity}
+            v-model={row.quantity}
             aria-label="货物数量"
             {...countProps}
             precision={2}
             controls={false}
-            onUpdate:modelValue={(value?: number) => handleCargoQuantityChange(row, value)}
+            onChange={() => handleCargoQuantityChange(row, row.quantity ?? undefined)}
           />
         )
       },

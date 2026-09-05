@@ -130,10 +130,6 @@
 
   const canViewPricing = computed(() => props.pricingAccess !== 'hidden')
   const canEditPricing = computed(() => props.editable && props.pricingAccess === 'edit')
-  const numericModelValue = (
-    value: Api.Tms.BasicData.SensitiveNumber | undefined
-  ): number | null => (typeof value === 'number' ? value : null)
-
   const columns = computed<ColumnOption<ContractTransportDetail>[]>(() => [
     { type: 'globalIndex', label: '行号', width: 68, fixed: 'left' },
     {
@@ -142,7 +138,7 @@
       minWidth: 190,
       formatter: (row) => (
         <ElAutocomplete
-          modelValue={row.cargoDescription}
+          v-model={row.cargoDescription}
           fetchSuggestions={(keyword, callback) => void fetchCargoSuggestions(keyword, callback)}
           valueKey="value"
           triggerOnFocus={true}
@@ -150,8 +146,8 @@
           disabled={!props.editable}
           maxlength={120}
           placeholder="选择或输入货物"
-          onUpdate:modelValue={(value: string | number) =>
-            updateDetail(row, { cargoDescription: String(value), cargoId: null })
+          onChange={() =>
+            updateDetail(row, { cargoDescription: row.cargoDescription, cargoId: null })
           }
           onSelect={(item: Record<string, unknown>) => handleCargoSelect(row, item)}
         />
@@ -163,13 +159,11 @@
       minWidth: 142,
       formatter: (row) => (
         <ElInput
-          modelValue={row.cargoCode}
+          v-model={row.cargoCode}
           maxlength={60}
           disabled={!props.editable}
           placeholder="请输入编码"
-          onUpdate:modelValue={(value: string | number) =>
-            updateDetail(row, { cargoCode: String(value) })
-          }
+          onChange={() => updateDetail(row, { cargoCode: row.cargoCode })}
         />
       )
     },
@@ -179,14 +173,14 @@
       minWidth: 140,
       formatter: (row) => (
         <ElInputNumber
-          modelValue={row.contractQuantity}
+          v-model={row.contractQuantity}
           min={0}
           precision={4}
           controls={false}
           disabled={!props.editable}
           class="w-full!"
-          onUpdate:modelValue={(value?: number) =>
-            updateDetail(row, { contractQuantity: Number(value ?? 0) })
+          onChange={() =>
+            updateDetail(row, { contractQuantity: Number(row.contractQuantity ?? 0) })
           }
         />
       )
@@ -197,14 +191,12 @@
       minWidth: 130,
       formatter: (row) => (
         <ElSelect
-          modelValue={row.unit}
+          v-model={row.unit}
           filterable
           disabled={!props.editable}
           placeholder="请选择"
           class="w-full!"
-          onUpdate:modelValue={(value: string | number) =>
-            updateDetail(row, { unit: String(value) })
-          }
+          onChange={() => updateDetail(row, { unit: row.unit })}
         >
           {props.unitOptions.map((item) => (
             <ElOption
@@ -225,13 +217,15 @@
             formatter: (row: ContractTransportDetail) =>
               canEditPricing.value ? (
                 <ElInputNumber
-                  modelValue={numericModelValue(row.transportUnitPrice)}
+                  v-model={row.transportUnitPrice}
                   min={0}
                   precision={4}
                   controls={false}
                   class="w-full!"
-                  onUpdate:modelValue={(value?: number) =>
-                    updateDetail(row, { transportUnitPrice: Number(value ?? 0) })
+                  onChange={() =>
+                    updateDetail(row, {
+                      transportUnitPrice: Number(row.transportUnitPrice ?? 0)
+                    })
                   }
                 />
               ) : (

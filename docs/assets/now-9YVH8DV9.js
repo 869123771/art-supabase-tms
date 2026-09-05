@@ -1,0 +1,1 @@
+import{nt as e}from"./_baseEach-wf7iJqW8.js";var t=function(){return e.Date.now()};export{t};
