@@ -101,7 +101,7 @@ async function getDriver(user: SysUser, authUser: { phone?: string; user_metadat
   if (!phone) throw new Error("当前账号未绑定手机号")
 
   const { data, error } = await admin
-    .from("tms_driver")
+    .from("mdm_driver")
     .select("id,tenant_id,carrier_id,driver_name,phone,enabled,create_time")
     .eq("tenant_id", user.tenant_id)
     .eq("phone", phone)

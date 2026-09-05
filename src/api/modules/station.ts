@@ -1,3 +1,4 @@
+import { buildOrIlikeFilter } from '@/utils/supabase/search'
 import { useSupabase } from '@/hooks'
 import {
   applyCreateTimeRange,
@@ -34,7 +35,10 @@ const applyStationFilters = <TQuery extends SupabaseQueryLike>(
   if (enabledValue !== undefined) query = query.eq('enabled', enabledValue)
   if (keyword) {
     query = query.or(
-      `station_code.ilike.%${keyword}%,station_name.ilike.%${keyword}%,region_code.ilike.%${keyword}%,manager_name.ilike.%${keyword}%,contact_phone.ilike.%${keyword}%`
+      buildOrIlikeFilter(
+        ['station_code', 'station_name', 'region_code', 'manager_name', 'contact_phone'],
+        keyword
+      )
     )
   }
   return applyCreateTimeRange(query, createTimeRange)
@@ -43,7 +47,7 @@ const applyStationFilters = <TQuery extends SupabaseQueryLike>(
 export async function fetchStationList(params: StationSearchParams, options?: ApiRequestOptions) {
   const { from = 0, to = 9 } = params
   let query = supabase
-    .from('tms_station')
+    .from('mdm_station')
     .select(stationSelect(Boolean(params.stationType)), { count: 'exact' })
     .order('sort', { ascending: true })
     .order('station_code', { ascending: true })
@@ -62,7 +66,7 @@ export async function exportStationList(
   const { ids, maxRows = 10000 } = params
   const withRoleFilter = !ids?.length && Boolean(params.stationType)
   let query = supabase
-    .from('tms_station')
+    .from('mdm_station')
     .select(stationSelect(withRoleFilter))
     .order('sort', { ascending: true })
     .order('station_code', { ascending: true })
@@ -81,7 +85,7 @@ export async function fetchStationOptions(
 ) {
   const withRoleFilter = Boolean(params.stationType)
   let query = supabase
-    .from('tms_station')
+    .from('mdm_station')
     .select(
       stationSelect(withRoleFilter, 'id, station_code, station_name, station_type, region_code')
     )
@@ -93,7 +97,7 @@ export async function fetchStationOptions(
   if (params.stationType) query = query.eq('stationRoleFilter.role_type', params.stationType)
   if (params.keyword) {
     query = query.or(
-      `station_code.ilike.%${params.keyword}%,station_name.ilike.%${params.keyword}%,region_code.ilike.%${params.keyword}%`
+      buildOrIlikeFilter(['station_code', 'station_name', 'region_code'], params.keyword)
     )
   }
 
@@ -129,20 +133,20 @@ export async function editStation(params: StationSavePayload) {
 }
 
 export async function updateStationEnabled(id: string, enabled: boolean) {
-  return await responseHandle(() => supabase.from('tms_station').update({ enabled }).eq('id', id), {
+  return await responseHandle(() => supabase.from('mdm_station').update({ enabled }).eq('id', id), {
     showMessage: true,
     breakReturn: true
   })
 }
 
 export async function deleteStation(id: string) {
-  return await responseHandle(() => supabase.from('tms_station').delete().eq('id', id), {
+  return await responseHandle(() => supabase.from('mdm_station').delete().eq('id', id), {
     showMessage: true
   })
 }
 
 export async function deleteStationBatch(ids: string[]) {
-  return await responseHandle(() => supabase.from('tms_station').delete().in('id', ids), {
+  return await responseHandle(() => supabase.from('mdm_station').delete().in('id', ids), {
     showMessage: true
   })
 }

@@ -198,7 +198,7 @@ export async function fetchDriverAssignedVehicles(
   }
 
   const query = supabase
-    .from('vehicle_archive')
+    .from('mdm_vehicle')
     .select('id, carrier_id, plate_no')
     .eq('carrier_id', carrierId)
     .or(`primary_driver_id.eq.${driverId},secondary_driver_id.eq.${driverId}`)

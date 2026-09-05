@@ -1,3 +1,4 @@
+import { buildOrIlikeFilter } from '@/utils/supabase/search'
 import { normalizeSupabaseFunctionError } from '@/utils/supabase'
 import { useSupabase } from '@/hooks'
 import type { QueryResult } from '@/types/api/response'
@@ -161,10 +162,8 @@ export async function fetchReceiptExceptionWorkOrders(params: {
   if (params.recordId) query = query.eq('id', params.recordId)
   if (params.status) query = query.eq('status', params.status)
   if (params.keyword?.trim()) {
-    const keyword = params.keyword.trim().replace(/[%_,()]/g, '')
-    query = query.or(
-      `work_order_no.ilike.%${keyword}%,order_no_snapshot.ilike.%${keyword}%,summary.ilike.%${keyword}%`
-    )
+    const keyword = params.keyword.trim()
+    query = query.or(buildOrIlikeFilter(['work_order_no', 'order_no_snapshot', 'summary'], keyword))
   }
   const result = await responseHandle<ReceiptExceptionRow[]>(() => query, {
     ignoreCheck: true,

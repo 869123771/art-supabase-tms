@@ -1,3 +1,4 @@
+import { buildOrIlikeFilter } from '@/utils/supabase/search'
 import { useSupabase } from '@/hooks'
 import {
   applyCreateTimeRange,
@@ -26,9 +27,7 @@ const applyCargoFilters = <TQuery extends SupabaseQueryLike>(
   const enabledValue = normalizeBooleanFilter(enabled)
   if (enabledValue !== undefined) query = query.eq('enabled', enabledValue)
   if (keyword) {
-    query = query.or(
-      `cargo_name.ilike.%${keyword}%,cargo_code.ilike.%${keyword}%,unit.ilike.%${keyword}%,remark.ilike.%${keyword}%`
-    )
+    query = query.or(buildOrIlikeFilter(['cargo_name', 'cargo_code', 'unit', 'remark'], keyword))
   }
   return applyCreateTimeRange(query, createTimeRange)
 }
@@ -36,7 +35,7 @@ const applyCargoFilters = <TQuery extends SupabaseQueryLike>(
 export async function fetchCargoList(params: CargoSearchParams, options?: ApiRequestOptions) {
   const { from = 0, to = 9 } = params
   let query = supabase
-    .from('tms_cargo')
+    .from('mdm_cargo')
     .select('*', { count: 'exact' })
     .order('create_time', { ascending: false })
     .range(from, to)
@@ -52,7 +51,7 @@ export async function exportCargoList(
 ) {
   const { ids, maxRows = 10000 } = params
   let query = supabase
-    .from('tms_cargo')
+    .from('mdm_cargo')
     .select('*')
     .order('create_time', { ascending: false })
     .limit(maxRows)
@@ -65,7 +64,7 @@ export async function exportCargoList(
 
 export async function addCargo(params: Cargo, options: WriteOptions = {}) {
   return await responseHandle<Cargo>(
-    () => supabase.from('tms_cargo').insert(keysToSnakeDeep(params)).select().single(),
+    () => supabase.from('mdm_cargo').insert(keysToSnakeDeep(params)).select().single(),
     { showMessage: options.showMessage ?? true, breakReturn: true }
   )
 }
@@ -73,21 +72,21 @@ export async function addCargo(params: Cargo, options: WriteOptions = {}) {
 export async function editCargo(params: Cargo) {
   const { id, ...data } = params
   return await responseHandle(
-    () => supabase.from('tms_cargo').update(keysToSnakeDeep(data)).eq('id', id),
+    () => supabase.from('mdm_cargo').update(keysToSnakeDeep(data)).eq('id', id),
     { showMessage: true, breakReturn: true }
   )
 }
 
 export async function deleteCargo(id: string) {
   return await responseHandle(
-    () => supabase.from('tms_cargo').delete({ count: 'exact' }).eq('id', id),
+    () => supabase.from('mdm_cargo').delete({ count: 'exact' }).eq('id', id),
     { showMessage: true, breakReturn: true, requireAffected: true }
   )
 }
 
 export async function deleteCargoBatch(ids: string[]) {
   return await responseHandle(
-    () => supabase.from('tms_cargo').delete({ count: 'exact' }).in('id', ids),
+    () => supabase.from('mdm_cargo').delete({ count: 'exact' }).in('id', ids),
     { showMessage: true, breakReturn: true, requireAffected: true }
   )
 }
@@ -96,7 +95,7 @@ export async function importCargoes(rows: Cargo[]) {
   return await responseHandle(
     () =>
       supabase
-        .from('tms_cargo')
+        .from('mdm_cargo')
         .upsert(keysToSnakeDeep(rows), { onConflict: 'tenant_id,cargo_name' }),
     { showMessage: true, breakReturn: true }
   )
