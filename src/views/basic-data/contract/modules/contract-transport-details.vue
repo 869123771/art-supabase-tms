@@ -34,6 +34,7 @@
     </template>
 
     <ArtTable
+      ref="tableRef"
       :data="modelValue"
       :columns="columns"
       :pagination="undefined"
@@ -61,8 +62,11 @@
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
-  import ArtTable from '@/components/core/tables/art-table/index.vue'
-  import type { ColumnOption } from '@/types'
+  import ArtTable, {
+    type ArtTableExpose,
+    type ArtTableValidationResult
+  } from '@/components/core/tables/art-table/index.vue'
+  import type { ColumnOption, TableColumnValidationContext } from '@/types'
   import { fetchCargoList } from '@tms/api'
   import CargoMultipleSelect from '@tms/views/modules/cargo-multiple-select.vue'
   import { mergeContractCargoSelections } from './contract-cargo-selection'
@@ -90,6 +94,7 @@
 
   const props = defineProps<Props>()
   const cargoSelectorRef = ref<CargoSelectorExpose>()
+  const tableRef = ref<ArtTableExpose>()
   const emit = defineEmits<{
     'update:modelValue': [value: ContractTransportDetail[]]
   }>()
@@ -135,6 +140,8 @@
     {
       prop: 'cargoDescription',
       label: '货物描述',
+      required: true,
+      requiredMessage: ({ rowIndex }) => `第 ${rowIndex + 1} 条运输明细缺少货物描述`,
       minWidth: 190,
       formatter: (row) => (
         <ElAutocomplete
@@ -156,6 +163,8 @@
     {
       prop: 'cargoCode',
       label: '货物编码',
+      required: true,
+      requiredMessage: ({ rowIndex }) => `第 ${rowIndex + 1} 条运输明细缺少货物编码`,
       minWidth: 142,
       formatter: (row) => (
         <ElInput
@@ -170,6 +179,13 @@
     {
       prop: 'contractQuantity',
       label: '合同数量',
+      required: true,
+      rules: [
+        {
+          validator: ({ value }) => Number.isFinite(Number(value)) && Number(value) >= 0,
+          message: ({ rowIndex }) => `第 ${rowIndex + 1} 条运输明细合同数量不能小于 0`
+        }
+      ],
       minWidth: 140,
       formatter: (row) => (
         <ElInputNumber
@@ -188,6 +204,8 @@
     {
       prop: 'unit',
       label: '计量单位',
+      required: true,
+      requiredMessage: ({ rowIndex }) => `第 ${rowIndex + 1} 条运输明细未选择计量单位`,
       minWidth: 130,
       formatter: (row) => (
         <ElSelect
@@ -213,6 +231,15 @@
           {
             prop: 'transportUnitPrice',
             label: '运输单价(元)',
+            required: true,
+            rules: [
+              {
+                validator: ({ value }: TableColumnValidationContext<ContractTransportDetail>) =>
+                  Number.isFinite(Number(value)) && Number(value) >= 0,
+                message: ({ rowIndex }: TableColumnValidationContext<ContractTransportDetail>) =>
+                  `第 ${rowIndex + 1} 条运输明细单价不能小于 0`
+              }
+            ],
             minWidth: 154,
             formatter: (row: ContractTransportDetail) =>
               canEditPricing.value ? (
@@ -313,6 +340,12 @@
       unit: String(item.unit ?? row.unit ?? '')
     })
   }
+
+  const validate = async (): Promise<ArtTableValidationResult> =>
+    (await tableRef.value?.validate()) ?? { valid: true, errors: [] }
+  const clearValidate = (): void => tableRef.value?.clearValidate()
+
+  defineExpose({ validate, clearValidate })
 </script>
 
 <style scoped lang="scss">

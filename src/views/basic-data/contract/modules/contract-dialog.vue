@@ -16,6 +16,7 @@
       />
 
       <ContractTransportDetails
+        ref="transportDetailsRef"
         v-model="form.data.transportDetails"
         :unit-options="cargoUnitOptions"
         :pricing-access="transportDetailsPricingAccess"
@@ -140,6 +141,7 @@
   const { getDictMap } = storeToRefs(useUserStore())
   const dialogRef = ref<ArtDialogExpose<Contract | undefined>>()
   const formRef = ref<FormExpose>()
+  const transportDetailsRef = ref<InstanceType<typeof ContractTransportDetails>>()
   const contractNumber = useDocumentNumberRule('tms.contract')
   const submitMode = ref<SubmitMode>('save')
 
@@ -761,23 +763,11 @@
     freight: Number(detail.freight ?? 0)
   })
 
-  const validateTransportDetails = (): boolean => {
+  const validateTransportDetails = async (): Promise<boolean> => {
     if (!canEditTransportDetails.value) return true
-    const invalidIndex = (form.data.transportDetails ?? []).findIndex((detail) => {
-      const numericValues = [
-        Number(detail.contractQuantity),
-        Number(detail.transportUnitPrice),
-        Number(detail.freight)
-      ]
-      return (
-        !String(detail.cargoDescription ?? '').trim() ||
-        !String(detail.cargoCode ?? '').trim() ||
-        !String(detail.unit ?? '').trim() ||
-        numericValues.some((value) => !Number.isFinite(value) || value < 0)
-      )
-    })
-    if (invalidIndex < 0) return true
-    ElMessage.warning(`请完整填写第 ${invalidIndex + 1} 条运输合同明细`)
+    const tableValidation = await transportDetailsRef.value?.validate()
+    if (!tableValidation || tableValidation.valid) return true
+    ElMessage.warning(tableValidation.firstError?.message || '请完整填写运输合同明细')
     return false
   }
 
@@ -787,7 +777,7 @@
     } catch {
       return false
     }
-    if (!validateTransportDetails()) return false
+    if (!(await validateTransportDetails())) return false
 
     try {
       const payload = normalizePayload()
