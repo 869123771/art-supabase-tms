@@ -106,7 +106,7 @@
   import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
-  import { useAmapSdk } from '@/hooks/core/useAmapSdk'
+  import { useAmapSdk, type AmapBrowserNamespace } from '@/hooks/core/useAmapSdk'
   import { formatWithDayjs } from '@/utils/time'
   import {
     buildDrivingRoutePoints,
@@ -135,7 +135,7 @@
       callback: (status: string, result: unknown) => void
     ) => void
   }
-  interface DetailAmapNamespace {
+  interface DetailAmapNamespace extends AmapBrowserNamespace {
     Map: new (container: HTMLElement, options: Record<string, unknown>) => DetailAmapMap
     Marker: new (options: Record<string, unknown>) => DetailAmapMarker
     Polyline: new (options: Record<string, unknown>) => DetailAmapPolyline

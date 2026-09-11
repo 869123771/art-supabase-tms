@@ -3,6 +3,7 @@ import type { QueryResult } from '@/types/api/response'
 import type { ApiRequestOptions } from '@/types/api/request'
 import { fetchSecureOrders } from '@tms/api/modules/transport-secure'
 import { canEditField } from '@/utils/field-permission'
+import { normalizeSupabaseFunctionError } from '@/utils/supabase'
 import { pick } from 'lodash-es'
 
 type OrderRecord = Api.Tms.Order.OrderRecord
@@ -17,31 +18,15 @@ export async function fetchOrderList(
   return await fetchSecureOrders<OrderRecord>(params, 'order_list', options)
 }
 
-const ORDER_STATUS_COUNT_VALUES = [
-  'pending_load',
-  'pending_order',
-  'pending_pickup',
-  'transporting',
-  'signed',
-  'completed',
-  'cancelled'
-] as const
-
 export async function fetchOrderStatusCounts(
   params: OrderSearchParams
 ): Promise<Record<string, number>> {
   const sharedFilters = { ...params, orderStatus: undefined }
-  const countEntries = await Promise.all(
-    ORDER_STATUS_COUNT_VALUES.map(async (orderStatus) => {
-      const result = await fetchSecureOrders<OrderRecord>(
-        { ...sharedFilters, orderStatus, countOnly: true },
-        'order_list'
-      )
-      return [orderStatus, result.total] as const
-    })
+  const result = await fetchSecureOrders<OrderRecord>(
+    { ...sharedFilters, countOnly: true },
+    'order_list'
   )
-
-  return Object.fromEntries(countEntries)
+  return result.orderStatusCounts
 }
 
 export async function exportOrderList(
@@ -74,7 +59,7 @@ export async function analyzeOrderByAi(
 
   return {
     data: data ?? null,
-    error: await normalizeEdgeFunctionError(error)
+    error: await normalizeSupabaseFunctionError(error)
   }
 }
 
@@ -88,7 +73,7 @@ export async function generateAiOrderExample(
 
   return {
     data: data ?? null,
-    error: await normalizeEdgeFunctionError(error)
+    error: await normalizeSupabaseFunctionError(error)
   }
 }
 
@@ -112,25 +97,7 @@ export async function reviewAiOrderArtifact(
 
   return {
     data: data ?? null,
-    error: await normalizeEdgeFunctionError(error)
-  }
-}
-
-async function normalizeEdgeFunctionError(error: unknown): Promise<unknown | null> {
-  if (!error || typeof error !== 'object' || !('context' in error)) return error
-
-  const context = (error as { context?: unknown }).context
-  if (!(context instanceof Response)) return error
-
-  try {
-    const payload = (await context.clone().json()) as { code?: unknown; message?: unknown }
-    if (typeof payload.message !== 'string' || !payload.message) return error
-    return {
-      code: typeof payload.code === 'string' ? payload.code : undefined,
-      message: payload.message
-    }
-  } catch {
-    return error
+    error: await normalizeSupabaseFunctionError(error)
   }
 }
 
@@ -222,10 +189,10 @@ const ORDER_SENSITIVE_WRITE_FIELDS: Record<Api.Tms.Order.OrderFieldKey, readonly
 }
 
 function toOrderWritePayload(params: OrderRecord): Record<string, unknown> {
-  const payload = pick(
-    keysToSnakeDeep(params) as unknown as Record<string, unknown>,
-    ORDER_WRITE_FIELDS
-  ) as Record<string, unknown>
+  const payload = pick({ ...keysToSnakeDeep(params) }, ORDER_WRITE_FIELDS) as Record<
+    string,
+    unknown
+  >
   if (!params.id) return payload
 
   Object.entries(ORDER_SENSITIVE_WRITE_FIELDS).forEach(([field, columns]) => {

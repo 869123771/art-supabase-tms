@@ -30,6 +30,8 @@ interface SecureTransportPayload<TRecord, TAccess> {
   records: TRecord[]
   total: number
   fieldAccess?: TAccess
+  orderStatusCounts?: Record<string, number>
+  waybillStatusCounts?: Record<string, number>
 }
 
 const { supabase, responseHandle } = useSupabase()
@@ -93,7 +95,9 @@ export async function fetchSecureOrders<TRecord extends Api.Tms.Order.OrderRecor
     data: result.data?.records ?? [],
     total: result.data?.total ?? 0,
     error: result.error,
-    fieldAccess: result.data?.fieldAccess ?? {}
+    fieldAccess: result.data?.fieldAccess ?? {},
+    orderStatusCounts: result.data?.orderStatusCounts ?? {},
+    waybillStatusCounts: result.data?.waybillStatusCounts ?? {}
   }
 }
 

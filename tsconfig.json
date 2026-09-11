@@ -3,6 +3,7 @@
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
     "strict": true,
     "ignoreDeprecations": "6.0",
     "types": ["node", "vite/client", "art-supabase-pro"],

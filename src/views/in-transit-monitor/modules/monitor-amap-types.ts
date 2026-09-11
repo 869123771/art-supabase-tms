@@ -60,7 +60,7 @@ export interface MonitorAmapDrivingInstance {
   ) => void
 }
 
-export interface MonitorAmapNamespace {
+export interface MonitorAmapNamespace extends ArtAmapBrowserNamespace {
   Driving: new (options: Record<string, unknown>) => MonitorAmapDrivingInstance
   DrivingPolicy?: {
     LEAST_TIME?: unknown

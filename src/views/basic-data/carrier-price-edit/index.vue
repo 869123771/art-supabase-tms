@@ -229,7 +229,7 @@
 <script setup lang="tsx">
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
-  import { cloneDeep, omit } from 'lodash-es'
+  import { cloneDeep } from 'lodash-es'
   import type { FormRules } from 'element-plus'
   import { ElButton, ElIcon, ElInput, ElInputNumber, ElOption, ElSelect, ElTag } from 'element-plus'
   import { Check } from '@element-plus/icons-vue'
@@ -258,16 +258,23 @@
     calculateCargoSummary,
     formatNumber,
     getResponseData,
-    joinRegionPath,
     mergeCargoSelections,
-    normalizeMoney,
-    normalizeNullableNumber,
-    normalizeText,
     roundNumber,
     splitRegionPath,
     toNumber,
     type CargoSummary
   } from '../modules/price-form-utils'
+  import {
+    createCarrierPriceCargoItemFromMaster,
+    createEmptyCarrierPriceFeeSummary,
+    createInitialCarrierPriceCargoItem,
+    createInitialCarrierPriceForm,
+    normalizeCarrierPricePayload,
+    type CarrierPrice,
+    type CarrierPriceCargoItem,
+    type CarrierPriceFeeSummary,
+    type CarrierPriceForm
+  } from './modules/carrier-price-model'
   import {
     canEditField,
     canViewField,
@@ -277,18 +284,12 @@
 
   defineOptions({ name: 'TmsCarrierPriceEdit' })
 
-  type CarrierPrice = Api.Tms.BasicData.CarrierPrice
-  type CarrierPriceCargoItem = Api.Tms.BasicData.CarrierPriceCargoItem
   type CarrierPriceFieldKey = Api.Tms.BasicData.CarrierPriceFieldKey
   type CargoMaster = Api.Tms.BasicData.Cargo
   type CarrierOption = Api.Tms.BasicData.CarrierOption
   type DriverOption = Api.Tms.BasicData.DriverOption
   type VehicleOption = TmsVehicleOption
   type RegionMode = 'origin' | 'destination'
-  type CarrierPriceForm = CarrierPrice & {
-    originRegionPath: string[]
-    destinationRegionPath: string[]
-  }
 
   interface FormExpose {
     validate: () => Promise<boolean>
@@ -304,13 +305,6 @@
     loading: boolean
     saving: boolean
     error: Error | null
-  }
-
-  interface FeeSummary {
-    splitTransportFee: number
-    loadingFee: number
-    packageFee: number
-    totalFee: number
   }
 
   interface FormGroup {
@@ -332,7 +326,7 @@
     cargoColumns: ComputedRef<ColumnOption<CarrierPriceCargoItem>[]>
     cargoItems: ComputedRef<CarrierPriceCargoItem[]>
     cargoSummary: ComputedRef<CargoSummary>
-    feeSummary: ComputedRef<FeeSummary>
+    feeSummary: ComputedRef<CarrierPriceFeeSummary>
     cargoQuantityText: ComputedRef<string>
     cargoVolumeText: ComputedRef<string>
     cargoWeightText: ComputedRef<string>
@@ -409,76 +403,9 @@
     }
   }
 
-  function createInitialCargoItem(): CarrierPriceCargoItem {
-    return {
-      orderNo: '',
-      originRegion: '',
-      destinationRegion: '',
-      cargoName: '',
-      quantity: null,
-      unit: 'box',
-      volumeM3: null,
-      weightKg: null,
-      splitTransportFee: 0,
-      loadingFee: 0,
-      packageFee: 0
-    }
-  }
-
-  function createInitialForm(): CarrierPriceForm {
-    return {
-      id: undefined,
-      quoteNo: '',
-      carrierId: '',
-      carrier: null,
-      driverId: null,
-      driver: null,
-      vehicleId: null,
-      vehicle: null,
-      originRegion: '',
-      destinationRegion: '',
-      originRegionPath: [],
-      destinationRegionPath: [],
-      transportMode: '',
-      contactName: '',
-      contactPhone: '',
-      driverName: '',
-      driverPhone: '',
-      plateNo: '',
-      vehicleType: '',
-      vehicleLength: '',
-      cargoItems: [createInitialCargoItem()],
-      cargoQuantityTotal: 0,
-      cargoVolumeTotal: 0,
-      cargoWeightTotal: 0,
-      billingMethod: '',
-      transportCost: 0,
-      splitTransportFee: 0,
-      loadingFee: 0,
-      packageFee: 0,
-      otherFee: 0,
-      totalFee: 0,
-      cashAmount: 0,
-      prepaidAmount: 0,
-      collectAmount: 0,
-      periodicAmount: 0,
-      paymentTotal: 0,
-      remark: ''
-    }
-  }
-
-  function createEmptyFeeSummary(): FeeSummary {
-    return {
-      splitTransportFee: 0,
-      loadingFee: 0,
-      packageFee: 0,
-      totalFee: 0
-    }
-  }
-
   const page = reactive<PageState>({ loading: false, saving: false, error: null })
   const form: UnwrapNestedRefs<FormGroup> = reactive<FormGroup>({
-    data: createInitialForm(),
+    data: createInitialCarrierPriceForm(),
     carrierOptions: [],
     driverOptions: [],
     vehicleOptions: [],
@@ -1083,7 +1010,7 @@
     () => form.feeSummary,
     (summary) => {
       if (!canEditSensitiveField('costAmounts')) return
-      const nextSummary = summary ?? createEmptyFeeSummary()
+      const nextSummary = summary ?? createEmptyCarrierPriceFeeSummary()
       form.data.splitTransportFee = nextSummary.splitTransportFee
       form.data.loadingFee = nextSummary.loadingFee
       form.data.packageFee = nextSummary.packageFee
@@ -1111,7 +1038,7 @@
 
   async function loadDetail(): Promise<void> {
     if (!isEdit.value) {
-      replaceForm(createInitialForm())
+      replaceForm(createInitialCarrierPriceForm())
       form.driverOptions = []
       form.vehicleOptions = []
       return
@@ -1122,17 +1049,17 @@
     if (!data) throw new Error('承运商价不存在或无权访问')
 
     replaceForm({
-      ...createInitialForm(),
+      ...createInitialCarrierPriceForm(),
       ...data,
       originRegionPath: splitRegionPath(data.originRegion),
       destinationRegionPath: splitRegionPath(data.destinationRegion),
-      cargoItems: data.cargoItems?.length ? data.cargoItems : [createInitialCargoItem()]
+      cargoItems: data.cargoItems?.length ? data.cargoItems : [createInitialCarrierPriceCargoItem()]
     })
     cacheSelectedOptions()
   }
 
   function replaceForm(nextForm: CarrierPriceForm): void {
-    Object.assign(form.data, createInitialForm(), cloneDeep(nextForm))
+    Object.assign(form.data, createInitialCarrierPriceForm(), cloneDeep(nextForm))
   }
 
   function syncCarrierOptions(result: unknown): unknown {
@@ -1208,7 +1135,7 @@
 
   function addCargoItem(): void {
     if (!canEditSensitiveField('costAmounts')) return
-    form.data.cargoItems = [...(form.data.cargoItems ?? []), createInitialCargoItem()]
+    form.data.cargoItems = [...(form.data.cargoItems ?? []), createInitialCarrierPriceCargoItem()]
   }
 
   async function openCargoSelector(): Promise<void> {
@@ -1219,147 +1146,36 @@
   function handleCargoSelectorConfirm(selectedCargoes: CargoMaster[]): void {
     if (!canEditSensitiveField('costAmounts')) return
     const currentItems = form.data.cargoItems ?? []
-    const result = mergeCargoSelections(currentItems, selectedCargoes, createCargoItemFromMaster)
+    const result = mergeCargoSelections(
+      currentItems,
+      selectedCargoes,
+      createCarrierPriceCargoItemFromMaster
+    )
     if (!result.addedCount) return
 
     form.data.cargoItems = result.items
-  }
-
-  function createCargoItemFromMaster(cargo: CargoMaster): CarrierPriceCargoItem {
-    return {
-      ...createInitialCargoItem(),
-      cargoName: cargo.cargoName,
-      quantity: 1,
-      unit: cargo.unit || '',
-      volumeM3: cargo.volumeM3 ?? null,
-      weightKg: cargo.weightKg ?? null
-    }
   }
 
   function removeCargoItem(row: CarrierPriceCargoItem): void {
     if (!canEditSensitiveField('costAmounts')) return
     const rows = form.data.cargoItems ?? []
     if (rows.length <= 1) {
-      form.data.cargoItems = [createInitialCargoItem()]
+      form.data.cargoItems = [createInitialCarrierPriceCargoItem()]
       return
     }
     form.data.cargoItems = rows.filter((item) => item !== row)
   }
 
   function normalizePayload(): CarrierPrice {
-    const raw = cloneDeep(toRaw(form.data))
-    const payload = omit(raw, [
-      'tenantId',
-      'carrier',
-      'driver',
-      'vehicle',
-      'originRegionPath',
-      'destinationRegionPath',
-      'createBy',
-      'createTime',
-      'updateBy',
-      'updateTime',
-      'fieldAccess',
-      'isRecordOwner'
-    ]) as CarrierPrice
-
-    payload.originRegion = joinRegionPath(raw.originRegionPath)
-    payload.destinationRegion = joinRegionPath(raw.destinationRegionPath)
-    payload.driverId = normalizeText(raw.driverId)
-    payload.vehicleId = normalizeText(raw.vehicleId)
-    payload.contactName = normalizeText(raw.contactName)
-    payload.contactPhone = normalizeText(raw.contactPhone)
-    payload.driverName = normalizeText(raw.driverName)
-    payload.driverPhone = normalizeText(raw.driverPhone)
-    payload.plateNo = normalizeText(raw.plateNo)
-    payload.vehicleType = normalizeText(raw.vehicleType)
-    payload.vehicleLength = normalizeText(raw.vehicleLength)
-    payload.cargoItems = normalizeCargoItems(raw.cargoItems)
-    payload.cargoQuantityTotal = form.cargoSummary.quantity
-    payload.cargoVolumeTotal = form.cargoSummary.volume
-    payload.cargoWeightTotal = form.cargoSummary.weight
-    payload.transportCost = normalizeMoney(raw.transportCost)
-    payload.splitTransportFee = form.feeSummary.splitTransportFee
-    payload.loadingFee = form.feeSummary.loadingFee
-    payload.packageFee = form.feeSummary.packageFee
-    payload.otherFee = normalizeMoney(raw.otherFee)
-    payload.totalFee = form.feeSummary.totalFee
-    payload.cashAmount = normalizeMoney(raw.cashAmount)
-    payload.prepaidAmount = normalizeMoney(raw.prepaidAmount)
-    payload.collectAmount = normalizeMoney(raw.collectAmount)
-    payload.periodicAmount = normalizeMoney(raw.periodicAmount)
-    payload.paymentTotal = sumFields(paymentFields)
-    payload.remark = normalizeText(raw.remark)
-
-    if (!canEditSensitiveField('contactPhones')) {
-      removePayloadFields(payload, [
-        'carrierId',
-        'contactName',
-        'contactPhone',
-        'driverId',
-        'driverName',
-        'driverPhone'
-      ])
-    }
-    if (!canEditSensitiveField('costAmounts')) {
-      removePayloadFields(payload, [
-        'cargoItems',
-        'cargoQuantityTotal',
-        'cargoVolumeTotal',
-        'cargoWeightTotal',
-        'transportCost',
-        'splitTransportFee',
-        'loadingFee',
-        'packageFee',
-        'otherFee',
-        'totalFee'
-      ])
-    }
-    if (!canEditSensitiveField('paymentAmounts')) {
-      removePayloadFields(payload, [
-        'cashAmount',
-        'prepaidAmount',
-        'collectAmount',
-        'periodicAmount',
-        'paymentTotal'
-      ])
-    }
-
-    return payload
-  }
-
-  function removePayloadFields(payload: CarrierPrice, fields: Array<keyof CarrierPrice>): void {
-    fields.forEach((field) => Reflect.deleteProperty(payload, field))
-  }
-
-  function normalizeCargoItems(
-    items: CarrierPriceCargoItem[] | undefined
-  ): CarrierPriceCargoItem[] {
-    return (items ?? [])
-      .map((item) => ({
-        orderNo: normalizeText(item.orderNo),
-        originRegion: normalizeText(item.originRegion),
-        destinationRegion: normalizeText(item.destinationRegion),
-        cargoName: normalizeText(item.cargoName),
-        quantity: normalizeNullableNumber(item.quantity),
-        unit: normalizeText(item.unit),
-        volumeM3: normalizeNullableNumber(item.volumeM3),
-        weightKg: normalizeNullableNumber(item.weightKg),
-        splitTransportFee: normalizeMoney(item.splitTransportFee),
-        loadingFee: normalizeMoney(item.loadingFee),
-        packageFee: normalizeMoney(item.packageFee)
-      }))
-      .filter(
-        (item) =>
-          item.orderNo ||
-          item.cargoName ||
-          item.quantity ||
-          item.volumeM3 ||
-          item.weightKg ||
-          item.splitTransportFee ||
-          item.loadingFee ||
-          item.packageFee
-      )
+    return normalizeCarrierPricePayload(toRaw(form.data), {
+      cargoSummary: form.cargoSummary,
+      feeSummary: form.feeSummary,
+      editableFields: {
+        contactPhones: canEditSensitiveField('contactPhones'),
+        costAmounts: canEditSensitiveField('costAmounts'),
+        paymentAmounts: canEditSensitiveField('paymentAmounts')
+      }
+    })
   }
 
   async function handleSave(): Promise<void> {

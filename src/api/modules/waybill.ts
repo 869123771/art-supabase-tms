@@ -6,6 +6,7 @@ import {
   type WaybillListScope
 } from '@tms/api/modules/transport-secure'
 import { isPlainObject } from 'lodash-es'
+import { normalizeSupabaseFunctionError } from '@/utils/supabase'
 
 type WaybillRecord = Api.Tms.Waybill.WaybillRecord
 type WaybillSearchParams = Api.Tms.Waybill.WaybillSearchParams
@@ -173,43 +174,17 @@ const normalizeWaybillSearchParams = (params: WaybillSearchParams): WaybillSearc
       }
     : params
 
-const WAYBILL_STATUS_VALUES = [
-  'pending',
-  'accepted',
-  'loading',
-  'transporting',
-  'unloading',
-  'signed',
-  'completed',
-  'cancelled'
-] as const
-
 export async function fetchWaybillStatusCounts(
   params: WaybillSearchParams,
   scope: WaybillListScope
 ): Promise<WaybillStatusCountResult> {
   const sharedFilters = { ...params, waybillStatus: undefined }
-  const [total, countEntries] = await Promise.all([
-    fetchSecureOrders<WaybillRecord>(
-      { ...normalizeWaybillSearchParams(sharedFilters), countOnly: true },
-      scope
-    ).then((result) => result.total),
-    Promise.all(
-      WAYBILL_STATUS_VALUES.map(async (waybillStatus) => {
-        const result = await fetchSecureOrders<WaybillRecord>(
-          {
-            ...normalizeWaybillSearchParams(sharedFilters),
-            waybillStatus,
-            countOnly: true
-          },
-          scope
-        )
-        return [waybillStatus, result.total] as const
-      })
-    )
-  ])
+  const result = await fetchSecureOrders<WaybillRecord>(
+    { ...normalizeWaybillSearchParams(sharedFilters), countOnly: true },
+    scope
+  )
 
-  return { total, counts: Object.fromEntries(countEntries) }
+  return { total: result.total, counts: result.waybillStatusCounts }
 }
 
 const createDispatchRpcPayload = (params: WaybillDispatchPayload) => ({
@@ -448,24 +423,6 @@ export async function recommendDispatchResourcesByAi(
 
   return {
     data: data ?? null,
-    error: await normalizeDispatchAdvisorError(error)
-  }
-}
-
-async function normalizeDispatchAdvisorError(error: unknown): Promise<unknown | null> {
-  if (!error || typeof error !== 'object' || !('context' in error)) return error
-
-  const context = (error as { context?: unknown }).context
-  if (!(context instanceof Response)) return error
-
-  try {
-    const payload = (await context.clone().json()) as { code?: unknown; message?: unknown }
-    if (typeof payload.message !== 'string' || !payload.message) return error
-    return {
-      code: typeof payload.code === 'string' ? payload.code : undefined,
-      message: payload.message
-    }
-  } catch {
-    return error
+    error: await normalizeSupabaseFunctionError(error)
   }
 }

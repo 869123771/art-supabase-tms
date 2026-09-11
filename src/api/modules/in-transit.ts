@@ -2,6 +2,7 @@ import { useSupabase } from '@/hooks'
 import type { QueryResult } from '@/types/api/response'
 import { createDriverWaybillPayload } from '@tms/api/modules/waybill-shared'
 import { fetchSecureInTransitWaybills, fetchSecureOrders } from '@tms/api/modules/transport-secure'
+import { normalizeSupabaseFunctionError } from '@/utils/supabase'
 
 type InTransitMonitorRecord = Api.Tms.InTransit.MonitorRecord
 type InTransitMonitorSearchParams = Api.Tms.InTransit.MonitorSearchParams
@@ -133,25 +134,7 @@ export async function analyzeTransportAnomalyByAi(
 
   return {
     data: data ?? null,
-    error: await normalizeTransportAnomalyAdvisorError(error)
-  }
-}
-
-async function normalizeTransportAnomalyAdvisorError(error: unknown): Promise<unknown | null> {
-  if (!error || typeof error !== 'object' || !('context' in error)) return error
-
-  const context = (error as { context?: unknown }).context
-  if (!(context instanceof Response)) return error
-
-  try {
-    const payload = (await context.clone().json()) as { code?: unknown; message?: unknown }
-    if (typeof payload.message !== 'string' || !payload.message) return error
-    return {
-      code: typeof payload.code === 'string' ? payload.code : undefined,
-      message: payload.message
-    }
-  } catch {
-    return error
+    error: await normalizeSupabaseFunctionError(error)
   }
 }
 

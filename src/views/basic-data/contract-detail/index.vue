@@ -125,7 +125,7 @@
   import WorkflowBusinessHistory from '@/components/business/workflow-business-history/index.vue'
   import type { ColumnOption } from '@/types'
   import { fetchContractDetail } from '@tms/api'
-  import { canViewField, formatSensitiveNumber, isMaskedValue } from '@/utils/field-permission'
+  import { canViewField, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
 
   defineOptions({ name: 'TmsContractDetail' })
 
@@ -355,8 +355,7 @@
   }
 
   const formatMoney = (value?: Api.Tms.BasicData.SensitiveNumber, prefix = ''): string => {
-    const formatted = formatSensitiveNumber(value)
-    return formatted === '--' || isMaskedValue(formatted) ? formatted : `${prefix}${formatted}`
+    return formatSensitiveNumberWithAffix(value, { prefix })
   }
 
   const formatNumber = (value?: number | null): string => {
@@ -365,8 +364,10 @@
   }
 
   const formatRate = (value?: Api.Tms.BasicData.SensitiveNumber): string => {
-    const formatted = formatSensitiveNumber(value, { maximumFractionDigits: 4 })
-    return formatted === '--' || isMaskedValue(formatted) ? formatted : `${formatted}%`
+    return formatSensitiveNumberWithAffix(value, {
+      suffix: '%',
+      numberFormat: { maximumFractionDigits: 4 }
+    })
   }
 </script>
 

@@ -16,16 +16,6 @@ interface DeliveryStatusCountResult {
   counts: Record<string, number>
 }
 
-const DELIVERY_STATUS_COUNT_VALUES = ['signed', 'completed'] as const
-
-const countDeliveryOrders = async (params: DeliverySearchParams): Promise<number> => {
-  const result = await fetchSecureOrders<DeliveryRecord>(
-    { ...params, countOnly: true },
-    'delivery_list'
-  )
-  return result.total
-}
-
 export async function fetchDeliveryStatusCounts(
   params: DeliverySearchParams
 ): Promise<DeliveryStatusCountResult> {
@@ -35,17 +25,12 @@ export async function fetchDeliveryStatusCounts(
     orderStatus: undefined,
     orderStatuses: undefined
   }
-  const [total, countEntries] = await Promise.all([
-    countDeliveryOrders({ ...sharedFilters, orderStatuses: [...DELIVERY_STATUS_COUNT_VALUES] }),
-    Promise.all(
-      DELIVERY_STATUS_COUNT_VALUES.map(async (orderStatus) => {
-        const count = await countDeliveryOrders({ ...sharedFilters, orderStatuses: [orderStatus] })
-        return [orderStatus, count] as const
-      })
-    )
-  ])
+  const result = await fetchSecureOrders<DeliveryRecord>(
+    { ...sharedFilters, orderStatuses: ['signed', 'completed'], countOnly: true },
+    'delivery_list'
+  )
 
-  return { total, counts: Object.fromEntries(countEntries) }
+  return { total: result.total, counts: result.orderStatusCounts }
 }
 
 export async function fetchDeliveryList(

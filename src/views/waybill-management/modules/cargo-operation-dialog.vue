@@ -122,7 +122,7 @@
     fetchWaybillCargoOperationContext
   } from '@tms/api'
   import { formatWithDayjs } from '@/utils/time'
-  import { useAmapSdk } from '@/hooks/core/useAmapSdk'
+  import { useAmapSdk, type AmapBrowserNamespace } from '@/hooks/core/useAmapSdk'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import type { WaybillRecord } from './waybill-shared'
 
@@ -169,7 +169,7 @@
     formattedAddress?: string
   }
 
-  interface AmapNamespace {
+  interface AmapNamespace extends AmapBrowserNamespace {
     Geolocation: new (options: Record<string, unknown>) => {
       getCurrentPosition: (
         callback: (status: string, result: AmapLocationResult | { message?: string }) => void

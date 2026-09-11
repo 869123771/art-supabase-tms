@@ -173,7 +173,7 @@
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import type { ColumnOption } from '@/types'
   import { formatWithDayjs } from '@/utils/time'
-  import { canViewField, formatSensitiveNumber } from '@/utils/field-permission'
+  import { canViewField, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
   import { useUserStore } from '@/store/modules/user'
   import { fetchOrderDetail } from '@tms/api'
   import OrderStatusSteps from './modules/order-status-steps.vue'
@@ -525,7 +525,7 @@
   }
 
   function formatCurrency(value?: number | string | null): string {
-    return `¥${formatSensitiveNumber(value)}`
+    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
   }
 
   function createMoneyDescriptionItems(

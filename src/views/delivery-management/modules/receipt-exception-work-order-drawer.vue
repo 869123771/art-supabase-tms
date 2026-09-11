@@ -60,7 +60,7 @@
         </template>
 
         <div class="exception-work-orders__toolbar">
-          <ElTooltip content="刷新异常工单" placement="top">
+          <ArtTooltip content="刷新异常工单" placement="top">
             <ArtIconButton
               icon="ri:refresh-line"
               circle
@@ -68,7 +68,7 @@
               :loading="state.loading"
               @click="loadData"
             />
-          </ElTooltip>
+          </ArtTooltip>
           <ElInput
             v-model="filters.keyword"
             clearable
