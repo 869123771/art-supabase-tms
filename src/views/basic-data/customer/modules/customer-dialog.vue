@@ -34,6 +34,8 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
+
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
@@ -342,17 +344,6 @@
   const replaceForm = (nextForm: CustomerForm): void => {
     Object.keys(form).forEach((key) => delete form[key as keyof CustomerForm])
     Object.assign(form, nextForm)
-  }
-
-  const normalizeNullableNumber = (value: unknown): number | null => {
-    if (value === null || value === undefined || value === '') return null
-    const numberValue = Number(value)
-    return Number.isFinite(numberValue) ? numberValue : null
-  }
-
-  const normalizeNullableText = (value: unknown): string | null => {
-    const text = String(value ?? '').trim()
-    return text || null
   }
 
   const buildSubmitPayload = (data: CustomerForm): Customer => {

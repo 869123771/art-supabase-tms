@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { normalizeSupabaseFunctionError } from '@/utils/supabase'
 import { useSupabase } from '@/hooks'
 import { normalizeBooleanFilter, withRequestOptions } from '@/api/providers/supabase/query'
@@ -77,7 +78,7 @@ const toCarrierListRpcParams = (
     p_carrier_type: params.carrierType || null,
     p_enabled: normalizeBooleanFilter(params.enabled) ?? null,
     p_signed_contract: normalizeBooleanFilter(params.signedContract) ?? null,
-    p_keyword: String(params.keyword ?? '').trim() || null,
+    p_keyword: normalizeNullableText(String(params.keyword ?? '')),
     p_create_time_from: params.createTimeRange?.[0]
       ? `${params.createTimeRange[0]}T00:00:00`
       : null,
@@ -164,7 +165,7 @@ export async function fetchCarrierOptions(
         supabase.rpc('tms_list_carrier_options_secure', {
           p_exclude_id: excludeId || null,
           p_include_disabled: includeDisabled,
-          p_keyword: String(companyName || carrierCode || '').trim() || null,
+          p_keyword: normalizeNullableText(String(companyName || carrierCode || '')),
           p_ids: ids?.length ? ids : null,
           p_max_rows: maxRows
         }),

@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 import { withRequestOptions } from '@/api/providers/supabase/query'
 import type { ApiRequestOptions } from '@/types/api/request'
@@ -62,10 +63,10 @@ const createOrderRpcParams = (params: TransportOrderParams, scope: TransportOrde
     p_dispatch_statuses: params.dispatchStatuses?.length ? params.dispatchStatuses : null,
     p_dispatch_vehicle_id: params.dispatchVehicleId || null,
     p_waybill_status: normalizeStatus(params.waybillStatus),
-    p_cargo_keyword: String(params.cargoKeyword ?? '').trim() || null,
-    p_shipping_keyword: String(params.shippingKeyword ?? '').trim() || null,
-    p_receiving_keyword: String(params.receivingKeyword ?? '').trim() || null,
-    p_vehicle_keyword: String(params.vehicleKeyword ?? '').trim() || null,
+    p_cargo_keyword: normalizeNullableText(String(params.cargoKeyword ?? '')),
+    p_shipping_keyword: normalizeNullableText(String(params.shippingKeyword ?? '')),
+    p_receiving_keyword: normalizeNullableText(String(params.receivingKeyword ?? '')),
+    p_vehicle_keyword: normalizeNullableText(String(params.vehicleKeyword ?? '')),
     p_create_time_from: startOfDay(params.createTimeRange?.[0]),
     p_create_time_to: endOfDay(params.createTimeRange?.[1]),
     p_planned_time_from: startOfDay(params.plannedTimeRange?.[0]),
@@ -115,7 +116,7 @@ export async function fetchSecureInTransitWaybills(params: {
       p_from: Math.max(params.from ?? 0, 0),
       p_to: Math.max(params.to ?? 199, params.from ?? 0),
       p_statuses: params.statuses?.length ? params.statuses : null,
-      p_keyword: String(params.keyword ?? '').trim() || null
+      p_keyword: normalizeNullableText(String(params.keyword ?? ''))
     })
   )
   return {

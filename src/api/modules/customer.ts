@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 import { normalizeBooleanFilter, withRequestOptions } from '@/api/providers/supabase/query'
 import type { ApiRequestOptions } from '@/types/api/request'
@@ -154,7 +155,7 @@ const toCustomerListRpcParams = (
     p_customer_level: params.customerLevel || null,
     p_industry: params.industry || null,
     p_enabled: normalizeBooleanFilter(params.enabled) ?? null,
-    p_keyword: String(params.keyword ?? '').trim() || null,
+    p_keyword: normalizeNullableText(String(params.keyword ?? '')),
     p_create_time_from: params.createTimeRange?.[0]
       ? `${params.createTimeRange[0]}T00:00:00`
       : null,
@@ -224,7 +225,7 @@ export async function fetchCustomerSelectorList(
         supabase.rpc('tms_list_customer_selector_secure', {
           p_from: from,
           p_to: to,
-          p_keyword: String(keyword ?? '').trim() || null,
+          p_keyword: normalizeNullableText(String(keyword ?? '')),
           p_address_type: addressType || null
         }),
         options
@@ -364,7 +365,7 @@ export async function fetchCustomerAddressList(
     p_to: to,
     p_customer_id: params.customerId || null,
     p_address_type: params.addressType || null,
-    p_keyword: String(params.keyword ?? '').trim() || null,
+    p_keyword: normalizeNullableText(String(params.keyword ?? '')),
     p_create_time_from: params.createTimeRange?.[0]
       ? `${params.createTimeRange[0]}T00:00:00`
       : null,
@@ -479,7 +480,7 @@ export async function fetchFavoriteRouteList(
     p_tenant_id: tenantId || null,
     p_customer_id: customerId || null,
     p_enabled: enabled ?? null,
-    p_keyword: String(keyword ?? '').trim() || null
+    p_keyword: normalizeNullableText(String(keyword ?? ''))
   })
   const result = await responseHandle<SecureListPayload<FavoriteRoute, never>>(
     () => withRequestOptions(query, options),

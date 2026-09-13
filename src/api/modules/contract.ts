@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 import { withRequestOptions } from '@/api/providers/supabase/query'
 import type { ApiRequestOptions } from '@/types/api/request'
@@ -124,7 +125,7 @@ const toContractListRpcParams = (
     p_customer_id: params.customerId || null,
     p_carrier_id: params.carrierId || null,
     p_billing_method: params.billingMethod || null,
-    p_keyword: String(params.keyword ?? '').trim() || null,
+    p_keyword: normalizeNullableText(String(params.keyword ?? '')),
     p_create_time_from: params.createTimeRange?.[0]
       ? `${params.createTimeRange[0]}T00:00:00`
       : null,

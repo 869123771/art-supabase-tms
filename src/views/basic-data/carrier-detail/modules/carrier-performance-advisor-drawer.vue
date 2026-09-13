@@ -230,6 +230,11 @@
 </template>
 
 <script setup lang="ts">
+  import {
+    formatCnyCurrencyValue as formatMoney,
+    formatPercentValue as formatPercent
+  } from '@/utils/ui/format'
+
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import type { UnwrapNestedRefs } from 'vue'
   import ArtAiFeedback from '@/components/core/base/art-ai-feedback/index.vue'
@@ -433,17 +438,6 @@
       : severity === 'high'
         ? 'ri:error-warning-line'
         : 'ri:information-line'
-  }
-
-  function formatMoney(value?: number | null): string {
-    return `¥${Number(value ?? 0).toLocaleString('zh-CN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}`
-  }
-
-  function formatPercent(value?: number | null): string {
-    return value === null || value === undefined ? '--' : `${Number(value).toFixed(1)}%`
   }
 
   function formatTime(value?: string | null): string {

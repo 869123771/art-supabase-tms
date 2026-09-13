@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 import { withRequestOptions } from '@/api/providers/supabase/query'
 import type { ApiRequestOptions } from '@/types/api/request'
@@ -79,8 +80,8 @@ export async function fetchTmsVehicleOptions(
       withRequestOptions(
         supabase.rpc('vms_list_vehicle_archive_options_secure', {
           p_carrier_id: params.carrierId || null,
-          p_plate_no: String(params.plateNo ?? '').trim() || null,
-          p_company_name: String(params.companyName ?? '').trim() || null,
+          p_plate_no: normalizeNullableText(String(params.plateNo ?? '')),
+          p_company_name: normalizeNullableText(String(params.companyName ?? '')),
           p_ids: null,
           p_max_rows: 200
         }),

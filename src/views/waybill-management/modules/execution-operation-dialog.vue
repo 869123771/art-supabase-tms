@@ -70,6 +70,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import type { ComputedRef } from 'vue'
   import type { FormRules } from 'element-plus'
@@ -325,7 +326,7 @@
         departureTime: occurredAtIso,
         odometerKm: Number(form.data.odometerKm),
         photoUrls: [...form.data.photoUrls],
-        remark: form.data.remark.trim() || null
+        remark: normalizeNullableText(form.data.remark)
       })
     } else if (action.value === 'signature') {
       await signWaybill({
@@ -334,7 +335,7 @@
         signerName: form.data.signerName.trim(),
         receiptUrls: [...form.data.receiptUrls],
         signatureUrls: [...form.data.signatureUrls],
-        remark: form.data.remark.trim() || null
+        remark: normalizeNullableText(form.data.remark)
       })
     } else {
       await completeWaybillExecution({
@@ -342,7 +343,7 @@
         returnTime: occurredAtIso,
         returnOdometerKm: Number(form.data.odometerKm),
         photoUrls: [...form.data.photoUrls],
-        remark: form.data.remark.trim() || null
+        remark: normalizeNullableText(form.data.remark)
       })
     }
     emit('success')

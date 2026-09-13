@@ -33,6 +33,8 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
+
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
@@ -247,17 +249,6 @@
     if (!result || typeof result !== 'object') return []
     const data = (result as { data?: TRecord[] }).data
     return Array.isArray(data) ? data : []
-  }
-
-  const normalizeNullableNumber = (value: unknown): number | null => {
-    if (value === null || value === undefined || value === '') return null
-    const numberValue = Number(value)
-    return Number.isFinite(numberValue) ? numberValue : null
-  }
-
-  const normalizeNullableText = (value: unknown): string | null => {
-    const text = String(value ?? '').trim()
-    return text || null
   }
 
   const syncCustomerOptions = (result: unknown): unknown => {

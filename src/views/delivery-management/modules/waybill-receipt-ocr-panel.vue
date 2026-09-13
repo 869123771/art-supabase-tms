@@ -140,6 +140,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import dayjs from 'dayjs'
@@ -276,7 +277,7 @@
         artifactId: result.value.artifactId,
         orderId: props.order.id,
         evidenceUrls: imageUrls.value,
-        workOrderNo: manualWorkOrderNo.value.trim() || null
+        workOrderNo: normalizeNullableText(manualWorkOrderNo.value)
       })
       if (!created) throw new Error('异常工单创建结果未返回')
       workOrder.value = created

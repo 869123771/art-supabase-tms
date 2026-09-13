@@ -109,6 +109,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ComputedRef } from 'vue'
   import type { FormRules } from 'element-plus'
@@ -394,7 +395,7 @@
         weightTon: Number(form.data.weightTon),
         photoUrls: [...form.data.photoUrls],
         weighbridgeTicketUrls: [...form.data.weighbridgeTicketUrls],
-        remark: form.data.remark.trim() || null
+        remark: normalizeNullableText(form.data.remark)
       })
       emit('success')
       return true

@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 
 const { supabase, responseHandle } = useSupabase()
@@ -23,7 +24,7 @@ export async function fetchTransportEventList(params: SearchParams = {}) {
         p_from: from,
         p_to: to,
         p_event_type: params.eventType || null,
-        p_keyword: params.keyword?.trim() || null,
+        p_keyword: normalizeNullableText(params.keyword),
         p_event_start: params.eventTimeRange?.[0] ? startOfDay(params.eventTimeRange[0]) : null,
         p_event_end: params.eventTimeRange?.[1] ? endOfDay(params.eventTimeRange[1]) : null
       }),

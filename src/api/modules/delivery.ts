@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { buildOrIlikeFilter } from '@/utils/supabase/search'
 import { normalizeSupabaseFunctionError } from '@/utils/supabase'
 import { useSupabase } from '@/hooks'
@@ -186,7 +187,7 @@ export async function transitionReceiptExceptionWorkOrder(
       supabase.rpc('transition_ai_receipt_exception_work_order', {
         p_work_order_id: id,
         p_next_status: status,
-        p_note: note?.trim() || null
+        p_note: normalizeNullableText(note)
       }),
     { breakReturn: true, showErrorMessage: true }
   )

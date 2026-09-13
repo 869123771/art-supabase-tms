@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { normalizeNullableNumber } from '../../../../src/utils/form/normalize'
 import {
   calculateCargoSummary,
   formatNumber,
   joinRegionPath,
   mergeCargoSelections,
   normalizeMoney,
-  normalizeNullableNumber,
   normalizeText,
   splitRegionPath
 } from '../../src/views/basic-data/modules/price-form-utils'

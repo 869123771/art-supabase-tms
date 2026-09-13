@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 import { normalizeBooleanFilter, withRequestOptions } from '@/api/providers/supabase/query'
 import type { ApiRequestOptions } from '@/types/api/request'
@@ -69,7 +70,7 @@ export async function fetchDriverEmployeeOptions(
         supabase.rpc('tms_list_driver_employee_options_secure', {
           p_from: from,
           p_to: Math.max(params.to ?? from + 9, from),
-          p_keyword: String(params.keyword ?? '').trim() || null
+          p_keyword: normalizeNullableText(String(params.keyword ?? ''))
         }),
         options
       ),
@@ -105,7 +106,7 @@ const toDriverListRpcParams = (
     p_driver_type: params.driverType || null,
     p_gender: params.gender || null,
     p_enabled: normalizeBooleanFilter(params.enabled) ?? null,
-    p_keyword: String(params.keyword ?? '').trim() || null,
+    p_keyword: normalizeNullableText(String(params.keyword ?? '')),
     p_create_time_from: params.createTimeRange?.[0]
       ? `${params.createTimeRange[0]}T00:00:00`
       : null,
@@ -169,7 +170,7 @@ export async function fetchDriverOptions(
       withRequestOptions(
         supabase.rpc('tms_list_driver_options_secure', {
           p_carrier_id: carrierId || null,
-          p_driver_name: String(driverName ?? '').trim() || null,
+          p_driver_name: normalizeNullableText(String(driverName ?? '')),
           p_driver_type: driverType || null,
           p_ids: ids?.length ? ids : null,
           p_include_disabled: includeDisabled,

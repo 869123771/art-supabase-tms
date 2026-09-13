@@ -1,9 +1,9 @@
 import { cloneDeep, omit } from 'lodash-es'
+import { normalizeNullableNumber } from '@/utils/form/normalize'
 import {
   calculateCargoSummary,
   joinRegionPath,
   normalizeMoney,
-  normalizeNullableNumber,
   normalizeRequiredText,
   normalizeText,
   roundNumber,

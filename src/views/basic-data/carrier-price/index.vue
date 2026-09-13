@@ -171,7 +171,7 @@
             {
               key: 'totalFee',
               title: '运费合计（元）',
-              formatter: (value) => formatMoney(value as string | number | null)
+              formatter: (value) => formatSensitiveNumber(value as string | number | null)
             } satisfies ArtTableQueryExcelColumn
           ]
         : []),
@@ -359,7 +359,7 @@
               label: '运费合计（元）',
               width: 130,
               align: 'right',
-              formatter: (row) => formatMoney(row.totalFee)
+              formatter: (row) => formatSensitiveNumber(row.totalFee)
             } as ColumnOption<CarrierPrice>
           ]
         : []),
@@ -490,10 +490,6 @@
     const text = String(value)
     const item = options.find((option) => option.value === text || option.label === text)
     return item?.label || text
-  }
-
-  function formatMoney(value?: number | string | null): string {
-    return formatSensitiveNumber(value)
   }
 
   function formatDateTime(value?: string | null): string {

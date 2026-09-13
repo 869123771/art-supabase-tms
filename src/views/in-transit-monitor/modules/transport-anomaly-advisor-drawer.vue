@@ -173,6 +173,8 @@
 </template>
 
 <script setup lang="ts">
+  import { createDateTimeFormatter } from '@/utils/ui/format'
+
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import type { UnwrapNestedRefs } from 'vue'
   import ArtAiFeedback from '@/components/core/base/art-ai-feedback/index.vue'
@@ -291,9 +293,7 @@
     return severity === 'critical' ? 'ri:alarm-warning-line' : 'ri:error-warning-line'
   }
 
-  function formatTime(value: string): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD HH:mm:ss') || '-'
-  }
+  const formatTime = createDateTimeFormatter({ format: 'YYYY-MM-DD HH:mm:ss', emptyText: '-' })
 
   function formatEvidence(value: string): string {
     const statusLabels: Record<string, string> = {

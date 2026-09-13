@@ -1,8 +1,8 @@
 import { cloneDeep, omit } from 'lodash-es'
+import { normalizeNullableNumber } from '@/utils/form/normalize'
 import {
   joinRegionPath,
   normalizeMoney,
-  normalizeNullableNumber,
   normalizeText,
   roundNumber,
   toNumber,

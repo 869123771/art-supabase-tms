@@ -401,7 +401,7 @@
               prop: 'totalFee',
               label: '总运费',
               width: 110,
-              formatter: (row: OrderRecord) => `¥${formatMoney(row.totalFee)}`
+              formatter: (row: OrderRecord) => `¥${formatSensitiveNumber(row.totalFee)}`
             }
           ]
         : []),
@@ -675,10 +675,6 @@
 
   function handleDeleteDependenciesCleared(): void {
     void tableQueryRef.value?.refreshData()
-  }
-
-  function formatMoney(value?: number | string | null): string {
-    return formatSensitiveNumber(value)
   }
 
   function canViewOrderField(field: Api.Tms.Order.OrderFieldKey): boolean {

@@ -1,4 +1,5 @@
 import { differenceBy, round, sumBy, toNumber as lodashToNumber, uniqBy } from 'lodash-es'
+import { normalizeNullableNumber } from '@/utils/form/normalize'
 
 type NumericValue = number | string | null | undefined
 
@@ -103,12 +104,6 @@ export function normalizeText(value?: string | null): string | null {
 
 export function normalizeRequiredText(value?: string | null): string {
   return String(value ?? '').trim()
-}
-
-export function normalizeNullableNumber(value: NumericValue): number | null {
-  if (value === null || value === undefined || value === '') return null
-  const numberValue = lodashToNumber(value)
-  return Number.isNaN(numberValue) ? null : numberValue
 }
 
 export function normalizeMoney(value: NumericValue): number {

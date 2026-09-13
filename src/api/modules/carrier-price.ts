@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { pick, pickBy } from 'lodash-es'
 import { useSupabase } from '@/hooks'
 
@@ -64,7 +65,7 @@ const toListRpcParams = (
     p_destination_region: params.destinationRegion || null,
     p_transport_mode: params.transportMode || null,
     p_billing_method: params.billingMethod || null,
-    p_keyword: String(params.keyword ?? '').trim() || null,
+    p_keyword: normalizeNullableText(String(params.keyword ?? '')),
     p_create_time_from: params.createTimeRange?.[0]
       ? `${params.createTimeRange[0]}T00:00:00`
       : null,

@@ -72,6 +72,7 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import type { FormRules } from 'element-plus'
   import { cloneDeep, omit } from 'lodash-es'
   import { storeToRefs } from 'pinia'
@@ -461,7 +462,7 @@
     payload.routeName = payload.routeName.trim()
     payload.distanceKm = form.distanceKm || null
     payload.estimatedMinutes = form.estimatedMinutes || null
-    payload.remark = form.remark?.trim() || null
+    payload.remark = normalizeNullableText(form.remark)
     if (!isPlatformSuper.value || payload.id) delete payload.tenantId
     return payload
   }

@@ -37,6 +37,8 @@
 </template>
 
 <script setup lang="tsx">
+  import { formatTenantLabel as resolveTenantLabel } from '@/utils/tenant-display'
+
   import { ElMessage } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
@@ -315,13 +317,6 @@
     } catch {
       // 用户取消删除时无需提示。
     }
-  }
-
-  const resolveTenantLabel = (row: FavoriteRoute): string => {
-    const tenantName = row.tenant?.tenantName?.trim()
-    const tenantCode = row.tenant?.tenantCode?.trim()
-    if (tenantName && tenantCode) return `${tenantName}（${tenantCode}）`
-    return tenantName || tenantCode || row.tenantId || '未识别租户'
   }
 
   const loadTenantOptions = async (): Promise<void> => {

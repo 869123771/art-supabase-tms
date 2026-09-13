@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 import type { QueryResult } from '@/types/api/response'
 import {
@@ -400,7 +401,7 @@ export async function fetchDispatchVehicleOptions(params: DispatchVehicleSearchP
       supabase.rpc('vms_list_dispatch_vehicle_options_secure', {
         p_from: Math.max(from, 0),
         p_to: Math.max(to, from),
-        p_keyword: String(keyword ?? '').trim() || null
+        p_keyword: normalizeNullableText(String(keyword ?? ''))
       }),
     { ignoreCheck: true, showErrorMessage: true }
   )
