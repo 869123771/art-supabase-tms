@@ -305,10 +305,13 @@
 </script>
 
 <style scoped lang="scss">
+  @use '@/assets/styles/core/ai-surface-mixins' as ai;
+
   .receipt-ocr {
+    @include ai.surface;
+
     padding: 16px;
     margin-bottom: 16px;
-    box-shadow: inset 3px 0 0 rgb(var(--ui-primary) / 72%);
 
     &__header,
     &__identity,
@@ -345,22 +348,11 @@
     }
 
     &__icon {
-      display: grid;
-      flex: 0 0 38px;
-      place-items: center;
-      width: 38px;
-      height: 38px;
-      font-size: 19px;
-      color: rgb(var(--ui-primary));
-      background: rgb(var(--ui-primary) / 10%);
-      border-radius: var(--el-border-radius-base);
+      @include ai.identity-icon(38px, 19px);
     }
 
     &__eyebrow {
-      font-size: 11px;
-      font-weight: 600;
-      color: rgb(var(--ui-primary));
-      letter-spacing: 0.04em;
+      @include ai.eyebrow;
     }
 
     &__context {
@@ -434,16 +426,15 @@
       gap: 8px;
 
       > div {
+        @include ai.capability-item;
+
         gap: 8px;
         min-width: 0;
         padding: 10px;
-        background: rgb(var(--ui-primary) / 3%);
-        border: 1px solid rgb(var(--ui-primary) / 10%);
         border-radius: var(--el-border-radius-base);
 
         > svg {
-          flex: 0 0 auto;
-          color: rgb(var(--ui-primary));
+          @include ai.capability-icon;
         }
 
         span {
@@ -463,6 +454,14 @@
           line-height: 1.45;
           color: var(--art-text-gray-500);
         }
+      }
+
+      > :nth-child(2) {
+        --ai-capability-color: #d97706;
+      }
+
+      > :nth-child(3) {
+        --ai-capability-color: #059669;
       }
     }
 
