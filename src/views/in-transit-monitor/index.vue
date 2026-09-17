@@ -967,10 +967,6 @@
   }
 
   function exitMonitor(): void {
-    if (window.history.length > 1) {
-      router.back()
-      return
-    }
     void router.push('/dashboard/console')
   }
 
