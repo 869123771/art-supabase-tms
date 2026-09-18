@@ -121,15 +121,12 @@
           </div>
 
           <div class="order-open__swap">
-            <ElButton
+            <ArtIconButton
               v-if="canEditContactEndpoint('shipping') && canEditContactEndpoint('receiving')"
-              circle
-              text
-              aria-label="交换发货人与收货人"
+              icon="ri:arrow-left-right-line"
+              label="交换发货人与收货人"
               @click="swapContacts"
-            >
-              <ArtSvgIcon icon="ri:arrow-left-right-line" />
-            </ElButton>
+            />
           </div>
 
           <div class="order-open__contact-panel">
@@ -480,6 +477,7 @@
   import { ElAutocomplete, ElInputNumber, ElMessage, ElOption, ElSelect } from 'element-plus'
   import { Collection, Plus } from '@element-plus/icons-vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
+  import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'

@@ -83,25 +83,11 @@
                   </span>
                 </div>
                 <div class="monitor-map__tools" :class="{ 'is-wide': activeMode !== 'realtime' }">
-                  <ElButton
-                    circle
-                    :icon="ZoomIn"
-                    title="放大地图"
-                    aria-label="放大地图"
-                    @click="zoomMap('in')"
-                  />
-                  <ElButton
-                    circle
-                    :icon="ZoomOut"
-                    title="缩小地图"
-                    aria-label="缩小地图"
-                    @click="zoomMap('out')"
-                  />
-                  <ElButton
-                    circle
-                    :icon="RefreshRight"
-                    title="定位当前车辆"
-                    aria-label="定位当前车辆"
+                  <ArtIconButton icon="ri:zoom-in-line" label="放大地图" @click="zoomMap('in')" />
+                  <ArtIconButton icon="ri:zoom-out-line" label="缩小地图" @click="zoomMap('out')" />
+                  <ArtIconButton
+                    icon="ri:focus-3-line"
+                    label="定位当前车辆"
                     @click="resetMapView"
                   />
                 </div>
@@ -208,8 +194,8 @@
   import type { UnwrapNestedRefs } from 'vue'
   import { storeToRefs } from 'pinia'
   import { ElMessage } from 'element-plus'
-  import { RefreshRight, ZoomIn, ZoomOut } from '@element-plus/icons-vue'
   import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
+  import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
   import { fetchInTransitMonitorList, subscribeInTransitMonitorChanges } from '@tms/api'
   import { useAmapSdk } from '@/hooks/core/useAmapSdk'
   import { useUserStore } from '@/store/modules/user'

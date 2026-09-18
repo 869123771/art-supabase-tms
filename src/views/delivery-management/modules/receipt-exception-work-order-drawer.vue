@@ -63,7 +63,6 @@
           <ArtTooltip content="刷新异常工单" placement="top">
             <ArtIconButton
               icon="ri:refresh-line"
-              circle
               label="刷新异常工单"
               :loading="state.loading"
               @click="loadData"

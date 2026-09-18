@@ -571,7 +571,7 @@
       height: 20px;
       color: #9bc4d9;
       cursor: pointer;
-      border-radius: 50%;
+      border-radius: var(--art-control-radius);
 
       &:hover,
       &:focus-visible {
