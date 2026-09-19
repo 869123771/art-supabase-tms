@@ -77,15 +77,6 @@ export function mergeCargoSelections<TItem extends NamedCargo, TSelection extend
   }
 }
 
-export function formatNumber(value: NumericValue, precision = 2): string {
-  const numberValue = lodashToNumber(value ?? 0)
-  if (Number.isNaN(numberValue)) return '0'
-  return numberValue
-    .toFixed(precision)
-    .replace(/\.0+$/, '')
-    .replace(/(\.\d*?)0+$/, '$1')
-}
-
 export function splitRegionPath(region?: string | null): string[] {
   return String(region ?? '')
     .split('/')

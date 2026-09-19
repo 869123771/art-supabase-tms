@@ -126,13 +126,6 @@ export function numericValue(value?: number | string | null): number {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
-export function formatNumber(value?: number | string | null, precision = 2): string {
-  return numericValue(value)
-    .toFixed(precision)
-    .replace(/\.0+$/, '')
-    .replace(/(\.\d*?)0+$/, '$1')
-}
-
 export function textValue(value?: string | null): string {
   return trim(String(value ?? ''))
 }

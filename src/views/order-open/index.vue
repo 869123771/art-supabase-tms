@@ -355,9 +355,9 @@
                 <p>实际费用按开单员揽收时称重或测量体积计算，运费四舍五入取整。</p>
                 <dl>
                   <dt>基础运费</dt>
-                  <dd>￥{{ formatNumber(form.data.transportFee) }}</dd>
+                  <dd>￥{{ formatCompactNumberValue(form.data.transportFee) }}</dd>
                   <dt>附加服务费</dt>
-                  <dd>￥{{ formatNumber(form.extraServiceFee) }}</dd>
+                  <dd>￥{{ formatCompactNumberValue(form.extraServiceFee) }}</dd>
                   <dt>计费类型</dt>
                   <dd>{{ form.paymentMethodLabel }}</dd>
                   <dt>重量</dt>
@@ -452,18 +452,42 @@
         </div>
       </ArtStickyActionBar>
 
-      <CustomerSelectorDialog ref="customerDialogRef" @select="handleCustomerSelect" />
-      <FavoriteRouteSelectorDialog
+      <component
+        :is="customerSelectorComponent"
+        v-if="customerSelectorComponent"
+        ref="customerDialogRef"
+        @select="handleCustomerSelect"
+      />
+      <component
+        :is="favoriteRouteSelectorComponent"
+        v-if="favoriteRouteSelectorComponent"
         ref="favoriteRouteDialogRef"
         @select="handleFavoriteRouteSelect"
       />
-      <PrintCountDialog ref="printDialogRef" @confirm="handlePrintConfirm" />
-      <ContractDetailMultipleSelect
+      <component
+        :is="printDialogComponent"
+        v-if="printDialogComponent"
+        ref="printDialogRef"
+        @confirm="handlePrintConfirm"
+      />
+      <component
+        :is="contractDetailSelectorComponent"
+        v-if="contractDetailSelectorComponent"
         ref="contractDetailSelectorRef"
         @confirm="handleContractDetailSelectorConfirm"
       />
-      <CargoMultipleSelect ref="cargoSelectorRef" @confirm="handleCargoSelectorConfirm" />
-      <AiOrderDrawer ref="aiOrderDrawerRef" @apply="handleAiOrderApply" />
+      <component
+        :is="cargoSelectorComponent"
+        v-if="cargoSelectorComponent"
+        ref="cargoSelectorRef"
+        @confirm="handleCargoSelectorConfirm"
+      />
+      <component
+        :is="aiOrderDrawerComponent"
+        v-if="aiOrderDrawerComponent"
+        ref="aiOrderDrawerRef"
+        @apply="handleAiOrderApply"
+      />
     </div>
   </ArtPageShell>
 </template>
@@ -484,6 +508,7 @@
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import { useAmapGeocoder } from '@/hooks/core/useAmapGeocoder'
   import { useAuth } from '@/hooks/core/useAuth'
+  import { useLazyComponent } from '@/hooks/core/useLazyComponent'
   import type { ColumnOption } from '@/types'
   import { formatNameCodeOption } from '@/utils/form'
   import { canEditField, canViewField, getFieldAccess } from '@/utils/field-permission'
@@ -500,18 +525,13 @@
   import { fetchDocumentNumberRulesByKeys } from '@/api/document-number'
   import { useUserStore } from '@/store/modules/user'
   import { clearFormRefsValidation, validateFormRefs } from '@/utils/form/validation'
-  import CargoMultipleSelect from '../modules/cargo-multiple-select.vue'
-  import ContractDetailMultipleSelect from './modules/contract-detail-multiple-select.vue'
+  import { formatCompactNumberValue } from '@/utils/ui/format'
   import {
     calculateContractTransportFee,
     mergeOrderContractDetails,
     synchronizeContractCargoFreight
   } from './modules/order-contract-detail'
-  import AiOrderDrawer from './modules/ai-order-drawer.vue'
   import { buildAiOrderFinalPayload } from './modules/ai-order-review'
-  import CustomerSelectorDialog from './modules/customer-selector-dialog.vue'
-  import FavoriteRouteSelectorDialog from './modules/favorite-route-selector-dialog.vue'
-  import PrintCountDialog from './modules/print-count-dialog.vue'
   import type {
     AiAddressReferenceMatch,
     AiOrderApplyPayload,
@@ -523,7 +543,6 @@
     createCustomerPriceBusinessPatch,
     createFavoriteRouteContactPatch,
     calculateOrderCargoSummary,
-    formatNumber,
     formatOrderAddress,
     getDictLabel,
     moneyValue,
@@ -655,6 +674,22 @@
   const { hasAuth, hasAnyAuth } = useAuth()
   const { geocodeAddress } = useAmapGeocoder()
   const { getDictMap } = storeToRefs(userStore)
+  const { component: customerSelectorComponent, load: loadCustomerSelector } = useLazyComponent(
+    () => import('./modules/customer-selector-dialog.vue')
+  )
+  const { component: favoriteRouteSelectorComponent, load: loadFavoriteRouteSelector } =
+    useLazyComponent(() => import('./modules/favorite-route-selector-dialog.vue'))
+  const { component: printDialogComponent, load: loadPrintDialog } = useLazyComponent(
+    () => import('./modules/print-count-dialog.vue')
+  )
+  const { component: contractDetailSelectorComponent, load: loadContractDetailSelector } =
+    useLazyComponent(() => import('./modules/contract-detail-multiple-select.vue'))
+  const { component: cargoSelectorComponent, load: loadCargoSelector } = useLazyComponent(
+    () => import('../modules/cargo-multiple-select.vue')
+  )
+  const { component: aiOrderDrawerComponent, load: loadAiOrderDrawer } = useLazyComponent(
+    () => import('./modules/ai-order-drawer.vue')
+  )
   const stationFormRef = ref<FormExpose>()
   const shippingFormRef = ref<FormExpose>()
   const receivingFormRef = ref<FormExpose>()
@@ -1063,14 +1098,14 @@
               label: '合同单价(元)',
               width: 145,
               formatter: (row: CargoItem) =>
-                row.sourceContractId ? `¥ ${formatNumber(row.unitPrice)}` : '-'
+                row.sourceContractId ? `¥ ${formatCompactNumberValue(row.unitPrice)}` : '-'
             },
             {
               prop: 'freight',
               label: '运费(元)',
               width: 135,
               formatter: (row: CargoItem) =>
-                row.sourceContractId ? `¥ ${formatNumber(row.freight)}` : '-'
+                row.sourceContractId ? `¥ ${formatCompactNumberValue(row.freight)}` : '-'
             }
           ]
         : []),
@@ -1111,11 +1146,11 @@
     paymentMethodLabel: computed(() =>
       getDictLabel(form.paymentMethodOptions, form.data.paymentMethod)
     ),
-    cargoQuantityText: computed(() => formatNumber(form.cargoSummary.quantity, 0)),
-    cargoWeightText: computed(() => formatNumber(form.cargoSummary.weight, 2)),
-    cargoVolumeText: computed(() => formatNumber(form.cargoSummary.volume, 3)),
-    totalFeeText: computed(() => formatNumber(form.data.totalFee, 2)),
-    paymentTotalText: computed(() => formatNumber(form.data.paymentTotal, 2))
+    cargoQuantityText: computed(() => formatCompactNumberValue(form.cargoSummary.quantity, 0)),
+    cargoWeightText: computed(() => formatCompactNumberValue(form.cargoSummary.weight, 2)),
+    cargoVolumeText: computed(() => formatCompactNumberValue(form.cargoSummary.volume, 3)),
+    totalFeeText: computed(() => formatCompactNumberValue(form.data.totalFee, 2)),
+    paymentTotalText: computed(() => formatCompactNumberValue(form.data.paymentTotal, 2))
   })
 
   const feeFields: Array<keyof OrderForm> = [
@@ -1331,10 +1366,12 @@
   }
 
   async function openCargoSelector(): Promise<void> {
+    await loadCargoSelector()
     await cargoSelectorRef.value?.open()
   }
 
   async function openContractDetailSelector(): Promise<void> {
+    await loadContractDetailSelector()
     await contractDetailSelectorRef.value?.open()
   }
 
@@ -1438,12 +1475,14 @@
     }
   }
 
-  function openCustomerSelector(mode: SelectorMode): void {
-    void customerDialogRef.value?.handleOpen(mode)
+  async function openCustomerSelector(mode: SelectorMode): Promise<void> {
+    await loadCustomerSelector()
+    await customerDialogRef.value?.handleOpen(mode)
   }
 
-  function openFavoriteRouteSelector(): void {
-    void favoriteRouteDialogRef.value?.handleOpen()
+  async function openFavoriteRouteSelector(): Promise<void> {
+    await loadFavoriteRouteSelector()
+    await favoriteRouteDialogRef.value?.handleOpen()
   }
 
   async function handleFavoriteRouteSelect(route: FavoriteRoute): Promise<void> {
@@ -1586,8 +1625,9 @@
     })
   }
 
-  function openAiOrderDrawer(): void {
-    void aiOrderDrawerRef.value?.handleOpen({
+  async function openAiOrderDrawer(): Promise<void> {
+    await loadAiOrderDrawer()
+    await aiOrderDrawerRef.value?.handleOpen({
       options: {
         deliveryMethods: toAiOptions(form.deliveryMethodOptions),
         paymentMethods: toAiOptions(form.paymentMethodOptions),
@@ -1876,22 +1916,23 @@
     aiArtifactId.value = undefined
   }
 
-  function openPrintDialog(kind: PrintKind): void {
-    void printDialogRef.value?.handleOpen({
+  async function openPrintDialog(kind: PrintKind): Promise<void> {
+    await loadPrintDialog()
+    await printDialogRef.value?.handleOpen({
       kind,
       cargoQuantity: Math.max(1, form.cargoSummary.quantity)
     })
   }
 
   function handleDoublePrint(): void {
-    openPrintDialog('waybill')
+    void openPrintDialog('waybill')
   }
 
   function handleFooterCommand(command: FooterCommand): void {
     const handlers: Record<FooterCommand, () => void> = {
-      ai: openAiOrderDrawer,
-      'print-waybill': () => openPrintDialog('waybill'),
-      'print-label': () => openPrintDialog('label'),
+      ai: () => void openAiOrderDrawer(),
+      'print-waybill': () => void openPrintDialog('waybill'),
+      'print-label': () => void openPrintDialog('label'),
       'double-print': handleDoublePrint
     }
     handlers[command]()

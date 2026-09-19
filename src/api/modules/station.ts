@@ -55,7 +55,6 @@ export async function fetchStationList(params: StationSearchParams, options?: Ap
 
   query = applyStationFilters(query, params)
   return await responseHandle<StationRecord[]>(() => withRequestOptions(query, options), {
-    ignoreCheck: true,
     showErrorMessage: true
   })
 }
@@ -74,7 +73,6 @@ export async function exportStationList(
 
   query = ids?.length ? query.in('id', ids) : applyStationFilters(query, params)
   return await responseHandle<StationRecord[]>(() => query, {
-    ignoreCheck: true,
     showErrorMessage: true
   })
 }
@@ -104,7 +102,6 @@ export async function fetchStationOptions(
   return await responseHandle<Api.Tms.Order.StationOption[]>(
     () => withRequestOptions(query, options),
     {
-      ignoreCheck: true,
       showErrorMessage: true
     }
   )

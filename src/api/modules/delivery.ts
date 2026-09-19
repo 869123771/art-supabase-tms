@@ -152,7 +152,6 @@ export async function fetchReceiptExceptionWorkOrders(params: {
     query = query.or(buildOrIlikeFilter(['work_order_no', 'order_no_snapshot', 'summary'], keyword))
   }
   const result = await responseHandle<ReceiptExceptionRow[]>(() => query, {
-    ignoreCheck: true,
     showErrorMessage: true
   })
   return { ...result, data: (result.data ?? []).map(mapReceiptException) }

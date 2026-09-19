@@ -87,6 +87,6 @@ export async function fetchTmsVehicleOptions(
         }),
         options
       ),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
 }

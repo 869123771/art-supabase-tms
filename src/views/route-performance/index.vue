@@ -61,7 +61,7 @@
               >
               <small
                 >{{ record.completedTrips }} 趟完成 · {{ record.activeTrips }} 趟在途 ·
-                {{ formatNumber(record.cargoWeightTon) }} 吨</small
+                {{ formatNumberValue(record.cargoWeightTon) }} 吨</small
               >
             </div>
             <div class="route-performance-page__rate">
@@ -116,7 +116,6 @@
   )
   const formatRate = (value?: number | null) => (value == null ? '--' : `${value}%`)
   const formatHours = (value?: number | null) => (value == null ? '--' : `${value} 小时`)
-  const formatNumber = (value: number) => formatNumberValue(value)
   const metrics = computed<BusinessWorkspaceMetric[]>(() => [
     {
       key: 'routes',
@@ -131,7 +130,7 @@
       key: 'completed',
       label: '完成趟次',
       value: overview.value?.completedTrips ?? 0,
-      description: `${formatNumber(overview.value?.cargoWeightTon ?? 0)} 吨货量`,
+      description: `${formatNumberValue(overview.value?.cargoWeightTon ?? 0)} 吨货量`,
       icon: 'ri:truck-line',
       tone: 'success',
       loading: loading.value
@@ -172,11 +171,6 @@
 
 <style scoped lang="scss">
   .route-performance-page {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-width: 0;
-
     &__workspace {
       min-width: 0;
       padding: 18px;

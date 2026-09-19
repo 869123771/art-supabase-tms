@@ -13,6 +13,7 @@ import type { ColumnOption } from '@/types'
 import { pageInfoHandler } from '@/utils/table/tableUtils'
 import { exportDeliveryList, fetchDeliveryList } from '@tms/api'
 import { canEditField, canViewField, formatSensitiveNumber } from '@/utils/field-permission'
+import { formatCompactNumberValue } from '@/utils/ui/format'
 
 export type DeliveryMode = 'delivery' | 'transit'
 export type DeliveryRecord = Api.Tms.Delivery.DeliveryRecord
@@ -207,19 +208,19 @@ export const createDeliveryColumns = (
       prop: 'cargoQuantityTotal',
       label: '总数量',
       width: 100,
-      formatter: (row) => formatNumber(row.cargoQuantityTotal, 0)
+      formatter: (row) => formatCompactNumberValue(row.cargoQuantityTotal, 0)
     },
     {
       prop: 'cargoVolumeTotal',
       label: '总体积(方)',
       width: 120,
-      formatter: (row) => formatNumber(row.cargoVolumeTotal)
+      formatter: (row) => formatCompactNumberValue(row.cargoVolumeTotal)
     },
     {
       prop: 'cargoWeightTotal',
       label: '总重量(KG)',
       width: 120,
-      formatter: (row) => formatNumber(row.cargoWeightTotal)
+      formatter: (row) => formatCompactNumberValue(row.cargoWeightTotal)
     },
     {
       prop: 'paymentMethod',
@@ -358,16 +359,6 @@ function isDeliveryColumnVisible(context: DeliveryListContext, key: string): boo
   }
   const field = fieldByColumn[key]
   return !field || canViewField(context.fieldAccess.value, field)
-}
-
-function formatNumber(value?: number | string | null, precision = 2): string {
-  const numericValue = Number(value ?? 0)
-  if (!Number.isFinite(numericValue)) return '0'
-
-  return numericValue
-    .toFixed(precision)
-    .replace(/(\.\d*?)0+$/, '$1')
-    .replace(/\.$/, '')
 }
 
 function formatValue(value?: string | number | null): string {

@@ -171,10 +171,11 @@
       .el-form-item {
         margin-bottom: 0;
       }
+    }
 
-      .el-textarea__inner {
-        line-height: 1.7;
-      }
+    :deep(.ai-order-source__form .el-textarea__inner) {
+      min-height: clamp(240px, 38vh, 440px) !important;
+      line-height: 1.7;
     }
 
     @media (width <= 520px) {
@@ -190,6 +191,10 @@
 
       &__upload {
         grid-template-columns: 1fr;
+      }
+
+      :deep(.ai-order-source__form .el-textarea__inner) {
+        min-height: 220px !important;
       }
     }
   }

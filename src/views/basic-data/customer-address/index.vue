@@ -65,6 +65,7 @@
   } from '@/components/business/master-data-delete-guard/index.vue'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
+  import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
 
   defineOptions({ name: 'TmsCustomerAddress' })
 
@@ -246,13 +247,20 @@
       label: '电子围栏',
       width: 140,
       formatter: (row) => (
-        <div class="customer-address-page__geofence-cell">
+        <div class="flex min-w-0 items-center gap-[9px]">
           <span
-            class={['customer-address-page__geofence-dot', { 'is-active': row.geofenceEnabled }]}
+            class={[
+              'size-2 shrink-0 rounded-full',
+              row.geofenceEnabled
+                ? 'bg-[var(--el-color-success)] shadow-[0_0_0_4px_var(--el-color-success-light-9)]'
+                : 'bg-[var(--el-color-info-light-5)]'
+            ]}
           />
-          <div>
-            <strong>{row.geofenceEnabled ? '已启用' : '未启用'}</strong>
-            <small>
+          <div class="grid min-w-0">
+            <strong class="truncate text-[13px] text-[var(--el-text-color-primary)]">
+              {row.geofenceEnabled ? '已启用' : '未启用'}
+            </strong>
+            <small class="truncate text-[var(--el-text-color-secondary)]">
               {row.geofenceEnabled ? `${row.geofenceRadiusM ?? '-'} 米` : '不参与定位校验'}
             </small>
           </div>
@@ -272,7 +280,7 @@
       width: 164,
       fixed: 'right',
       formatter: (row) => (
-        <div class="customer-address-page__operation">
+        <BusinessTableRowActions>
           {canEditField(row.fieldAccess, 'addressDetail') ? (
             <ArtButtonTable
               icon="ri:radar-line"
@@ -291,7 +299,7 @@
             permission="TmsCustomerAddress:Delete"
             onClick={() => handleDelete(row)}
           />
-        </div>
+        </BusinessTableRowActions>
       )
     }
   ]
@@ -412,58 +420,3 @@
     }
   }
 </script>
-
-<style scoped lang="scss">
-  .customer-address-page {
-    &__operation {
-      display: inline-flex;
-      gap: 8px;
-      align-items: center;
-
-      :deep(.art-button-table) {
-        margin-right: 0;
-      }
-    }
-
-    &__geofence-cell {
-      display: flex;
-      gap: 9px;
-      align-items: center;
-      min-width: 0;
-
-      > div {
-        display: grid;
-        min-width: 0;
-      }
-
-      strong,
-      small {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      strong {
-        font-size: 13px;
-        color: var(--el-text-color-primary);
-      }
-
-      small {
-        color: var(--el-text-color-secondary);
-      }
-    }
-
-    &__geofence-dot {
-      flex: 0 0 8px;
-      width: 8px;
-      height: 8px;
-      background: var(--el-color-info-light-5);
-      border-radius: 50%;
-
-      &.is-active {
-        background: var(--el-color-success);
-        box-shadow: 0 0 0 4px var(--el-color-success-light-9);
-      }
-    }
-  }
-</style>

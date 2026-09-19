@@ -252,11 +252,11 @@
   } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'
   import { clearFormRefsValidation, validateFormRefs } from '@/utils/form/validation'
+  import { formatCompactNumberValue } from '@/utils/ui/format'
   import CargoMultipleSelect from '../../modules/cargo-multiple-select.vue'
   import PriceCargoSection from '../modules/price-cargo-section.vue'
   import {
     calculateCargoSummary,
-    formatNumber,
     getResponseData,
     mergeCargoSelections,
     roundNumber,
@@ -830,12 +830,12 @@
         )
       }
     }),
-    cargoQuantityText: computed(() => formatNumber(form.cargoSummary.quantity, 0)),
-    cargoVolumeText: computed(() => formatNumber(form.cargoSummary.volume, 3)),
-    cargoWeightText: computed(() => formatNumber(form.cargoSummary.weight, 2)),
+    cargoQuantityText: computed(() => formatCompactNumberValue(form.cargoSummary.quantity, 0)),
+    cargoVolumeText: computed(() => formatCompactNumberValue(form.cargoSummary.volume, 3)),
+    cargoWeightText: computed(() => formatCompactNumberValue(form.cargoSummary.weight, 2)),
     feeTotalText: computed(() =>
       canEditSensitiveField('costAmounts')
-        ? formatNumber(form.feeSummary.totalFee, 2)
+        ? formatCompactNumberValue(form.feeSummary.totalFee, 2)
         : formatSensitiveNumber(form.data.totalFee)
     )
   })
@@ -852,7 +852,7 @@
         label: '数量',
         width: 110,
         align: 'right',
-        formatter: (row) => formatNumber(row.quantity, 2)
+        formatter: (row) => formatCompactNumberValue(row.quantity, 2)
       },
       { prop: 'unit', label: '单位', width: 100, dict: { code: 'tmsCargoUnit', display: 'text' } },
       {
@@ -860,14 +860,14 @@
         label: '体积（m³）',
         width: 130,
         align: 'right',
-        formatter: (row) => formatNumber(row.volumeM3, 3)
+        formatter: (row) => formatCompactNumberValue(row.volumeM3, 3)
       },
       {
         prop: 'weightKg',
         label: '重量（kg）',
         width: 130,
         align: 'right',
-        formatter: (row) => formatNumber(row.weightKg, 2)
+        formatter: (row) => formatCompactNumberValue(row.weightKg, 2)
       }
     ]
     if (!canViewSensitiveField('costAmounts')) return columns

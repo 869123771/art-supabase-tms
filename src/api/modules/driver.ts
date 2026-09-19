@@ -207,7 +207,6 @@ export async function fetchDriverAssignedVehicles(
     .limit(200)
 
   return await responseHandle<DriverAssignedVehicle[]>(() => withRequestOptions(query, options), {
-    ignoreCheck: true,
     showErrorMessage: true
   })
 }

@@ -294,7 +294,7 @@ export async function fetchWaybillCargoOperationContext(
         p_waybill_id: waybillId,
         p_operation_type: operationType
       }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
 }
 
@@ -336,7 +336,7 @@ export async function fetchWaybillExecutionContext(waybillId: string) {
       supabase.rpc('tms_get_waybill_execution_context', {
         p_waybill_id: waybillId
       }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
 }
 
@@ -403,7 +403,7 @@ export async function fetchDispatchVehicleOptions(params: DispatchVehicleSearchP
         p_to: Math.max(to, from),
         p_keyword: normalizeNullableText(String(keyword ?? ''))
       }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
   return {
     data: result.data?.records ?? [],

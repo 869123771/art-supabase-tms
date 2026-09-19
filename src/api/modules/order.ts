@@ -38,7 +38,7 @@ export async function exportOrderList(
 export async function fetchOrderDetail(id: string) {
   return await responseHandle<OrderRecord | null>(
     () => supabase.rpc('tms_get_order_detail_secure', { p_id: id }),
-    { ignoreCheck: true, showErrorMessage: true }
+    { showErrorMessage: true }
   )
 }
 

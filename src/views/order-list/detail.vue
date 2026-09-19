@@ -117,15 +117,15 @@
       <div class="order-detail__summary">
         <div>
           <span>总数量</span>
-          <strong>{{ formatNumber(detail.data?.cargoQuantityTotal, 0) }}</strong>
+          <strong>{{ formatCompactNumberValue(detail.data?.cargoQuantityTotal, 0) }}</strong>
         </div>
         <div>
           <span>总重量</span>
-          <strong>{{ formatNumber(detail.data?.cargoWeightTotal) }} kg</strong>
+          <strong>{{ formatCompactNumberValue(detail.data?.cargoWeightTotal) }} kg</strong>
         </div>
         <div>
           <span>总体积</span>
-          <strong>{{ formatNumber(detail.data?.cargoVolumeTotal, 3) }} 方</strong>
+          <strong>{{ formatCompactNumberValue(detail.data?.cargoVolumeTotal, 3) }} 方</strong>
         </div>
       </div>
     </ArtSectionCard>
@@ -165,7 +165,6 @@
 <script setup lang="tsx">
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
-  import { toNumber } from 'lodash-es'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
@@ -174,6 +173,7 @@
   import type { ColumnOption } from '@/types'
   import { formatWithDayjs } from '@/utils/time'
   import { canViewField, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
+  import { formatCompactNumberValue } from '@/utils/ui/format'
   import { useUserStore } from '@/store/modules/user'
   import { fetchOrderDetail } from '@tms/api'
   import OrderStatusSteps from './modules/order-status-steps.vue'
@@ -511,17 +511,6 @@
     const date = formatWithDayjs(value, 'YYYY-MM-DD')
     const time = formatWithDayjs(value, 'HH:mm')
     return date && time ? `${date}\n${time}` : '-'
-  }
-
-  function formatNumber(value?: number | string | null, precision = 2): string {
-    const parsed = toNumber(value ?? 0)
-    if (!Number.isFinite(parsed)) return '0'
-
-    const formatted = parsed
-      .toFixed(precision)
-      .replace(/(\.\d*?)0+$/, '$1')
-      .replace(/\.$/, '')
-    return formatted || '0'
   }
 
   function formatCurrency(value?: number | string | null): string {

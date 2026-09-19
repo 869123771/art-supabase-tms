@@ -13,6 +13,7 @@ import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
 import { ColumnOption } from '@/types'
 import { pageInfoHandler } from '@/utils/table/tableUtils'
 import { formatWithDayjs } from '@/utils/time'
+import { formatCompactNumberValue } from '@/utils/ui/format'
 import { canViewField, formatSensitiveNumber, mergeFieldAccessMaps } from '@/utils/field-permission'
 import { useUserStore } from '@/store/modules/user'
 import { useArtFeedback } from '@/hooks/core/useArtFeedback'
@@ -437,19 +438,19 @@ export const createWaybillColumns = (
       prop: 'cargoQuantityTotal',
       label: '总数量',
       width: 100,
-      formatter: (row) => formatNumber(row.cargoQuantityTotal, 0)
+      formatter: (row) => formatCompactNumberValue(row.cargoQuantityTotal, 0)
     },
     {
       prop: 'cargoVolumeTotal',
       label: '总体积(方)',
       width: 120,
-      formatter: (row) => formatNumber(row.cargoVolumeTotal)
+      formatter: (row) => formatCompactNumberValue(row.cargoVolumeTotal)
     },
     {
       prop: 'cargoWeightTotal',
       label: '总重量(KG)',
       width: 120,
-      formatter: (row) => formatNumber(row.cargoWeightTotal)
+      formatter: (row) => formatCompactNumberValue(row.cargoWeightTotal)
     },
     {
       prop: 'paymentMethod',
@@ -844,16 +845,6 @@ function formatRoute(row: WaybillRecord): string {
 
 function formatMoney(value?: number | string | null): string {
   return formatSensitiveNumber(value)
-}
-
-function formatNumber(value?: number | string | null, precision = 2): string {
-  const numericValue = Number(value ?? 0)
-  if (!Number.isFinite(numericValue)) return '0'
-
-  return numericValue
-    .toFixed(precision)
-    .replace(/(\.\d*?)0+$/, '$1')
-    .replace(/\.$/, '')
 }
 
 function formatValue(value?: string | number | null): string {

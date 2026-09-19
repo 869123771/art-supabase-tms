@@ -1,1 +1,0 @@
-import{Sn as e,dn as t,sr as n}from"./file-1PpmcLlG.js";import{t as r}from"./art-permission-guard-T9jYUxrG.js";var i=e({name:`Exception403`,__name:`index`,setup(e){return(e,i)=>(n(),t(r,{"force-denied":``,"resource-name":`目标页面`,"show-relogin":``,"viewport-centered":``}))}});export{i as default};

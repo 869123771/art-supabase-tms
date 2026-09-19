@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { normalizeNullableNumber } from '../../../../src/utils/form/normalize'
+import { formatCompactNumberValue } from '../../../../src/utils/ui/format'
 import {
   calculateCargoSummary,
-  formatNumber,
   joinRegionPath,
   mergeCargoSelections,
   normalizeMoney,
@@ -65,7 +65,7 @@ test('price field normalizers keep API payloads predictable', () => {
   assert.equal(normalizeNullableNumber(''), null)
   assert.equal(normalizeNullableNumber('12.5'), 12.5)
   assert.equal(normalizeMoney('12.345'), 12.35)
-  assert.equal(formatNumber('12.340', 3), '12.34')
+  assert.equal(formatCompactNumberValue('12.340', 3), '12.34')
 })
 
 test('region paths round-trip through the API representation', () => {

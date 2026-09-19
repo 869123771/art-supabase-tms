@@ -33,25 +33,37 @@
         <ArtSectionCard
           class="ai-order-drawer__guide"
           preserve-content-structure
-          title="三步完成智能填单"
+          title="识别前了解"
         >
           <div class="ai-order-drawer__guide-list">
             <div>
-              <strong>01</strong>
-              <span><b>提供原始资料</b><small>粘贴聊天、委托内容，或上传订单图片</small></span>
+              <ArtSvgIcon
+                class="ai-order-drawer__guide-icon"
+                icon="ri:file-search-line"
+                aria-hidden="true"
+              />
+              <span><b>提取运输信息</b><small>识别路线、收发货人、货品和费用等字段</small></span>
             </div>
             <div>
-              <strong>02</strong>
-              <span><b>核对识别结果</b><small>重点检查低可信字段和缺失信息</small></span>
+              <ArtSvgIcon
+                class="ai-order-drawer__guide-icon"
+                icon="ri:links-line"
+                aria-hidden="true"
+              />
+              <span><b>匹配已有档案</b><small>对照站点、客户、地址及货物资料</small></span>
             </div>
             <div>
-              <strong>03</strong>
-              <span><b>一键建档并回填</b><small>补齐前置档案，再生成订单草稿</small></span>
+              <ArtSvgIcon
+                class="ai-order-drawer__guide-icon"
+                icon="ri:checkbox-circle-line"
+                aria-hidden="true"
+              />
+              <span><b>确认后回填</b><small>检查缺失或低可信字段，再填入当前订单</small></span>
             </div>
           </div>
           <ElAlert
-            title="AI 不会自动保存订单"
-            description="识别和建档完成后，仍需在开单页确认全部字段并手动保存。"
+            title="AI 不会自动保存或建档"
+            description="开单仍需人工确认并保存；新建基础资料仅平台超级管理员可操作。"
             type="info"
             :closable="false"
             show-icon
@@ -223,7 +235,7 @@
     resetState(data)
     await drawerRef.value?.handleOpen(data, {
       title: 'AI 智能填单',
-      size: '96vw',
+      size: 'min(1360px, 92vw)',
       contentHeight: 'calc(100vh - 132px)',
       onConfirm: handleApply,
       onReset: () => resetState(null),
@@ -402,13 +414,7 @@
       gap: 16px;
       align-items: center;
       padding: 18px 20px;
-      background:
-        radial-gradient(
-          circle at 92% 12%,
-          color-mix(in srgb, var(--theme-color) 13%, transparent),
-          transparent 32%
-        ),
-        var(--default-box-color);
+      background: var(--default-box-color);
     }
 
     &__hero-icon {
@@ -558,7 +564,7 @@
     }
 
     &__guide {
-      padding: 18px;
+      padding: var(--art-space-4);
     }
 
     &__guide-list {
@@ -569,14 +575,14 @@
       > div {
         display: flex;
         gap: 12px;
-        align-items: center;
-        padding: 12px;
-        background: var(--art-main-bg-color);
-        border-radius: var(--el-border-radius-base);
+        align-items: flex-start;
+        padding: var(--art-space-2) 0;
 
-        > strong {
-          font-size: 16px;
-          color: color-mix(in srgb, var(--theme-color) 78%, transparent);
+        > .ai-order-drawer__guide-icon {
+          flex: none;
+          margin-top: 2px;
+          font-size: 18px;
+          color: var(--theme-color);
         }
 
         span,

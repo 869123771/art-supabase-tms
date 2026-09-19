@@ -286,11 +286,6 @@
 
 <style scoped lang="scss">
   .capacity-planning-page {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-width: 0;
-
     > :deep(.el-alert) {
       flex: 0 0 auto;
     }

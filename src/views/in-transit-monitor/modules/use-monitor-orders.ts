@@ -17,6 +17,7 @@ import type {
   TransitStatus
 } from './monitor-types'
 import { canViewField } from '@/utils/field-permission'
+import { formatCompactNumberValue } from '@/utils/ui/format'
 
 const maskPhone = (value?: string | null): string => {
   const phone = String(value ?? '').trim()
@@ -27,7 +28,6 @@ const maskPhone = (value?: string | null): string => {
 import {
   estimateDistanceKm,
   formatDateTime,
-  formatNumber,
   formatRefreshTime,
   formatText,
   getDelayText,
@@ -244,8 +244,8 @@ export function useMonitorOrders(options: UseMonitorOrdersOptions) {
     )
     const cargoWeightText =
       row.cargoWeightTon !== null && row.cargoWeightTon !== undefined
-        ? `${formatNumber(row.cargoWeightTon)} 吨`
-        : `${formatNumber(order?.cargoWeightTotal)} kg`
+        ? `${formatCompactNumberValue(row.cargoWeightTon)} 吨`
+        : `${formatCompactNumberValue(order?.cargoWeightTotal)} kg`
 
     return {
       actualTrackPath,
@@ -260,12 +260,12 @@ export function useMonitorOrders(options: UseMonitorOrdersOptions) {
         },
         {
           label: '总数量',
-          value: `${formatNumber(row.cargoQuantity ?? order?.cargoQuantityTotal, 0)} 件`
+          value: `${formatCompactNumberValue(row.cargoQuantity ?? order?.cargoQuantityTotal, 0)} 件`
         },
         { label: '总重量', value: cargoWeightText },
         {
           label: '总体积',
-          value: `${formatNumber(row.cargoVolumeM3 ?? order?.cargoVolumeTotal, 3)} 方`
+          value: `${formatCompactNumberValue(row.cargoVolumeM3 ?? order?.cargoVolumeTotal, 3)} 方`
         }
       ],
       completedKm: Math.round(distance * (progress / 100)),

@@ -30,11 +30,11 @@ export const attachCarrierRelationCounts = async (
   const [driverResult, vehicleResult] = await Promise.all([
     responseHandle<CarrierRelationRow[]>(
       () => supabase.from('mdm_driver').select('carrier_id').in('carrier_id', carrierIds),
-      { ignoreCheck: true, showErrorMessage: true }
+      { showErrorMessage: true }
     ),
     responseHandle<CarrierRelationRow[]>(
       () => supabase.from('mdm_vehicle').select('carrier_id').in('carrier_id', carrierIds),
-      { ignoreCheck: true, showErrorMessage: true }
+      { showErrorMessage: true }
     )
   ])
 

@@ -205,15 +205,6 @@ export const formatDateTime = (value?: string | null): string =>
 export const formatRefreshTime = (value?: string): string =>
   formatWithDayjs(value, 'HH:mm:ss') || '--'
 
-export const formatNumber = (value?: number | string | null, precision = 2): string => {
-  const numeric = Number(value ?? 0)
-  if (!Number.isFinite(numeric)) return '0'
-  return numeric
-    .toFixed(precision)
-    .replace(/(\.\d*?)0+$/, '$1')
-    .replace(/\.$/, '')
-}
-
 export const formatText = (value?: string | number | null, fallback = '-'): string => {
   const text = String(value ?? '').trim()
   return text || fallback

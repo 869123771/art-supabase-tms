@@ -41,7 +41,6 @@ export async function fetchCargoList(params: CargoSearchParams, options?: ApiReq
     .range(from, to)
   query = applyCargoFilters(query, params)
   return await responseHandle<Cargo[]>(() => withRequestOptions(query, options), {
-    ignoreCheck: true,
     showErrorMessage: true
   })
 }
@@ -57,7 +56,6 @@ export async function exportCargoList(
     .limit(maxRows)
   query = ids?.length ? query.in('id', ids) : applyCargoFilters(query, params)
   return await responseHandle<Cargo[]>(() => query, {
-    ignoreCheck: true,
     showErrorMessage: true
   })
 }

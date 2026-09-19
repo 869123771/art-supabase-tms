@@ -415,11 +415,11 @@
   } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'
   import { clearFormRefsValidation, validateFormRefs } from '@/utils/form/validation'
+  import { formatCompactNumberValue } from '@/utils/ui/format'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import PriceCargoSection from '../modules/price-cargo-section.vue'
   import {
     calculateCargoSummary,
-    formatNumber,
     getResponseData,
     mergeCargoSelections,
     roundNumber,
@@ -948,9 +948,9 @@
     ]),
     cargoItems: computed(() => form.data.cargoItems ?? []),
     cargoSummary: computed(() => calculateCargoSummary(form.data.cargoItems ?? [])),
-    cargoQuantityText: computed(() => formatNumber(form.cargoSummary.quantity, 0)),
-    cargoVolumeText: computed(() => formatNumber(form.cargoSummary.volume, 3)),
-    cargoWeightText: computed(() => formatNumber(form.cargoSummary.weight, 2))
+    cargoQuantityText: computed(() => formatCompactNumberValue(form.cargoSummary.quantity, 0)),
+    cargoVolumeText: computed(() => formatCompactNumberValue(form.cargoSummary.volume, 3)),
+    cargoWeightText: computed(() => formatCompactNumberValue(form.cargoSummary.weight, 2))
   })
 
   const workflowSteps = computed<WorkflowStep[]>(() => {

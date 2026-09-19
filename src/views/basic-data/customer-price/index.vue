@@ -64,6 +64,7 @@
   import { useUserStore } from '@/store/modules/user'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import { formatWithDayjs } from '@/utils/time'
+  import { formatCompactNumberValue } from '@/utils/ui/format'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
   import MasterDeleteProcessingNotice from '@/components/business/master-delete-processing-notice/index.vue'
@@ -143,12 +144,12 @@
     {
       key: 'cargoVolumeTotal',
       title: '总体积',
-      formatter: (value) => `${formatNumber(value as number | string | null, 2)}m3`
+      formatter: (value) => `${formatCompactNumberValue(value as number | string | null, 2)}m3`
     },
     {
       key: 'cargoWeightTotal',
       title: '总重量',
-      formatter: (value) => `${formatNumber(value as number | string | null, 2)}kg`
+      formatter: (value) => `${formatCompactNumberValue(value as number | string | null, 2)}kg`
     },
     ...(canViewListField('quoteAmounts')
       ? [
@@ -291,14 +292,14 @@
       label: '总体积',
       width: 110,
       align: 'right',
-      formatter: (row) => `${formatNumber(row.cargoVolumeTotal, 2)}m³`
+      formatter: (row) => `${formatCompactNumberValue(row.cargoVolumeTotal, 2)}m³`
     },
     {
       prop: 'cargoWeightTotal',
       label: '总重量',
       width: 110,
       align: 'right',
-      formatter: (row) => `${formatNumber(row.cargoWeightTotal, 2)}kg`
+      formatter: (row) => `${formatCompactNumberValue(row.cargoWeightTotal, 2)}kg`
     },
     ...(canViewListField('quoteAmounts')
       ? [
@@ -554,7 +555,7 @@
     [region, address].filter(Boolean).join(' ') || '-'
 
   const formatCargoQuantity = (row: CustomerPrice): string => {
-    const quantity = formatNumber(row.cargoQuantityTotal, 0)
+    const quantity = formatCompactNumberValue(row.cargoQuantityTotal, 0)
     const unit = getCargoUnitLabel(row.cargoItems?.[0])
     return `${quantity}${unit}`
   }
@@ -579,15 +580,6 @@
     if (!value) return ''
     const item = options.find((option) => option.value === value || option.label === value)
     return item?.label || item?.name || value
-  }
-
-  const formatNumber = (value?: number | string | null, precision = 2): string => {
-    const numberValue = Number(value ?? 0)
-    if (Number.isNaN(numberValue)) return '0'
-    return numberValue
-      .toFixed(precision)
-      .replace(/\.0+$/, '')
-      .replace(/(\.\d*?)0+$/, '$1')
   }
 
   const formatMoney = (value?: number | string | null): string => formatSensitiveNumber(value)

@@ -263,11 +263,6 @@
 
 <style scoped lang="scss">
   .transport-event-page {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-width: 0;
-
     &__workspace {
       min-width: 0;
       padding: 18px;
