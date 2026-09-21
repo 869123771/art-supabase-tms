@@ -767,7 +767,6 @@
     if (!canEditTransportDetails.value) return true
     const tableValidation = await transportDetailsRef.value?.validate()
     if (!tableValidation || tableValidation.valid) return true
-    ElMessage.warning(tableValidation.firstError?.message || '请完整填写运输合同明细')
     return false
   }
 

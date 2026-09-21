@@ -557,10 +557,9 @@
       place-items: center;
       width: 52px;
       height: 52px;
-      color: white;
-      background: linear-gradient(145deg, var(--el-color-primary), #4f46e5);
+      color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
       border-radius: var(--custom-radius);
-      box-shadow: 0 10px 24px rgb(59 130 246 / 18%);
 
       :deep(svg) {
         width: 25px;
