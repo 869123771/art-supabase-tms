@@ -1,0 +1,1 @@
+import{it as e}from"./api-BqB0RRXC.js";import{Dt as t}from"./user-DRBdC_E8.js";function n(t,n=2){return e(t,{maximumFractionDigits:n})}function r(t){return e(t,{minimumFractionDigits:2,maximumFractionDigits:2})}function i(e){return e?t(e,`YYYY-MM-DD HH:mm:ss`)??`--`:`--`}function a(e,t){return[e,t].filter(Boolean).join(` `)||`--`}export{n as i,i as n,r,a as t};

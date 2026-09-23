@@ -37,7 +37,7 @@
                 :disabled="!canEditSensitiveField('attachments')"
                 :show-file-list="false"
                 :show-tip="false"
-                @upload-success="handleAttachmentUpload"
+                @resource-change="handleAttachmentUpload"
               />
             </div> </div
         ></template>
@@ -840,7 +840,9 @@
     })
   }
 
-  const handleAttachmentUpload = (resource: Api.DataCenter.Resources.ResourceListItem): void => {
+  const handleAttachmentUpload = (resources: Api.DataCenter.Resources.ResourceListItem[]): void => {
+    const resource = resources[0]
+    if (!resource) return
     if (!canEditSensitiveField('attachments')) return
     if (!resource.url) return
     if ((form.data.attachments ?? []).some((attachment) => attachment.url === resource.url)) {
@@ -858,7 +860,7 @@
         fileSize: resource.sizeInfo
       }
     ]
-    ElMessage.success('附件上传成功')
+    ElMessage.success('附件已添加')
   }
 
   const removeAttachment = async (row: ContractAttachment): Promise<void> => {

@@ -1,0 +1,1 @@
+import{r as e}from"./position-Xn6Q0nHG.js";import{r as t}from"./style-BZKjRDSE.js";function n(n,r){return n&&n.length?e(n,t(r,2)):[]}export{n as t};
