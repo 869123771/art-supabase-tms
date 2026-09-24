@@ -37,6 +37,7 @@
                 :disabled="!canEditSensitiveField('attachments')"
                 :show-file-list="false"
                 :show-tip="false"
+                inline
                 @resource-change="handleAttachmentUpload"
               />
             </div> </div
@@ -87,7 +88,7 @@
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
-  import { renderAttachmentLink } from '@/components/core/media/art-file-viewer/render'
+  import { attachmentTableLink } from '@/components/core/media/art-file-viewer/table-link'
   import type { ColumnOption } from '@/types'
   import { formatNameCodeOption } from '@/utils/form'
   import {
@@ -99,7 +100,7 @@
     submitContractForApproval
   } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'
-  import { downloadAttachment, getFileExtension } from '@/utils/file'
+  import { downloadAttachment, getFileExtension, viewAttachment } from '@/utils/file'
   import { canEditField, canViewField, getFieldAccess } from '@/utils/field-permission'
   import { usesCarrierParty } from './contract-business-type'
   import ContractTransportDetails from './contract-transport-details.vue'
@@ -597,7 +598,7 @@
       label: '附件名称',
       minWidth: 220,
       showOverflowTooltip: true,
-      formatter: renderAttachmentLink
+      link: attachmentTableLink
     },
     {
       prop: 'fileType',
@@ -609,9 +610,10 @@
     {
       prop: 'operation',
       label: '操作',
-      width: canEditSensitiveField('attachments') ? 96 : 56,
+      width: canEditSensitiveField('attachments') ? 120 : 80,
       formatter: (row) => (
         <div class="flex items-center">
+          <ArtIconButton icon="ri:eye-line" label="查看附件" onClick={() => viewAttachment(row)} />
           <ArtIconButton icon="ri:download-2-line" onClick={() => downloadAttachment(row)} />
           {canEditSensitiveField('attachments') ? (
             <ArtIconButton
@@ -901,10 +903,10 @@
     &__section-header {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
-      gap: 12px;
+      gap: var(--art-space-3);
       align-items: center;
       min-width: 0;
-      margin-bottom: 12px;
+      margin-bottom: var(--art-space-3);
 
       :deep(.art-section-title) {
         min-width: 0;

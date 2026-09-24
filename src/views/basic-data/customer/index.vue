@@ -295,7 +295,13 @@
       formatter: (row) => formatWithDayjs(row.createTime, 'YYYY-MM-DD HH:mm')
     },
     { prop: 'customerCode', label: '客户编号', width: 140 },
-    { prop: 'customerName', label: '客户名称', minWidth: 190, showOverflowTooltip: true },
+    {
+      prop: 'customerName',
+      label: '客户名称',
+      minWidth: 190,
+      showOverflowTooltip: true,
+      link: { permission: 'TmsCustomer:View', onClick: openAddressManage }
+    },
     {
       prop: 'industry',
       label: '所属行业',
