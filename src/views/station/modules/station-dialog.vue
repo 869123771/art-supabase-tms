@@ -243,7 +243,7 @@
   }
 
   const handleOpen = async (row?: Station): Promise<void> => {
-    await Promise.all([resetForm(), stationNumber.loadRule()])
+    await resetForm()
     const isEdit = Boolean(row?.id)
     if (row) {
       const stationTypes = row.stationRoles?.length
@@ -260,6 +260,15 @@
       title: isEdit ? '编辑站点' : '新增站点',
       subtitle: '维护站点类型、区域位置、联系人和运输网络可用状态',
       contentMaxHeight: '70vh',
+      loading: true,
+      loadingText: '正在加载编号规则…',
+      onOpen: async (_openData, api) => {
+        try {
+          await stationNumber.loadRule()
+        } finally {
+          api.setLoading(false)
+        }
+      },
       onConfirm: handleSubmit,
       onReset: () => void resetForm()
     })

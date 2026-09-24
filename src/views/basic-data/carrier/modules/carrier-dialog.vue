@@ -449,7 +449,7 @@
   }
 
   const handleOpen = async (row?: Carrier): Promise<void> => {
-    await Promise.all([resetForm(), carrierNumber.loadRule()])
+    await resetForm()
     const isEdit = Boolean(row?.id)
     if (row) {
       replaceForm({
@@ -466,7 +466,7 @@
       loading: true,
       onOpen: async (_openData, api) => {
         try {
-          await formRef.value?.reloadOptions('parentUnitId')
+          await Promise.all([carrierNumber.loadRule(), formRef.value?.reloadOptions('parentUnitId')])
         } finally {
           api.setLoading(false)
         }

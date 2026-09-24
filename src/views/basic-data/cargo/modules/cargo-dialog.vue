@@ -236,7 +236,7 @@
   }
 
   const handleOpen = async (row?: Cargo): Promise<void> => {
-    await Promise.all([resetForm(), cargoNumber.loadRule()])
+    await resetForm()
     const isEdit = Boolean(row?.id)
     if (row) {
       replaceForm({
@@ -249,6 +249,15 @@
       title: isEdit ? '编辑货物' : '新增货物',
       subtitle: '维护货物基础信息、尺寸重量和计量单位',
       contentMaxHeight: '70vh',
+      loading: true,
+      loadingText: '正在加载编号规则…',
+      onOpen: async (_openData, api) => {
+        try {
+          await cargoNumber.loadRule()
+        } finally {
+          api.setLoading(false)
+        }
+      },
       onConfirm: handleSubmit,
       onReset: () => void resetForm()
     })
