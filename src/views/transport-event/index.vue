@@ -48,6 +48,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import dayjs from 'dayjs'
   import { ElTag } from 'element-plus'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
@@ -248,7 +249,7 @@
     try {
       overview.value = await fetchTransportEventOverview()
     } catch (error) {
-      summaryError.value = error instanceof Error ? error.message : '运输事件统计加载失败'
+      summaryError.value = getFriendlySupabaseErrorMessage(error, '运输事件统计加载失败')
     } finally {
       summaryLoading.value = false
     }

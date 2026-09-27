@@ -122,6 +122,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { isNil } from 'lodash-es'
   import { ElButton, ElImage, ElMessage } from 'element-plus'
@@ -439,9 +440,7 @@
     const carrierId = detail.data?.id
     void navigateToApplication('vms', '/vms/vehicle-archive-manage', {
       carrierId
-    }).catch((error) =>
-      ElMessage.error(error instanceof Error ? error.message : 'VMS 应用跳转失败')
-    )
+    }).catch((error) => ElMessage.error(getFriendlySupabaseErrorMessage(error, 'VMS 应用跳转失败')))
   }
 
   const openDriverManage = (row: Driver): void => {
@@ -464,7 +463,7 @@
       return
     }
     void navigateToApplication('vms', `/vms/vehicle-archive-edit/${row.id}`).catch((error) =>
-      ElMessage.error(error instanceof Error ? error.message : 'VMS 应用跳转失败')
+      ElMessage.error(getFriendlySupabaseErrorMessage(error, 'VMS 应用跳转失败'))
     )
   }
 

@@ -466,7 +466,10 @@
       loading: true,
       onOpen: async (_openData, api) => {
         try {
-          await Promise.all([carrierNumber.loadRule(), formRef.value?.reloadOptions('parentUnitId')])
+          await Promise.all([
+            carrierNumber.loadRule(),
+            formRef.value?.reloadOptions('parentUnitId')
+          ])
         } finally {
           api.setLoading(false)
         }

@@ -94,6 +94,7 @@
 </template>
 
 <script setup lang="ts">
+  import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import { ElMessage } from 'element-plus'
@@ -160,7 +161,7 @@
     try {
       overview.value = await fetchRoutePerformance(periodDays.value)
     } catch (error) {
-      errorMessage.value = error instanceof Error ? error.message : '线路效能加载失败'
+      errorMessage.value = getFriendlySupabaseErrorMessage(error, '线路效能加载失败')
       ElMessage.error(errorMessage.value)
     } finally {
       loading.value = false

@@ -37,6 +37,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { ElButton, ElMessage } from 'element-plus'
   import { RouterLink } from 'vue-router'
@@ -366,9 +367,7 @@
     if (!row.id) return
     void navigateToApplication('vms', '/vms/vehicle-archive-manage', {
       carrierId: row.id
-    }).catch((error) =>
-      ElMessage.error(error instanceof Error ? error.message : 'VMS 应用跳转失败')
-    )
+    }).catch((error) => ElMessage.error(getFriendlySupabaseErrorMessage(error, 'VMS 应用跳转失败')))
   }
 
   const getMoreActions = (): ButtonMoreItem[] => [
