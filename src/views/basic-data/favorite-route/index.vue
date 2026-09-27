@@ -53,6 +53,7 @@
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useUserStore } from '@/store/modules/user'
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { ColumnOption, DialogType } from '@/types'
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import { formatWithDayjs } from '@/utils/time'
@@ -83,6 +84,7 @@
 
   const { confirmAction } = useArtFeedback()
   const { isPlatformSuper } = storeToRefs(useUserStore())
+  const statusOptions = useDictionaryOptions('commonEnabledStatus', (value) => value === 'enabled')
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<DialogExpose>()
   const tenantOptions = ref<Array<{ label: string; value: string }>>([])
@@ -133,11 +135,7 @@
       key: 'enabled',
       type: 'segment',
       props: {
-        options: [
-          { label: '全部', value: undefined },
-          { label: '启用', value: true },
-          { label: '停用', value: false }
-        ]
+        options: [{ label: '全部', value: undefined }, ...statusOptions]
       }
     }
   ])

@@ -76,15 +76,12 @@
           </template>
 
           <div v-else class="waybill-operation-panel__operation-empty">
-            <div class="waybill-operation-panel__empty-message">
-              <span><ArtSvgIcon icon="ri:route-line" aria-hidden="true" /></span>
-              <div>
-                <strong>{{
-                  card.fallbackTime ? '流程已完成，作业档案待归集' : `${card.title}等待执行`
-                }}</strong>
-                <p>{{ operationEmptyDescription(card.fallbackTime) }}</p>
-              </div>
-            </div>
+            <ArtEmptyState
+              :title="card.fallbackTime ? '流程已完成，作业档案待归集' : `${card.title}等待执行`"
+              :description="operationEmptyDescription(card.fallbackTime)"
+              size="compact"
+              :visual-size="64"
+            />
             <ul aria-label="待归档内容">
               <li v-if="canView('routeCoordinates')"
                 ><ArtSvgIcon icon="ri:map-pin-line" aria-hidden="true" />围栏签到</li
@@ -455,41 +452,6 @@
         background: var(--el-fill-color-lighter);
         border-radius: 999px;
       }
-    }
-
-    &__empty-message {
-      display: flex;
-      gap: var(--art-space-3);
-      align-items: center;
-
-      > span {
-        display: grid;
-        flex: none;
-        place-items: center;
-        width: 40px;
-        height: 40px;
-        font-size: 18px;
-        color: var(--el-color-primary);
-        background: var(--el-color-primary-light-9);
-        border-radius: 50%;
-      }
-
-      > div {
-        display: grid;
-        gap: 4px;
-        min-width: 0;
-      }
-
-      p {
-        margin: 0;
-        color: var(--el-text-color-secondary);
-        overflow-wrap: anywhere;
-      }
-    }
-
-    .is-unloading &__empty-message > span {
-      color: var(--el-color-success);
-      background: var(--el-color-success-light-9);
     }
 
     &__detail-grid {

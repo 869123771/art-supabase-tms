@@ -195,6 +195,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { createFriendlySupabaseError } from '@/utils/supabase'
   import dayjs from 'dayjs'
@@ -226,13 +227,7 @@
     error: null,
     rows: []
   })
-  const statusOptions = [
-    { label: '待处理', value: 'pending' },
-    { label: '处理中', value: 'in_progress' },
-    { label: '已解决', value: 'resolved' },
-    { label: '已关闭', value: 'closed' },
-    { label: '已取消', value: 'cancelled' }
-  ]
+  const statusOptions = useDictionaryOptions('commonWorkOrderResolutionStatus')
   const statusMeta: Record<
     Status,
     { label: string; type: 'info' | 'primary' | 'success' | 'warning' | 'danger' }

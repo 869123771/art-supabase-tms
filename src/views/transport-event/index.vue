@@ -48,6 +48,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import dayjs from 'dayjs'
   import { ElTag } from 'element-plus'
@@ -87,18 +88,10 @@
     hasAnyAuth(['TmsPendingWaybillList:View', 'TmsLoadedWaybillList:View'])
   )
 
-  const eventOptions = [
-    { label: '已接单', value: 'accepted' },
-    { label: '装货签到', value: 'loading_checked_in' },
-    { label: '已装货', value: 'loaded' },
-    { label: '已发车', value: 'departed' },
-    { label: '已到达', value: 'arrived' },
-    { label: '已卸货', value: 'unloaded' },
-    { label: '已签收', value: 'signed' },
-    { label: '已完成', value: 'completed' },
-    { label: '状态变更', value: 'status_changed' }
-  ]
-  const eventLabels = Object.fromEntries(eventOptions.map((item) => [item.value, item.label]))
+  const eventOptions = useDictionaryOptions('tmsTransportEventType')
+  const eventLabels = computed(() =>
+    Object.fromEntries(eventOptions.map((item) => [item.value, item.label]))
+  )
   const searchItems: SearchFormItem[] = [
     {
       label: '事件类型',
@@ -196,7 +189,7 @@
         width: 125,
         formatter: (row) => (
           <ElTag type={eventTagType(row.eventType)} effect="light" size="small" round>
-            {eventLabels[row.eventType] || row.eventType}
+            {eventLabels.value[row.eventType] || row.eventType}
           </ElTag>
         )
       },

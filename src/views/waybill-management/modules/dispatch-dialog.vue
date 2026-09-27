@@ -85,9 +85,13 @@
           />
         </template>
 
-        <p v-else class="dispatch-dialog__advisor-empty">
-          生成后只提供候选建议，不会自动配载或改变订单状态。
-        </p>
+        <ArtEmptyState
+          v-else
+          title="暂无调度建议"
+          description="生成后只提供候选建议，不会自动配载或改变订单状态。"
+          size="compact"
+          :visual-size="64"
+        />
       </section>
 
       <ArtForm
@@ -160,6 +164,7 @@
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import ArtAiFeedback from '@/components/core/base/art-ai-feedback/index.vue'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtTableSingleSelect from '@/components/core/forms/art-data-select/table-single.vue'
@@ -538,8 +543,7 @@
       }
     }
 
-    &__advisor-summary,
-    &__advisor-empty {
+    &__advisor-summary {
       margin: 0;
       font-size: 13px;
       color: var(--el-text-color-secondary);

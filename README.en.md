@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>Art Supabase TMS</h1>
+  <h1>Yiqi Workshop TMS</h1>
   <p><strong>Transportation management from master data and order entry to dispatch, execution, tracking, and proof of delivery</strong></p>
   <p>
     <a href="https://gitee.com/wangyanghub/art-supabase-tms">Gitee</a> ·
@@ -12,7 +12,7 @@
 
 ## Overview
 
-Art Supabase TMS is the transportation domain application of Art Supabase Pro. It connects customers, carriers, drivers, cargo, contracts, pricing, order entry, waybills, capacity planning, dispatch, in-transit monitoring, delivery, proof of delivery, and finance collaboration.
+Yiqi Workshop TMS is the transportation domain application of Yiqi Workshop. It connects customers, carriers, drivers, cargo, contracts, pricing, order entry, waybills, capacity planning, dispatch, in-transit monitoring, delivery, proof of delivery, and finance collaboration.
 
 This repository owns TMS pages, APIs, domain types, transportation rules, and dedicated Edge Functions. Authentication, tenancy, navigation, permissions, layout, shared components, stores, and the Supabase client come from [`art-supabase-pro`](https://gitee.com/wangyanghub/art-supabase-pro).
 
