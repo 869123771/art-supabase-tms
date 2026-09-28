@@ -88,7 +88,7 @@
       >
         <template #actions>
           <ElButton v-if="parts.length > minimumParts" link type="danger" @click="removePart(index)"
-            >移除批次</ElButton
+            ><template #icon><ArtSvgIcon icon="ri:delete-bin-line" /></template>移除批次</ElButton
           >
         </template>
         <div class="grid min-w-0 gap-4 md:grid-cols-2">

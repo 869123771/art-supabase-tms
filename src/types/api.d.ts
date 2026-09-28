@@ -987,6 +987,41 @@ declare global {
 
         type OrderFreightPayload = Pick<OrderRecord, 'id' | 'totalFee'>
 
+        interface OrderQuoteItem {
+          code: string
+          amount: number
+          remark: string
+        }
+
+        interface OrderQuotePayload {
+          transportFee: number
+          unloadingFee: number
+          deliveryFee: number
+          insuranceFee: number
+          taxFee: number
+          supplementaryItems: OrderQuoteItem[]
+          prepayment: number
+          arrivalPayment: number
+          collectPayment: number
+          remark: string
+          attachmentUrls: string[]
+        }
+
+        interface OrderQuoteRecord extends OrderQuotePayload {
+          id: string
+          orderId: string
+          status: 'draft' | 'submitted'
+          totalAmount: number
+          submittedAt: string | null
+          createTime: string
+          updateTime: string
+        }
+
+        interface OrderQuoteContext {
+          order: OrderRecord
+          quote: OrderQuoteRecord | null
+        }
+
         type CustomerSelectorSearchParams = Api.Common.CommonSearchParams & {
           keyword?: string
           addressType?: Api.Tms.BasicData.CustomerAddressType

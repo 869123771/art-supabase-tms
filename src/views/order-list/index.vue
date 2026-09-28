@@ -46,6 +46,7 @@
     </ArtTableQuery>
 
     <FreightDialog ref="freightDialogRef" @success="handleFreightSuccess" />
+    <QuoteDialog ref="quoteDialogRef" @success="handleFreightSuccess" />
     <MasterDataDeleteGuard ref="deleteGuardRef" @cleared="handleDeleteDependenciesCleared" />
   </div>
 </template>
@@ -86,6 +87,7 @@
     fetchStationOptions
   } from '@tms/api'
   import FreightDialog from './modules/freight-dialog.vue'
+  import QuoteDialog from './modules/quote-dialog.vue'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
@@ -142,6 +144,7 @@
   const { getDictMap } = storeToRefs(useUserStore())
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const freightDialogRef = ref<FreightDialogExpose>()
+  const quoteDialogRef = ref<{ handleOpen: (row: OrderRecord) => Promise<void> }>()
   const deleteGuardRef = ref<MasterDataDeleteGuardExpose>()
   const statusCountRequestId = ref(0)
   const orderFieldAccess = ref<Api.Tms.Order.OrderFieldAccessMap>({})
@@ -530,8 +533,20 @@
     void freightDialogRef.value?.handleOpen(row)
   }
 
+  function openQuote(row: OrderRecord): void {
+    if (!canQuote(row)) return
+    void quoteDialogRef.value?.handleOpen(row)
+  }
+
   function getMoreActions(row: OrderRecord): ButtonMoreItem[] {
     return [
+      {
+        key: 'quote',
+        label: '报价',
+        icon: 'ri:price-tag-3-line',
+        auth: 'TmsOrderList:Quote',
+        disabled: !canQuote(row)
+      },
       {
         key: 'waybillExpense',
         label: '新增运单费用',
@@ -574,6 +589,7 @@
 
   function handleMoreAction(item: ButtonMoreItem, row: OrderRecord): void {
     const actionMap: Record<string, () => void> = {
+      quote: () => openQuote(row),
       waybillExpense: () => openWaybillExpense(row),
       edit: () => openOrderEdit(row),
       freight: () => openFreight(row),
@@ -606,6 +622,14 @@
         ['created', 'pending_load'].includes(String(row.orderStatus || ''))) ||
       (canEditField(row.fieldAccess, 'freightAmounts') &&
         String(row.dispatchStatus || '') === 'pending')
+    )
+  }
+
+  function canQuote(row: OrderRecord): boolean {
+    return (
+      Boolean(row.id) &&
+      row.orderStatus !== 'cancelled' &&
+      canEditField(row.fieldAccess, 'freightAmounts')
     )
   }
 

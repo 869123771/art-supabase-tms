@@ -88,7 +88,10 @@
         <template #header>
           <div class="carrier-detail__section-header">
             <ArtSectionTitle :show-line="false">名下司机</ArtSectionTitle>
-            <ElButton type="primary" plain @click="goDriverManage">司机管理</ElButton>
+            <ElButton type="primary" plain @click="goDriverManage">
+              <template #icon><ArtSvgIcon icon="ri:user-3-line" /></template>
+              司机管理
+            </ElButton>
           </div>
         </template>
         <CarrierRelationTable
@@ -104,7 +107,10 @@
         <template #header>
           <div class="carrier-detail__section-header">
             <ArtSectionTitle :show-line="false">名下车辆</ArtSectionTitle>
-            <ElButton type="primary" plain @click="goVehicleManage">车辆管理</ElButton>
+            <ElButton type="primary" plain @click="goVehicleManage">
+              <template #icon><ArtSvgIcon icon="ri:truck-line" /></template>
+              车辆管理
+            </ElButton>
           </div>
         </template>
         <CarrierRelationTable

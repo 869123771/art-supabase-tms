@@ -124,6 +124,7 @@ export {
   generateAiOrderExample,
   reviewAiOrderArtifact
 } from '@tms/api/modules/order'
+export { fetchOrderQuote, saveOrderQuote } from '@tms/api/modules/order-quote'
 export {
   cancelWaybillDispatch,
   cancelWaybillDispatchBatch,

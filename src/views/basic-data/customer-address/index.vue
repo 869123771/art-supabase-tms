@@ -283,6 +283,7 @@
         <BusinessTableRowActions>
           {canEditField(row.fieldAccess, 'addressDetail') ? (
             <ArtButtonTable
+              type="edit"
               icon="ri:radar-line"
               permission="TmsCustomerAddress:Geofence"
               label={row.geofenceEnabled ? '查看或修改围栏' : '设置围栏'}
