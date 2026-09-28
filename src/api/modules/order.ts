@@ -4,7 +4,7 @@ import type { ApiRequestOptions } from '@/types/api/request'
 import { fetchSecureOrders } from '@tms/api/modules/transport-secure'
 import { canEditField } from '@/utils/field-permission'
 import { normalizeSupabaseFunctionError } from '@/utils/supabase'
-import { pick } from 'lodash-es'
+import { omit, pick } from 'lodash-es'
 
 type OrderRecord = Api.Tms.Order.OrderRecord
 type OrderSearchParams = Api.Tms.Order.OrderSearchParams
@@ -103,7 +103,6 @@ export async function reviewAiOrderArtifact(
 
 const ORDER_WRITE_FIELDS = [
   'order_no',
-  'cargo_no',
   'order_status',
   'origin_station',
   'destination_station',
@@ -149,14 +148,20 @@ const ORDER_WRITE_FIELDS = [
   'shipping_longitude',
   'shipping_latitude',
   'receiving_longitude',
-  'receiving_latitude'
+  'receiving_latitude',
+  'shipping_region_path',
+  'receiving_region_path',
+  'distance_km',
+  'departure_at',
+  'arrival_at',
+  'order_config'
 ] as const
 
 const ORDER_SENSITIVE_WRITE_FIELDS: Record<Api.Tms.Order.OrderFieldKey, readonly string[]> = {
   shipperContact: ['shipping_contact_phone'],
-  shipperAddress: ['shipping_address_detail', 'shipping_address_id'],
+  shipperAddress: ['shipping_address_detail', 'shipping_address_id', 'shipping_region_path'],
   receiverContact: ['receiving_contact_phone'],
-  receiverAddress: ['receiving_address_detail', 'receiving_address_id'],
+  receiverAddress: ['receiving_address_detail', 'receiving_address_id', 'receiving_region_path'],
   cargoPricing: [],
   freightAmounts: [
     'transport_fee',
@@ -184,7 +189,8 @@ const ORDER_SENSITIVE_WRITE_FIELDS: Record<Api.Tms.Order.OrderFieldKey, readonly
     'shipping_longitude',
     'shipping_latitude',
     'receiving_longitude',
-    'receiving_latitude'
+    'receiving_latitude',
+    'distance_km'
   ]
 }
 
@@ -199,6 +205,12 @@ function toOrderWritePayload(params: OrderRecord): Record<string, unknown> {
     if (canEditField(params.fieldAccess, field as Api.Tms.Order.OrderFieldKey)) return
     columns.forEach((column) => delete payload[column])
   })
+  if (!canEditField(params.fieldAccess, 'proofAttachments')) {
+    const config = payload.order_config
+    if (config && typeof config === 'object' && !Array.isArray(config)) {
+      payload.order_config = omit(config, 'attachment_urls')
+    }
+  }
   return payload
 }
 

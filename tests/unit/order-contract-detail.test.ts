@@ -31,6 +31,8 @@ test('合同明细带入订单货物快照，本次数量默认 1', () => {
     cargoId: 'cargo-1',
     cargoName: '矿石',
     cargoCode: 'HW001',
+    specModel: '',
+    remark: '',
     packageType: 'ton',
     quantity: 1,
     unit: 'ton',

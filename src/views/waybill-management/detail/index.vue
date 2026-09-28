@@ -40,7 +40,7 @@
           >
         </div>
       </template>
-      <ElButton v-if="detail.data?.orderId" @click="openOrderDetail">
+      <ElButton v-if="detail.data?.orderId" @click="openOrderDetail()">
         <ArtSvgIcon icon="ri:file-list-3-line" aria-hidden="true" />
         查看订单
       </ElButton>
@@ -400,9 +400,10 @@
     )
   }
 
-  function openOrderDetail(): void {
-    if (!detail.data?.orderId) return
-    void router.push({ name: 'TmsOrderDetail', params: { id: detail.data.orderId } })
+  function openOrderDetail(orderId?: string): void {
+    const sourceOrderId = orderId || detail.data?.orderId
+    if (!sourceOrderId) return
+    void router.push({ name: 'TmsOrderDetail', params: { id: sourceOrderId } })
   }
 
   function canView(field: Api.Tms.Waybill.WaybillFieldKey): boolean {

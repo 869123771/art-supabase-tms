@@ -1,11 +1,12 @@
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 import type { QueryResult } from '@/types/api/response'
+import type { WaybillExportScope, WaybillListScope } from '@tms/api/modules/transport-secure'
 import {
-  fetchSecureOrders,
-  type WaybillExportScope,
-  type WaybillListScope
-} from '@tms/api/modules/transport-secure'
+  fetchDispatchWorkbench,
+  fetchExecutionSources,
+  submitDispatchPlan
+} from '@tms/api/modules/dispatch-execution'
 import { isPlainObject } from 'lodash-es'
 import { normalizeSupabaseFunctionError } from '@/utils/supabase'
 
@@ -36,7 +37,7 @@ interface WaybillStatusCountResult {
 
 export type { WaybillExportScope, WaybillListScope } from '@tms/api/modules/transport-secure'
 
-const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
+const { supabase, responseHandle } = useSupabase()
 
 const ENERGY_COST_TYPES = new Set([
   'fuel',
@@ -56,6 +57,8 @@ export async function fetchWaybillDetail(waybillId: string) {
   if (!detailResult.data) return detailResult
 
   const data = detailResult.data
+  const sourcesResult = await fetchExecutionSources(waybillId)
+  if (sourcesResult.error) throw new Error('运单来源加载失败，请稍后重试')
   return {
     ...detailResult,
     data: {
@@ -71,6 +74,7 @@ export async function fetchWaybillDetail(waybillId: string) {
       proofs: data.proofs ?? [],
       cargoOperations: data.cargoOperations ?? [],
       expenseLocations: normalizeExpenseLocations(data.expenseLocations ?? []),
+      sources: sourcesResult.data ?? [],
       execution: data.execution ?? null
     }
   }
@@ -166,83 +170,90 @@ function normalizeUrlList(value: unknown): string[] {
   })
 }
 
-const normalizeWaybillSearchParams = (params: WaybillSearchParams): WaybillSearchParams =>
-  params.dispatchStatus === 'loaded' && !params.dispatchStatuses?.length
-    ? {
-        ...params,
-        dispatchStatus: undefined,
-        dispatchStatuses: ['loaded', 'transporting', 'completed']
-      }
-    : params
-
 export async function fetchWaybillStatusCounts(
   params: WaybillSearchParams,
   scope: WaybillListScope
 ): Promise<WaybillStatusCountResult> {
   const sharedFilters = { ...params, waybillStatus: undefined }
-  const result = await fetchSecureOrders<WaybillRecord>(
-    { ...normalizeWaybillSearchParams(sharedFilters), countOnly: true },
-    scope
+  const result = await fetchDispatchWorkbench(
+    { ...sharedFilters, countOnly: true },
+    scope === 'pending_waybill_list' ? 'pending' : 'loaded'
   )
 
   return { total: result.total, counts: result.waybillStatusCounts }
 }
 
-const createDispatchRpcPayload = (params: WaybillDispatchPayload) => ({
-  dispatchVehicleId: params.dispatchVehicleId,
-  dispatchDriverId: params.dispatchDriverId || null,
-  dispatchPlateNo: params.dispatchPlateNo,
-  dispatchVehicleType: params.dispatchVehicleType || null,
-  dispatchVehicleLength: params.dispatchVehicleLength || null,
-  dispatchDriverName: params.dispatchDriverName || null,
-  dispatchDriverPhone: params.dispatchDriverPhone || null,
-  plannedDepartureTime: params.plannedDepartureTime,
-  plannedArrivalTime: params.plannedArrivalTime,
-  dispatchRemark: params.dispatchRemark || null
-})
-
 export async function fetchWaybillList(
   params: WaybillSearchParams & Api.Common.CommonSearchParams,
   scope: WaybillListScope
 ) {
-  return await fetchSecureOrders<WaybillRecord>(normalizeWaybillSearchParams(params), scope)
+  return await fetchDispatchWorkbench(
+    params,
+    scope === 'pending_waybill_list' ? 'pending' : 'loaded'
+  )
 }
 
 export async function exportWaybillList(
   params: WaybillSearchParams & { ids?: string[]; maxRows?: number },
   scope: WaybillExportScope
 ) {
-  return await fetchSecureOrders<WaybillRecord>(normalizeWaybillSearchParams(params), scope)
+  return await fetchDispatchWorkbench(
+    params,
+    scope === 'pending_waybill_export' ? 'pending' : 'loaded'
+  )
 }
 
-export async function dispatchWaybill(params: WaybillDispatchPayload) {
-  const id = params.id
-  if (!id) throw new Error('缺少运单ID')
-
-  const result = await responseHandle<WaybillRecord[]>(
-    () =>
-      supabase.rpc('tms_dispatch_orders_secure', {
-        p_order_ids: [id],
-        p_dispatch: keysToSnakeDeep(createDispatchRpcPayload(params))
-      }),
-    { showMessage: true, breakReturn: true }
-  )
-  return { ...result, data: result.data?.[0] ?? null }
+function createFullAllocation(row: WaybillRecord): Api.Tms.Waybill.DispatchAllocation {
+  if (!row.id) throw new Error('请选择有效的原始运输单')
+  const cargoItems = row.remainingCargoItems ?? row.cargoItems ?? []
+  const lines = cargoItems.flatMap((item, lineIndex) => {
+    const quantity = Number(item.quantity ?? 0)
+    const weightKg = Number(item.weightKg ?? 0)
+    const volumeM3 = Number(item.volumeM3 ?? 0)
+    return quantity + weightKg + volumeM3 > 0 ? [{ lineIndex, quantity, weightKg, volumeM3 }] : []
+  })
+  if (!lines.length) throw new Error(`原始运输单 ${row.orderNo} 已无可配载货量`)
+  return {
+    orderId: row.id,
+    lines
+  }
 }
 
-export async function dispatchWaybillBatch(params: WaybillDispatchPayload) {
-  const ids = params.ids?.filter(Boolean) ?? []
-  if (!ids.length) throw new Error('请选择需要配载的运单')
+function createPlanExecution(
+  params: WaybillDispatchPayload,
+  rows: WaybillRecord[]
+): Api.Tms.Waybill.DispatchPlanExecution {
+  return {
+    dispatchVehicleId: params.dispatchVehicleId,
+    dispatchDriverId: params.dispatchDriverId,
+    plannedDepartureTime: params.plannedDepartureTime,
+    plannedArrivalTime: params.plannedArrivalTime,
+    dispatchRemark: params.dispatchRemark,
+    allocations: rows.map(createFullAllocation)
+  }
+}
 
-  const result = await responseHandle<WaybillRecord[]>(
-    () =>
-      supabase.rpc('tms_dispatch_orders_secure', {
-        p_order_ids: ids,
-        p_dispatch: keysToSnakeDeep(createDispatchRpcPayload(params))
-      }),
-    { showMessage: true, breakReturn: true }
-  )
-  return result
+export async function dispatchWaybill(row: WaybillRecord, params: WaybillDispatchPayload) {
+  return await submitDispatchPlan({
+    kind: 'single',
+    executions: [createPlanExecution(params, [row])]
+  })
+}
+
+export async function dispatchWaybillBatch(rows: WaybillRecord[], params: WaybillDispatchPayload) {
+  if (!rows.length) throw new Error('请选择需要配载的运单')
+  return await submitDispatchPlan({
+    kind: 'single',
+    executions: rows.map((row) => createPlanExecution(params, [row]))
+  })
+}
+
+export async function mergeWaybills(rows: WaybillRecord[], params: WaybillDispatchPayload) {
+  if (rows.length < 2) throw new Error('请至少选择两张原始运输单')
+  return await submitDispatchPlan({
+    kind: 'merge',
+    executions: [createPlanExecution(params, rows)]
+  })
 }
 
 export async function cancelWaybillDispatch(id: string) {

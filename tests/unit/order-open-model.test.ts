@@ -18,11 +18,23 @@ test('order payload normalizes monetary totals, stations and cargo summary', () 
     deliveryFee: 2,
     cashAmount: 5,
     monthlyAmount: '7.50',
+    shippingRegionPath: ['上海市', '上海市', '浦东新区'],
+    shippingAddressDetail: '陆家嘴路 1 号',
+    receivingRegionPath: ['江苏省', '苏州市', '工业园区'],
+    receivingAddressDetail: '物流园 2 号',
+    distanceKm: 102.35,
+    orderConfig: {
+      ...form.orderConfig,
+      billingMode: 'weight',
+      billingUnit: 'kg'
+    },
     cargoItems: [
       {
         cargoName: ' 配件 ',
         cargoId: ' cargo-1 ',
         cargoCode: ' HW001 ',
+        specModel: ' 标准箱 ',
+        remark: ' 防潮 ',
         packageType: ' 箱装 ',
         quantity: '2',
         unit: '箱',
@@ -53,6 +65,13 @@ test('order payload normalizes monetary totals, stations and cargo summary', () 
   assert.equal(payload.cargoVolumeTotal, 1.125)
   assert.equal(payload.cargoItems?.[0].sourceContractNo, 'HT-001')
   assert.equal(payload.cargoItems?.[0].unitPrice, 10.5)
+  assert.equal(payload.cargoItems?.[0].specModel, '标准箱')
+  assert.equal(payload.cargoItems?.[0].remark, '防潮')
+  assert.deepEqual(payload.shippingRegionPath, ['上海市', '上海市', '浦东新区'])
+  assert.equal(payload.shippingAddressDetail, '上海市上海市浦东新区 陆家嘴路 1 号')
+  assert.equal(payload.receivingAddressDetail, '江苏省苏州市工业园区 物流园 2 号')
+  assert.equal(payload.distanceKm, 102.35)
+  assert.equal(payload.orderConfig?.billingMode, 'weight')
   assert.equal('shippingCustomerName' in payload, false)
 })
 
@@ -143,7 +162,8 @@ test('favorite route patch fills both endpoint customers, contacts and addresses
     shippingAddressId: 'origin-address',
     shippingContactName: '发货联系人',
     shippingContactPhone: '13000000001',
-    shippingAddressDetail: '河南省/许昌市/禹州市 矿区一号门',
+    shippingRegionPath: ['河南省', '许昌市', '禹州市'],
+    shippingAddressDetail: '矿区一号门',
     shippingLongitude: 113.4,
     shippingLatitude: 34.1,
     receivingCustomerId: 'receiver-1',
@@ -151,7 +171,8 @@ test('favorite route patch fills both endpoint customers, contacts and addresses
     receivingAddressId: 'destination-address',
     receivingContactName: '收货联系人',
     receivingContactPhone: '13000000002',
-    receivingAddressDetail: '山西省/长治市/潞州区 仓库二号门',
+    receivingRegionPath: ['山西省', '长治市', '潞州区'],
+    receivingAddressDetail: '仓库二号门',
     receivingLongitude: 113.1,
     receivingLatitude: 36.2
   })

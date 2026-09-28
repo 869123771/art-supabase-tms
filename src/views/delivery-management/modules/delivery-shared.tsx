@@ -54,7 +54,6 @@ export const createInitialDeliverySearch = (): DeliverySearchParams => ({
 })
 
 export const deliveryExcelColumns: ArtTableQueryExcelColumn[] = [
-  { key: 'cargoNo', title: '货号' },
   { key: 'orderNo', title: '运单号' },
   { key: 'receivingContactName', title: '收货人' },
   { key: 'receivingContactPhone', title: '收货人电话' },
@@ -85,10 +84,10 @@ export const createDeliverySearchItems = (
   computed<SearchFormItem[]>(() => {
     const items: SearchFormItem[] = [
       {
-        label: '货号',
+        label: '运单号',
         key: 'cargoKeyword',
         type: 'input',
-        props: { clearable: true, placeholder: '货号 / 运单号' }
+        props: { clearable: true, placeholder: '请输入运单号' }
       },
       {
         label: '发货人',
@@ -165,7 +164,6 @@ export const createDeliveryColumns = (
 ): ColumnOption<DeliveryRecord>[] => {
   const columns: ColumnOption<DeliveryRecord>[] = [
     { type: 'selection', width: 50, fixed: 'left', reserveSelection: true },
-    { prop: 'cargoNo', label: '货号', fixed: 'left', width: 130, showOverflowTooltip: true },
     {
       prop: 'orderNo',
       label: '运单号',

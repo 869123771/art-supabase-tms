@@ -542,6 +542,7 @@ declare global {
           tenantId?: string
           cargoCode?: string
           cargoName: string
+          specModel?: string | null
           unit: string
           lengthM?: number | null
           widthM?: number | null
@@ -727,6 +728,8 @@ declare global {
           cargoId?: string | null
           cargoName?: string | null
           cargoCode?: string | null
+          specModel?: string | null
+          remark?: string | null
           packageType?: string | null
           quantity?: number | null
           unit?: string | null
@@ -844,7 +847,6 @@ declare global {
           tenantId?: string
           orderNo: string
           waybillNo?: string | null
-          cargoNo?: string | null
           orderStatus?: string
           originStationId?: string | null
           destinationStationId?: string | null
@@ -872,6 +874,12 @@ declare global {
           receivingAddressDetail: string
           receivingLongitude?: number | string | null
           receivingLatitude?: number | string | null
+          shippingRegionPath?: string[]
+          receivingRegionPath?: string[]
+          distanceKm?: number | string | null
+          departureAt?: string | null
+          arrivalAt?: string | null
+          orderConfig?: OrderConfig
           cargoItems?: CargoItem[]
           cargoQuantityTotal?: number | null
           cargoWeightTotal?: number | null
@@ -937,6 +945,29 @@ declare global {
           isRecordOwner?: boolean
         }
 
+        interface OrderConfig {
+          loadType: 'ltl' | 'ftl'
+          allowConsolidation?: boolean
+          vehicleType?: string
+          vehicleLengthM?: number | null
+          vehicleVolumeM3?: number | null
+          vehicleLoadTons?: number | null
+          truckCount?: number | null
+          billingMode: 'weight' | 'volume' | 'quantity' | ''
+          billingUnit: string
+          cargoCategory: string
+          tempMinC?: number | null
+          tempMaxC?: number | null
+          packaging: string
+          selfPickup: boolean
+          insured: boolean
+          transportRequirements: string[]
+          trackingMethod: string
+          trackingNumber: string
+          remark: string
+          attachmentUrls: string[]
+        }
+
         type OrderSearchParams = Partial<
           Pick<
             OrderRecord,
@@ -967,7 +998,8 @@ declare global {
         type WaybillFieldAccessMap = Partial<
           Record<WaybillFieldKey, Api.Tms.BasicData.FieldAccessLevel>
         >
-        type DispatchStatus = 'pending' | 'loaded' | 'transporting' | 'completed' | 'cancelled'
+        type DispatchStatus =
+          'pending' | 'partial' | 'loaded' | 'transporting' | 'completed' | 'cancelled'
         type WaybillStatus =
           | 'pending'
           | 'accepted'
@@ -977,7 +1009,64 @@ declare global {
           | 'signed'
           | 'completed'
           | 'cancelled'
-        type WaybillRecord = Api.Tms.Order.OrderRecord
+        interface WaybillRecord extends Api.Tms.Order.OrderRecord {
+          sourceOrderId?: string | null
+          sourceOrderNos?: string[]
+          sourceOrderCount?: number
+          executionKind?: 'single' | 'merge' | 'split'
+          remainingCargoItems?: Api.Tms.Order.CargoItem[]
+          remainingQuantityTotal?: number
+          remainingWeightTotal?: number
+          remainingVolumeTotal?: number
+          allocationCount?: number
+          hasReceiptException?: boolean
+        }
+
+        interface DispatchAllocationLine {
+          lineIndex: number
+          quantity: number
+          weightKg?: number
+          volumeM3?: number
+        }
+
+        interface DispatchAllocation {
+          orderId: string
+          lines: DispatchAllocationLine[]
+        }
+
+        interface DispatchPlanExecution {
+          dispatchVehicleId: string
+          dispatchDriverId?: string | null
+          plannedDepartureTime: string
+          plannedArrivalTime: string
+          dispatchRemark?: string | null
+          receivingAddressId?: string | null
+          allocations: DispatchAllocation[]
+        }
+
+        interface DispatchPlan {
+          kind: 'single' | 'merge' | 'split'
+          executions: DispatchPlanExecution[]
+        }
+
+        interface ExecutionSource {
+          id: string
+          orderId: string
+          orderNo: string
+          customerName?: string | null
+          receivingAddress?: string | null
+          cargoItems: Api.Tms.Order.CargoItem[]
+          quantity: number
+          weightKg: number
+          volumeM3: number
+          freightAmount?: number | null
+          signedQuantity: number
+          exceptionQuantity: number
+          exceptionNote?: string | null
+          signedAt?: string | null
+          orderStatus: string
+          dispatchStatus: string
+        }
 
         interface RelatedWaybillSummary {
           id: string
@@ -1080,6 +1169,7 @@ declare global {
           id: string
           tenantId: string
           waybillNo: string
+          executionKind?: 'single' | 'merge' | 'split'
           status: WaybillStatus | string
           orderId?: string | null
           carrierId?: string | null
@@ -1133,6 +1223,7 @@ declare global {
           proofs: WaybillProofRecord[]
           cargoOperations: CargoOperationRecord[]
           expenseLocations: WaybillExpenseLocationRecord[]
+          sources?: ExecutionSource[]
           execution?: ExecutionRecord | null
           fieldAccess?: WaybillFieldAccessMap
           isRecordOwner?: boolean

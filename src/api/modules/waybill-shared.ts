@@ -68,7 +68,7 @@ export const createDriverWaybillPayload = (order: WaybillRecord) => {
     receiverLatitude: toNullableNumberValue(order.receivingLatitude),
     plannedLoadTime: order.plannedDepartureTime || null,
     plannedUnloadTime: order.plannedArrivalTime || null,
-    cargoName: firstCargo?.cargoName || order.cargoNo || order.orderNo,
+    cargoName: firstCargo?.cargoName || order.orderNo,
     cargoWeightTon:
       cargoWeightKg === null ? null : Math.round((cargoWeightKg / 1000) * 1000) / 1000,
     cargoVolumeM3: toNullableNumberValue(order.cargoVolumeTotal),

@@ -156,7 +156,7 @@
       type: 'input',
       props: {
         clearable: true,
-        placeholder: '货物名称、编号、单位或备注'
+        placeholder: '货物名称、编号、规格型号、单位或备注'
       }
     }
   ])
@@ -167,6 +167,12 @@
       prop: 'cargoName',
       label: '货物名称',
       minWidth: 180,
+      showOverflowTooltip: true
+    },
+    {
+      prop: 'specModel',
+      label: '规格型号',
+      minWidth: 150,
       showOverflowTooltip: true
     },
     {

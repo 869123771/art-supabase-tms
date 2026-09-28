@@ -1,4 +1,5 @@
 import { cloneDeep, isNil, omit, round, toNumber, trim } from 'lodash-es'
+import dayjs from 'dayjs'
 import { getFieldAccess } from '@/utils/field-permission'
 
 export type OrderRecord = Api.Tms.Order.OrderRecord
@@ -7,10 +8,36 @@ export type CustomerPrice = Api.Tms.BasicData.CustomerPrice
 export type FavoriteRoute = Api.Tms.BasicData.FavoriteRoute
 export type CustomerAddress = Api.Tms.BasicData.CustomerAddress
 
-export type OrderForm = OrderRecord & {
+export type OrderForm = Omit<OrderRecord, 'orderConfig'> & {
   imageUrls: string[]
   shippingCustomerName: string
   receivingCustomerName: string
+  orderConfig: Api.Tms.Order.OrderConfig
+}
+
+export function createInitialOrderConfig(): Api.Tms.Order.OrderConfig {
+  return {
+    loadType: 'ltl',
+    allowConsolidation: false,
+    vehicleType: '',
+    vehicleLengthM: null,
+    vehicleVolumeM3: null,
+    vehicleLoadTons: null,
+    truckCount: null,
+    billingMode: '',
+    billingUnit: '',
+    cargoCategory: 'general',
+    tempMinC: null,
+    tempMaxC: null,
+    packaging: 'bulk',
+    selfPickup: false,
+    insured: false,
+    transportRequirements: [],
+    trackingMethod: '',
+    trackingNumber: '',
+    remark: '',
+    attachmentUrls: []
+  }
 }
 
 export interface OrderCargoSummary {
@@ -52,6 +79,8 @@ export function createInitialCargoItem(): CargoItem {
     cargoId: null,
     cargoName: '',
     cargoCode: '',
+    specModel: '',
+    remark: '',
     packageType: '',
     quantity: null,
     unit: '',
@@ -69,7 +98,6 @@ export function createInitialCargoItem(): CargoItem {
 export function createInitialForm(): OrderForm {
   return {
     orderNo: '',
-    cargoNo: '',
     orderStatus: 'pending_load',
     originStationId: null,
     destinationStationId: null,
@@ -87,13 +115,19 @@ export function createInitialForm(): OrderForm {
     shippingContactName: '',
     shippingContactPhone: '',
     shippingAddressDetail: '',
+    shippingRegionPath: [],
     shippingLongitude: null,
     shippingLatitude: null,
     receivingContactName: '',
     receivingContactPhone: '',
     receivingAddressDetail: '',
+    receivingRegionPath: [],
     receivingLongitude: null,
     receivingLatitude: null,
+    distanceKm: null,
+    departureAt: dayjs().format('YYYY-MM-DDTHH:mm:ssZ'),
+    arrivalAt: null,
+    orderConfig: createInitialOrderConfig(),
     cargoItems: [createInitialCargoItem()],
     cargoQuantityTotal: 0,
     cargoWeightTotal: 0,
@@ -141,6 +175,21 @@ export function formatOrderAddress(region?: string | null, address?: string | nu
   return `${regionText} ${addressText}`
 }
 
+export function parseOrderRegionPath(region?: string | null): string[] {
+  return textValue(region)
+    .split(/[/／,，]/)
+    .map(textValue)
+    .filter(Boolean)
+}
+
+export function stripOrderRegionPrefix(address: string, path: string[]): string {
+  const prefix = path.join('')
+  const normalized = textValue(address)
+  return prefix && normalized.startsWith(prefix)
+    ? textValue(normalized.slice(prefix.length))
+    : normalized
+}
+
 function resolveEndpointCustomer(
   route: FavoriteRoute,
   address?: CustomerAddress | null
@@ -172,9 +221,8 @@ export function createFavoriteRouteContactPatch(route: FavoriteRoute): Partial<O
     shippingAddressId: origin?.id || route.originAddressId || null,
     shippingContactName: textValue(origin?.contactName) || originCustomer?.customerName || '',
     shippingContactPhone: canReadOriginPhone ? textValue(origin?.contactPhone) : '',
-    shippingAddressDetail: canReadOriginAddress
-      ? formatOrderAddress(origin?.region, origin?.addressDetail)
-      : '',
+    shippingRegionPath: canReadOriginAddress ? parseOrderRegionPath(origin?.region) : [],
+    shippingAddressDetail: canReadOriginAddress ? textValue(origin?.addressDetail) : '',
     shippingLongitude: canReadOriginAddress ? (origin?.longitude ?? null) : null,
     shippingLatitude: canReadOriginAddress ? (origin?.latitude ?? null) : null,
     receivingCustomerId: destination?.customerId || route.customerId || null,
@@ -183,9 +231,8 @@ export function createFavoriteRouteContactPatch(route: FavoriteRoute): Partial<O
     receivingContactName:
       textValue(destination?.contactName) || destinationCustomer?.customerName || '',
     receivingContactPhone: canReadDestinationPhone ? textValue(destination?.contactPhone) : '',
-    receivingAddressDetail: canReadDestinationAddress
-      ? formatOrderAddress(destination?.region, destination?.addressDetail)
-      : '',
+    receivingRegionPath: canReadDestinationAddress ? parseOrderRegionPath(destination?.region) : [],
+    receivingAddressDetail: canReadDestinationAddress ? textValue(destination?.addressDetail) : '',
     receivingLongitude: canReadDestinationAddress ? (destination?.longitude ?? null) : null,
     receivingLatitude: canReadDestinationAddress ? (destination?.latitude ?? null) : null
   }
@@ -230,6 +277,8 @@ export function normalizeCargoItems(items?: CargoItem[]): CargoItem[] {
       cargoId: nullableText(item.cargoId),
       cargoName: textValue(item.cargoName),
       cargoCode: nullableText(item.cargoCode),
+      specModel: nullableText(item.specModel),
+      remark: nullableText(item.remark),
       packageType: textValue(item.packageType),
       quantity: nullableNumber(item.quantity),
       unit: textValue(item.unit),
@@ -324,13 +373,26 @@ export function normalizeOrderPayload({
     shippingLatitude: nullableNumber(raw.shippingLatitude),
     receivingLongitude: nullableNumber(raw.receivingLongitude),
     receivingLatitude: nullableNumber(raw.receivingLatitude),
+    shippingRegionPath: raw.shippingRegionPath ?? [],
+    receivingRegionPath: raw.receivingRegionPath ?? [],
+    shippingAddressDetail: formatOrderAddress(
+      (raw.shippingRegionPath ?? []).join(''),
+      raw.shippingAddressDetail
+    ),
+    receivingAddressDetail: formatOrderAddress(
+      (raw.receivingRegionPath ?? []).join(''),
+      raw.receivingAddressDetail
+    ),
+    distanceKm: nullableNumber(raw.distanceKm),
+    departureAt: raw.departureAt || null,
+    arrivalAt: raw.arrivalAt || null,
+    orderConfig: raw.orderConfig ?? createInitialOrderConfig(),
     originStation: stationNames.origin || textValue(raw.originStation),
     destinationStation: stationNames.destination || textValue(raw.destinationStation),
     transferStation: stationNames.transfer || nullableText(raw.transferStation),
     transportMode: textValue(raw.transportMode),
     orderRemark: textValue(raw.orderRemark),
     orderNo: textValue(raw.orderNo),
-    cargoNo: textValue(raw.cargoNo),
     imageUrls: raw.imageUrls ?? []
   })
 

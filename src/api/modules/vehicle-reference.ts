@@ -24,12 +24,36 @@ export interface TmsVehicleOption {
   vehicleType?: string
 }
 
+export interface TmsVehicleTypeProfile {
+  id: string
+  category: string
+  lengthM: number | null
+  volumeM3: number | null
+  loadTons: number | null
+  status: '1' | '2'
+  sort: number
+}
+
 interface VehicleReferenceListPayload {
   records: TmsVehicleReference[]
   total: number
 }
 
 const { supabase, responseHandle } = useSupabase()
+
+/** Tenant-scoped VMS catalog used for order vehicle specifications. */
+export async function fetchTmsVehicleTypeProfiles() {
+  return await responseHandle<TmsVehicleTypeProfile[]>(
+    () =>
+      supabase.rpc('vms_list_vehicle_type_profiles_secure', {
+        p_tenant_id: null,
+        p_vehicle_id: null,
+        p_carrier_id: null,
+        p_include_disabled: false
+      }),
+    { showErrorMessage: true }
+  )
+}
 
 /** TMS consumer adapter for the VMS-owned vehicle read contract. */
 export async function fetchTmsVehicleReferences(

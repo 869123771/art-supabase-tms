@@ -37,7 +37,11 @@ export type TableParams = WaybillSearchParams &
   Pick<Api.Common.PaginationParams, 'current' | 'size'>
 
 export interface WaybillDialogExpose {
-  handleOpen: (data: { rows: WaybillRecord[]; mode: 'single' | 'batch' }) => Promise<void>
+  handleOpen: (data: { rows: WaybillRecord[]; mode: 'single' | 'batch' | 'merge' }) => Promise<void>
+}
+
+export interface SplitDialogExpose {
+  handleOpen: (row: WaybillRecord) => Promise<void>
 }
 
 export interface CargoOperationDialogExpose {
@@ -63,6 +67,7 @@ export interface WaybillListContext {
     { refreshData: () => Promise<void>; refreshUpdate: () => Promise<void> } | undefined
   >
   dispatchDialogRef: Ref<WaybillDialogExpose | undefined>
+  splitDialogRef?: Ref<SplitDialogExpose | undefined>
   cargoOperationDialogRef?: Ref<CargoOperationDialogExpose | undefined>
   executionOperationDialogRef?: Ref<ExecutionOperationDialogExpose | undefined>
   canAccept?: boolean
@@ -99,6 +104,14 @@ const waybillDispatchStatusFallbackMap: Record<string, Api.DataCenter.DictListIt
     label: '待配载',
     value: 'pending',
     color: 'var(--el-color-primary)'
+  },
+  partial: {
+    name: '部分调度',
+    code: 'partial',
+    status: '1',
+    label: '部分调度',
+    value: 'partial',
+    color: 'var(--el-color-warning)'
   },
   loaded: {
     name: '已配载',
@@ -149,8 +162,11 @@ export const createInitialWaybillSearch = (): WaybillSearchParams => ({
 })
 
 const createWaybillExcelColumns = (context: WaybillListContext): ArtTableQueryExcelColumn[] => [
-  { key: 'cargoNo', title: '货号' },
-  { key: 'orderNo', title: '运单号' },
+  {
+    key: context.mode === 'pending' ? 'orderNo' : 'waybillNo',
+    title: context.mode === 'pending' ? '原始运单号' : '调度运单号'
+  },
+  ...(context.mode === 'loaded' ? [{ key: 'sourceOrderNos', title: '原始运单号' }] : []),
   { key: 'shippingContactName', title: '发货人' },
   ...(canViewField(context.fieldAccess.value, 'shipperContact')
     ? [{ key: 'shippingContactPhone', title: '发货人电话' }]
@@ -179,10 +195,10 @@ export const createWaybillSearchItems = (
   computed<SearchFormItem[]>(() => {
     const items: SearchFormItem[] = [
       {
-        label: '货号',
+        label: '运单号',
         key: 'cargoKeyword',
         type: 'input',
-        props: { clearable: true, placeholder: '货号 / 运单号' }
+        props: { clearable: true, placeholder: '请输入运单号' }
       },
       {
         label: '发货人',
@@ -340,10 +356,38 @@ export const createWaybillHeaderActions = (
         buttonProps: { type: 'primary' },
         hidden: context.mode !== 'pending',
         onClick: async ({ selectedRows }) => {
+          if ((selectedRows as WaybillRecord[]).some((row) => row.dispatchStatus !== 'pending')) {
+            ElMessage.warning('部分调度的原始单请使用“继续拆单配载”')
+            return
+          }
           await context.dispatchDialogRef.value?.handleOpen({
             rows: selectedRows as WaybillRecord[],
             mode: 'batch'
           })
+        }
+      },
+      {
+        key: 'merge-dispatch',
+        permission: 'TmsPendingWaybillList:Merge',
+        label: '合单配载',
+        icon: 'ri:git-merge-line',
+        selectionRequired: true,
+        hidden: context.mode !== 'pending',
+        onClick: async ({ selectedRows }) => {
+          const rows = selectedRows as WaybillRecord[]
+          if (rows.length < 2) {
+            ElMessage.warning('请至少选择两张原始运输单')
+            return
+          }
+          if (rows.some((row) => row.dispatchStatus !== 'pending')) {
+            ElMessage.warning('合单仅支持尚未调度的原始运输单')
+            return
+          }
+          if (rows.some((row) => row.orderConfig?.allowConsolidation !== true)) {
+            ElMessage.warning('所选原始单中存在未获客户允许合单的订单')
+            return
+          }
+          await context.dispatchDialogRef.value?.handleOpen({ rows, mode: 'merge' })
         }
       },
       {
@@ -506,15 +550,14 @@ export const createWaybillColumns = (
   ]
   const columns: ColumnOption<WaybillRecord>[] = [
     { type: 'selection', width: 50, fixed: 'left', reserveSelection: true },
-    { prop: 'cargoNo', label: '货号', fixed: 'left', width: 130, showOverflowTooltip: true },
     {
       prop: 'waybillNo',
-      label: '运单号',
+      label: context.mode === 'pending' ? '原始运单号' : '调度运单号',
       fixed: 'left',
       width: 140,
       formatter: (row) => (
         <ElLink type="primary" underline="never" onClick={() => openDetail(context, row)}>
-          {row.waybillNo || row.orderNo}
+          {context.mode === 'pending' ? row.orderNo : row.waybillNo || row.orderNo}
         </ElLink>
       )
     }
@@ -524,6 +567,20 @@ export const createWaybillColumns = (
     columns.push(...orderColumns)
   } else {
     columns.push(
+      {
+        prop: 'sourceOrderNos',
+        label: '原始运单',
+        minWidth: 190,
+        showOverflowTooltip: true,
+        formatter: (row) => (row.sourceOrderNos ?? [row.orderNo]).join('、')
+      },
+      {
+        prop: 'executionKind',
+        label: '调度方式',
+        width: 100,
+        formatter: (row) =>
+          ({ single: '普通配载', merge: '合单', split: '拆单' })[row.executionKind ?? 'single']
+      },
       ...orderColumns,
       { prop: 'dispatchDriverName', label: '司机', width: 100, showOverflowTooltip: true },
       ...(canViewField(context.fieldAccess.value, 'driverPhone')
@@ -614,12 +671,20 @@ function getMoreActions(context: WaybillListContext, row: WaybillRecord): Button
   const actions: ButtonMoreItem[] = []
 
   if (context.mode === 'pending') {
-    if (row.dispatchStatus === 'pending') {
+    if (['pending', 'partial'].includes(String(row.dispatchStatus))) {
+      if (row.dispatchStatus === 'pending') {
+        actions.push({
+          key: 'dispatch',
+          label: '配载',
+          icon: 'ri:truck-line',
+          auth: 'TmsPendingWaybillList:Dispatch'
+        })
+      }
       actions.push({
-        key: 'dispatch',
-        label: '配载',
-        icon: 'ri:truck-line',
-        auth: 'TmsPendingWaybillList:Dispatch'
+        key: 'split',
+        label: row.dispatchStatus === 'partial' ? '继续拆单配载' : '拆单配载',
+        icon: 'ri:git-branch-line',
+        auth: 'TmsPendingWaybillList:Split'
       })
     }
     if (canCancelWaybillOrder(row)) {
@@ -677,13 +742,14 @@ function getMoreActions(context: WaybillListContext, row: WaybillRecord): Button
   }
   if (
     context.canSign &&
-    ['unloading', 'signed'].includes(String(row.waybillStatus)) &&
-    row.driverWaybillUnloadingStatus === 'completed' &&
-    !row.driverWaybillSignedAt
+    ((row.waybillStatus === 'unloading' &&
+      row.driverWaybillUnloadingStatus === 'completed' &&
+      !row.driverWaybillSignedAt) ||
+      (['signed', 'completed'].includes(String(row.waybillStatus)) && row.hasReceiptException))
   ) {
     actions.push({
       key: 'signature-operation',
-      label: '签收',
+      label: row.driverWaybillSignedAt ? '复核签收' : '签收',
       icon: 'ri:signature-line',
       auth: 'TmsWaybill:Sign'
     })
@@ -730,6 +796,7 @@ function handleMoreAction(
 ): void {
   const actionMap: Record<string, () => void> = {
     dispatch: () => openDispatch(context, row),
+    split: () => void context.splitDialogRef?.value?.handleOpen(row),
     'confirm-acceptance': () => void handleConfirmAcceptance(context, row),
     'confirm-departure': () =>
       void context.executionOperationDialogRef?.value?.handleOpen({ row, action: 'departure' }),
@@ -804,7 +871,9 @@ async function handleCancelOrder(context: WaybillListContext, row: WaybillRecord
 }
 
 function canCancelWaybillOrder(row: WaybillRecord): boolean {
-  return !['signed', 'completed', 'cancelled'].includes(String(row.orderStatus || ''))
+  return !['signed', 'completed', 'cancelled'].includes(
+    String(row.waybillStatus || row.orderStatus || '')
+  )
 }
 
 async function handleConfirmAcceptance(

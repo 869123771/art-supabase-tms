@@ -34,19 +34,6 @@
                 form.data.orderNo || orderNumberRule?.preview || '保存后自动生成'
               }}</strong>
             </label>
-            <label class="order-open__document-number">
-              <span>货号</span>
-              <ElInput
-                v-if="isNewOrder && cargoNumberRule && !cargoNumberRule.autoEnabled"
-                v-model="form.data.cargoNo"
-                size="small"
-                maxlength="50"
-                placeholder="可手工填写货号"
-              />
-              <strong v-else translate="no">{{
-                form.data.cargoNo || cargoNumberRule?.preview || '保存后自动生成'
-              }}</strong>
-            </label>
             <span class="order-open__time">
               <ArtSvgIcon icon="ri:calendar-line" aria-hidden="true" />
               {{ page.nowText }}
@@ -55,143 +42,263 @@
         </template>
       </ArtPageHeader>
 
-      <ArtSectionCard
-        class="order-open__section order-open__section--route"
-        title="运输路线"
-        subtitle="确认始发、到达与配送方式，线路信息将用于后续调度。"
-        preserve-content-structure
-      >
-        <ArtForm
-          ref="stationFormRef"
-          v-model="form.data"
-          :items="form.stationItems"
-          :rules="form.rules"
-          :span="6"
-          :gutter="24"
-          label-width="84px"
-          root-class="order-open__form"
-          :show-reset="false"
-          :show-submit="false"
-        />
-      </ArtSectionCard>
-
-      <ArtSectionCard
-        class="order-open__section order-open__section--contacts"
-        title="收发信息"
-        subtitle="选择客户常用地址后仍可按本次运输需要补充联系人与详细地址。"
-        preserve-content-structure
-      >
-        <div class="order-open__contact-grid">
-          <div class="order-open__contact-panel">
-            <div class="order-open__contact-heading">
-              <ArtSectionTitle :show-line="false" class="order-open__contact-title">
-                发货人信息
-              </ArtSectionTitle>
-              <div class="order-open__contact-actions">
-                <ElButton
-                  v-if="canEditContactEndpoint('shipping')"
-                  size="small"
-                  type="primary"
-                  plain
-                  @click="openFavoriteRouteSelector"
-                >
-                  <ArtSvgIcon icon="ri:route-line" />
-                  选择线路
-                </ElButton>
-                <ElButton
-                  v-if="canEditContactEndpoint('shipping')"
-                  size="small"
-                  @click="openCustomerSelector('shipping')"
-                >
-                  选择地址
-                </ElButton>
-              </div>
-            </div>
-            <ArtForm
-              ref="shippingFormRef"
-              v-model="form.data"
-              :items="form.shippingItems"
-              :rules="form.rules"
-              :span="24"
-              label-width="88px"
-              root-class="order-open__form"
-              :show-reset="false"
-              :show-submit="false"
-            />
-          </div>
-
-          <div class="order-open__swap">
-            <ArtIconButton
-              v-if="canEditContactEndpoint('shipping') && canEditContactEndpoint('receiving')"
-              icon="ri:arrow-left-right-line"
-              label="交换发货人与收货人"
-              @click="swapContacts"
-            />
-          </div>
-
-          <div class="order-open__contact-panel">
-            <div class="order-open__contact-heading">
-              <ArtSectionTitle :show-line="false" class="order-open__contact-title">
-                收货人信息
-              </ArtSectionTitle>
-              <ElButton
-                v-if="canEditContactEndpoint('receiving')"
-                size="small"
-                @click="openCustomerSelector('receiving')"
-                >选择地址</ElButton
-              >
-            </div>
-            <ArtForm
-              ref="receivingFormRef"
-              v-model="form.data"
-              :items="form.receivingItems"
-              :rules="form.rules"
-              :span="24"
-              label-width="88px"
-              root-class="order-open__form"
-              :show-reset="false"
-              :show-submit="false"
-            />
-          </div>
+      <div class="order-open__workflow" aria-label="填单模式">
+        <div>
+          <strong>{{ fillMode === 'guided' ? '按步骤填写' : '完整表单' }}</strong>
+          <span>{{
+            fillMode === 'guided' ? '依次完成收发、配置与货物信息' : '在同一页面核对全部信息'
+          }}</span>
         </div>
-      </ArtSectionCard>
-
-      <ArtSectionCard class="order-open__section" preserve-content-structure>
-        <template #header
-          ><div class="order-open__section-header">
-            <ArtSectionTitle :show-line="false">货品信息</ArtSectionTitle>
-            <div class="order-open__section-actions">
-              <ElButton
-                v-if="canEditOrderField('cargoPricing')"
-                plain
-                @click="openContractDetailSelector"
-              >
-                <template #icon><ArtSvgIcon icon="ri:file-list-3-line" /></template>
-                批量选合同明细
-              </ElButton>
-              <ElButton plain :icon="Collection" @click="openCargoSelector">批量选货物</ElButton>
-              <ElButton type="primary" plain :icon="Plus" @click="addCargoItem">添加</ElButton>
-            </div>
-          </div></template
+        <ElSegmented
+          v-model="fillMode"
+          :options="[
+            { label: '引导式', value: 'guided' },
+            { label: '完整表单', value: 'full' }
+          ]"
+        />
+      </div>
+      <nav v-if="fillMode === 'guided'" class="order-open__steps" aria-label="开单步骤">
+        <button
+          v-for="(label, index) in stepLabels"
+          :key="label"
+          type="button"
+          :class="{ 'is-current': step === index, 'is-complete': step > index }"
+          :aria-current="step === index ? 'step' : undefined"
+          @click="navigateStep(index)"
         >
-        <ArtTable
-          :data="form.cargoItems"
-          :columns="form.cargoColumns"
-          :pagination="undefined"
-          :show-table-header="false"
-          table-layout="fixed"
-          empty-height="160px"
-          empty-text="尚未添加货物"
-          empty-description="可选择常用货物或手动添加货物明细"
-        />
-        <div class="order-open__cargo-summary">
-          <span>总数量：{{ form.cargoQuantityText }}</span>
-          <span>总重量：{{ form.cargoWeightText }}kg</span>
-          <span>总体积：{{ form.cargoVolumeText }}方</span>
-        </div>
-      </ArtSectionCard>
+          <span>{{ step > index ? '✓' : index + 1 }}</span
+          ><strong>{{ label }}</strong>
+        </button>
+      </nav>
+
+      <div v-show="fillMode === 'full' || step === 0">
+        <ArtSectionCard
+          class="order-open__section order-open__section--route"
+          title="运输路线"
+          subtitle="确认始发、到达与配送方式，线路信息将用于后续调度。"
+          preserve-content-structure
+        >
+          <ArtForm
+            ref="stationFormRef"
+            v-model="form.data"
+            :items="form.stationItems"
+            :rules="form.rules"
+            :span="6"
+            :gutter="24"
+            label-width="84px"
+            root-class="order-open__form"
+            :show-reset="false"
+            :show-submit="false"
+          />
+        </ArtSectionCard>
+
+        <ArtSectionCard
+          class="order-open__section order-open__section--contacts"
+          title="收发信息"
+          subtitle="选择客户常用地址后仍可按本次运输需要补充联系人与详细地址。"
+          preserve-content-structure
+        >
+          <div class="order-open__contact-grid">
+            <div class="order-open__contact-panel">
+              <div class="order-open__contact-heading">
+                <ArtSectionTitle :show-line="false" class="order-open__contact-title">
+                  发货人信息
+                </ArtSectionTitle>
+                <div class="order-open__contact-actions">
+                  <ElButton
+                    v-if="canEditContactEndpoint('shipping')"
+                    size="small"
+                    type="primary"
+                    plain
+                    @click="openFavoriteRouteSelector"
+                  >
+                    <ArtSvgIcon icon="ri:route-line" />
+                    选择线路
+                  </ElButton>
+                  <ElButton
+                    v-if="canEditContactEndpoint('shipping')"
+                    size="small"
+                    @click="openCustomerSelector('shipping')"
+                  >
+                    <ArtSvgIcon icon="ri:map-pin-2-line" />
+                    选择地址
+                  </ElButton>
+                </div>
+              </div>
+              <ArtForm
+                ref="shippingFormRef"
+                v-model="form.data"
+                :items="form.shippingItems"
+                :rules="form.rules"
+                :span="24"
+                label-width="88px"
+                root-class="order-open__form"
+                :show-reset="false"
+                :show-submit="false"
+              />
+              <ArtAddressPicker
+                v-if="canViewOrderField('shipperAddress')"
+                v-model:region-path="form.data.shippingRegionPath"
+                v-model:address-detail="form.data.shippingAddressDetail"
+                v-model:longitude="form.data.shippingLongitude"
+                v-model:latitude="form.data.shippingLatitude"
+                :region-api="fetchRegionOptions"
+                detail-label="发货地址"
+                :detail-span="24"
+                label-width="auto"
+                :disabled="!canEditOrderField('shipperAddress')"
+                hide-region-selector
+                show-coordinate-hint
+              />
+            </div>
+
+            <div class="order-open__swap">
+              <ArtIconButton
+                v-if="canEditContactEndpoint('shipping') && canEditContactEndpoint('receiving')"
+                icon="ri:arrow-left-right-line"
+                label="交换发货人与收货人"
+                @click="swapContacts"
+              />
+            </div>
+
+            <div class="order-open__contact-panel">
+              <div class="order-open__contact-heading">
+                <ArtSectionTitle :show-line="false" class="order-open__contact-title">
+                  收货人信息
+                </ArtSectionTitle>
+                <ElButton
+                  v-if="canEditContactEndpoint('receiving')"
+                  size="small"
+                  @click="openCustomerSelector('receiving')"
+                >
+                  <ArtSvgIcon icon="ri:map-pin-2-line" />
+                  选择地址</ElButton
+                >
+              </div>
+              <ArtForm
+                ref="receivingFormRef"
+                v-model="form.data"
+                :items="form.receivingItems"
+                :rules="form.rules"
+                :span="24"
+                label-width="88px"
+                root-class="order-open__form"
+                :show-reset="false"
+                :show-submit="false"
+              />
+              <ArtAddressPicker
+                v-if="canViewOrderField('receiverAddress')"
+                v-model:region-path="form.data.receivingRegionPath"
+                v-model:address-detail="form.data.receivingAddressDetail"
+                v-model:longitude="form.data.receivingLongitude"
+                v-model:latitude="form.data.receivingLatitude"
+                :region-api="fetchRegionOptions"
+                detail-label="收货地址"
+                :detail-span="24"
+                label-width="auto"
+                :disabled="!canEditOrderField('receiverAddress')"
+                hide-region-selector
+                show-coordinate-hint
+              />
+            </div>
+          </div>
+          <div class="order-open__journey">
+            <div class="order-open__journey-heading"
+              ><div><strong>行程计划</strong><span>地图选点后自动估算驾车距离</span></div>
+              <ElButton
+                v-if="canEstimateDistance"
+                link
+                type="primary"
+                :loading="distanceLoading"
+                @click="calculateDistance"
+                >重新计算公里数</ElButton
+              ></div
+            >
+            <div class="order-open__journey-grid">
+              <label
+                >公里数
+                <ElInput
+                  :model-value="form.data.distanceKm == null ? '' : `${form.data.distanceKm} km`"
+                  readonly
+                  :placeholder="distanceStatus"
+              /></label>
+              <label
+                >发货时间
+                <ElDatePicker
+                  v-model="form.data.departureAt"
+                  type="datetime"
+                  value-format="YYYY-MM-DDTHH:mm:ssZ"
+                  placeholder="请选择发货时间"
+                  class="w-full!"
+              /></label>
+              <label
+                >到货时间
+                <ElDatePicker
+                  v-model="form.data.arrivalAt"
+                  type="datetime"
+                  value-format="YYYY-MM-DDTHH:mm:ssZ"
+                  placeholder="请选择到货时间"
+                  class="w-full!"
+              /></label>
+            </div>
+          </div>
+        </ArtSectionCard>
+      </div>
+
+      <div v-show="fillMode === 'full' || step === 1">
+        <ArtSectionCard
+          class="order-open__section"
+          title="配置信息"
+          subtitle="零担与整车分别配置车型、计费规则和交接要求。"
+          preserve-content-structure
+        >
+          <OrderConfig
+            ref="configRef"
+            v-model="form.data.orderConfig"
+            :can-edit-attachments="canEditOrderField('proofAttachments')"
+          />
+        </ArtSectionCard>
+      </div>
+
+      <div v-show="fillMode === 'full' || step === 2">
+        <ArtSectionCard class="order-open__section" preserve-content-structure>
+          <template #header
+            ><div class="order-open__section-header">
+              <ArtSectionTitle :show-line="false">货物信息</ArtSectionTitle>
+              <div class="order-open__section-actions">
+                <ElButton
+                  v-if="canEditOrderField('cargoPricing')"
+                  plain
+                  @click="openContractDetailSelector"
+                >
+                  <template #icon><ArtSvgIcon icon="ri:file-list-3-line" /></template>
+                  批量选合同明细
+                </ElButton>
+                <ElButton plain :icon="Collection" @click="openCargoSelector">批量选货物</ElButton>
+                <ElButton type="primary" plain :icon="Plus" @click="addCargoItem">添加</ElButton>
+              </div>
+            </div></template
+          >
+          <ArtTable
+            :data="form.cargoItems"
+            :columns="form.cargoColumns"
+            :pagination="undefined"
+            :show-table-header="false"
+            table-layout="fixed"
+            empty-height="160px"
+            empty-text="尚未添加货物"
+            empty-description="可选择常用货物或手动添加货物明细"
+          />
+          <div class="order-open__cargo-summary">
+            <span>总数量：{{ form.cargoQuantityText }}</span>
+            <span>总重量：{{ form.cargoWeightText }}kg</span>
+            <span>总体积：{{ form.cargoVolumeText }}方</span>
+          </div>
+        </ArtSectionCard>
+      </div>
 
       <ArtSectionCard
+        v-show="fillMode === 'full' || step === 2"
         class="order-open__section"
         preserve-content-structure
         title="结算信息"
@@ -212,8 +319,8 @@
               ref="feeFormRef"
               v-model="form.data"
               :items="form.feeItems"
-              :span="24"
-              :gutter="18"
+              :span="12"
+              :gutter="14"
               label-width="76px"
               root-class="order-open__form order-open__form--settlement"
               :show-reset="false"
@@ -242,8 +349,8 @@
               ref="paymentFormRef"
               v-model="form.data"
               :items="form.paymentItems"
-              :span="24"
-              :gutter="18"
+              :span="12"
+              :gutter="14"
               label-width="76px"
               root-class="order-open__form order-open__form--settlement"
               :show-reset="false"
@@ -295,6 +402,7 @@
       </ArtSectionCard>
 
       <ArtSectionCard
+        v-show="fillMode === 'full' || step === 1"
         class="order-open__section"
         preserve-content-structure
         title="运输信息"
@@ -370,14 +478,25 @@
         </template>
 
         <div class="order-open__footer-actions order-open__footer-actions--desktop">
+          <ElButton v-if="fillMode === 'guided' && step > 0" size="large" @click="step -= 1"
+            >上一步</ElButton
+          >
           <ElButton
+            v-if="fillMode === 'guided' && step < 2"
+            size="large"
+            type="primary"
+            @click="nextStep"
+            >下一步</ElButton
+          >
+          <ElButton
+            v-if="fillMode === 'full' || step === 2"
             v-auth="'TmsOrderOpen:Create'"
             size="large"
             type="primary"
             :loading="page.saving"
             @click="handleSaveOnly"
           >
-            仅开单
+            {{ isNewOrder ? '仅开单' : '保存修改' }}
           </ElButton>
           <ElButton
             v-auth="'TmsOrderOpen:AiFill'"
@@ -414,14 +533,25 @@
         </div>
 
         <div class="order-open__footer-actions order-open__footer-actions--mobile">
+          <ElButton v-if="fillMode === 'guided' && step > 0" size="large" @click="step -= 1"
+            >上一步</ElButton
+          >
           <ElButton
+            v-if="fillMode === 'guided' && step < 2"
+            size="large"
+            type="primary"
+            @click="nextStep"
+            >下一步</ElButton
+          >
+          <ElButton
+            v-if="fillMode === 'full' || step === 2"
             v-auth="'TmsOrderOpen:Create'"
             size="large"
             type="primary"
             :loading="page.saving"
             @click="handleSaveOnly"
           >
-            仅开单
+            {{ isNewOrder ? '仅开单' : '保存修改' }}
           </ElButton>
           <ElDropdown
             v-if="hasFooterSecondaryActions"
@@ -496,15 +626,26 @@
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import { useDateFormat, useNow } from '@vueuse/core'
+  import dayjs from 'dayjs'
   import { cloneDeep, isNil, round } from 'lodash-es'
   import type { FormRules } from 'element-plus'
-  import { ElAutocomplete, ElInputNumber, ElMessage, ElOption, ElSelect } from 'element-plus'
+  import {
+    ElAutocomplete,
+    ElInput,
+    ElInputNumber,
+    ElMessage,
+    ElOption,
+    ElSelect
+  } from 'element-plus'
   import { Collection, Plus } from '@element-plus/icons-vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
+  import ArtAddressPicker from '@/components/core/forms/art-address-picker/index.vue'
+  import { fetchRegionOptions } from '@/api/common'
+  import { useAmapDrivingEstimate } from '@/hooks/core/useAmapDrivingEstimate'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import { useAmapGeocoder } from '@/hooks/core/useAmapGeocoder'
   import { useAuth } from '@/hooks/core/useAuth'
@@ -540,18 +681,21 @@
   import {
     createInitialCargoItem,
     createInitialForm,
+    createInitialOrderConfig,
     createCustomerPriceBusinessPatch,
     createFavoriteRouteContactPatch,
     calculateOrderCargoSummary,
-    formatOrderAddress,
     getDictLabel,
     moneyValue,
     nullableNumber,
     normalizeOrderPayload,
+    parseOrderRegionPath,
+    stripOrderRegionPrefix,
     numericValue,
     textValue,
     type OrderForm
   } from './modules/order-open-model'
+  import OrderConfig from './modules/order-config.vue'
 
   defineOptions({ name: 'TmsOrderOpen' })
 
@@ -583,6 +727,7 @@
       | 'shippingContactName'
       | 'shippingContactPhone'
       | 'shippingAddressDetail'
+      | 'shippingRegionPath'
       | 'shippingLongitude'
       | 'shippingLatitude'
       | 'receivingCustomerId'
@@ -591,6 +736,7 @@
       | 'receivingContactName'
       | 'receivingContactPhone'
       | 'receivingAddressDetail'
+      | 'receivingRegionPath'
       | 'receivingLongitude'
       | 'receivingLatitude'
     >
@@ -598,8 +744,12 @@
 
   interface FormExpose {
     validate: () => Promise<boolean>
-    clearValidate: () => void
+    clearValidate: (props?: string | string[]) => void
     reloadOptions: (key?: string) => Promise<unknown>
+  }
+
+  interface ConfigExpose {
+    validate: () => Promise<boolean>
   }
 
   interface CustomerSelectorExpose {
@@ -673,6 +823,7 @@
   const userStore = useUserStore()
   const { hasAuth, hasAnyAuth } = useAuth()
   const { geocodeAddress } = useAmapGeocoder()
+  const { estimateDrivingRoute } = useAmapDrivingEstimate()
   const { getDictMap } = storeToRefs(userStore)
   const { component: customerSelectorComponent, load: loadCustomerSelector } = useLazyComponent(
     () => import('./modules/customer-selector-dialog.vue')
@@ -697,6 +848,13 @@
   const paymentFormRef = ref<FormExpose>()
   const settlementFormRef = ref<FormExpose>()
   const otherFormRef = ref<FormExpose>()
+  const configRef = ref<ConfigExpose>()
+  const fillMode = ref<'guided' | 'full'>('guided')
+  const step = ref(0)
+  const stepLabels = ['收发信息', '配置信息', '货物信息']
+  const distanceLoading = ref(false)
+  const distanceStatus = ref('请先在发货、收货地址地图选点')
+  let distanceRequestId = 0
   const customerDialogRef = ref<CustomerSelectorExpose>()
   const favoriteRouteDialogRef = ref<FavoriteRouteSelectorExpose>()
   const printDialogRef = ref<PrintDialogExpose>()
@@ -712,7 +870,14 @@
     'tmsOrderDeliveryMethod',
     'tmsOrderPaymentMethod',
     'tmsOrderTransportMode',
-    'tmsCargoUnit'
+    'tmsCargoUnit',
+    'tmsOrderLoadType',
+    'tmsOrderBillingMode',
+    'tmsOrderCargoCategory',
+    'tmsOrderPackaging',
+    'tmsOrderTransportRequirement',
+    'tmsOrderTrackingMethod',
+    'commonBoolean'
   ]
 
   const isNewOrder = computed(() => !getOrderId())
@@ -725,7 +890,17 @@
     ])
   )
   const orderNumberRule = computed(() => numberRules.value['tms.order'])
-  const cargoNumberRule = computed(() => numberRules.value['tms.order_cargo'])
+  const canEstimateDistance = computed(
+    () =>
+      isValidCoordinate(
+        nullableNumber(form.data.shippingLongitude),
+        nullableNumber(form.data.shippingLatitude)
+      ) &&
+      isValidCoordinate(
+        nullableNumber(form.data.receivingLongitude),
+        nullableNumber(form.data.receivingLatitude)
+      )
+  )
 
   const moneyProps = {
     min: 0,
@@ -823,7 +998,7 @@
     ]),
     shippingItems: computed<FormItem[]>(() => [
       {
-        label: '客户名称',
+        label: '发货方',
         key: 'shippingCustomerName',
         type: 'input',
         props: { maxlength: 100, readonly: true, placeholder: '请选择发货方客户' }
@@ -832,6 +1007,7 @@
         label: '姓名',
         key: 'shippingContactName',
         type: 'input',
+        span: 12,
         props: { maxlength: 50, placeholder: '请输入发货人姓名' }
       },
       ...(canViewOrderField('shipperContact')
@@ -840,6 +1016,7 @@
               label: '手机号',
               key: 'shippingContactPhone',
               type: 'input' as const,
+              span: 12,
               props: {
                 maxlength: 20,
                 placeholder: '请输入发货人手机号',
@@ -847,26 +1024,11 @@
               }
             }
           ]
-        : []),
-      ...(canViewOrderField('shipperAddress')
-        ? [
-            {
-              label: '发货地址',
-              key: 'shippingAddressDetail',
-              type: 'input' as const,
-              props: {
-                maxlength: 200,
-                placeholder: '请输入发货地址',
-                readonly: !canEditOrderField('shipperAddress'),
-                onInput: () => clearAddressCoordinates('shipping')
-              }
-            }
-          ]
         : [])
     ]),
     receivingItems: computed<FormItem[]>(() => [
       {
-        label: '客户名称',
+        label: '收货方',
         key: 'receivingCustomerName',
         type: 'input',
         props: { maxlength: 100, readonly: true, placeholder: '请选择收货方客户' }
@@ -875,6 +1037,7 @@
         label: '姓名',
         key: 'receivingContactName',
         type: 'input',
+        span: 12,
         props: { maxlength: 50, placeholder: '请输入收货人姓名' }
       },
       ...(canViewOrderField('receiverContact')
@@ -883,25 +1046,11 @@
               label: '手机号',
               key: 'receivingContactPhone',
               type: 'input' as const,
+              span: 12,
               props: {
                 maxlength: 20,
                 placeholder: '请输入收货人手机号',
                 readonly: !canEditOrderField('receiverContact')
-              }
-            }
-          ]
-        : []),
-      ...(canViewOrderField('receiverAddress')
-        ? [
-            {
-              label: '收货地址',
-              key: 'receivingAddressDetail',
-              type: 'input' as const,
-              props: {
-                maxlength: 200,
-                placeholder: '请输入收货地址，配送上门请输入详细地址',
-                readonly: !canEditOrderField('receiverAddress'),
-                onInput: () => clearAddressCoordinates('receiving')
               }
             }
           ]
@@ -980,22 +1129,12 @@
             ]
           }
         : {}),
-      ...(canEditOrderField('shipperAddress')
-        ? {
-            shippingAddressDetail: [{ required: true, message: '请输入发货地址', trigger: 'blur' }]
-          }
-        : {}),
       receivingContactName: [{ required: true, message: '请输入收货人姓名', trigger: 'blur' }],
       ...(canEditOrderField('receiverContact')
         ? {
             receivingContactPhone: [
               { required: true, message: '请输入收货人手机号', trigger: 'blur' }
             ]
-          }
-        : {}),
-      ...(canEditOrderField('receiverAddress')
-        ? {
-            receivingAddressDetail: [{ required: true, message: '请输入收货地址', trigger: 'blur' }]
           }
         : {}),
       paymentMethod: [{ required: true, message: '请选择付款方式', trigger: 'change' }]
@@ -1029,6 +1168,19 @@
         formatter: (row) => row.cargoCode || '-'
       },
       {
+        prop: 'specModel',
+        label: '规格型号',
+        minWidth: 160,
+        formatter: (row) => (
+          <ElInput
+            v-model={row.specModel}
+            aria-label="规格型号"
+            maxlength={100}
+            placeholder="选择货物后可修改"
+          />
+        )
+      },
+      {
         prop: 'packageType',
         label: '计量单位',
         width: 150,
@@ -1048,7 +1200,7 @@
       },
       {
         prop: 'quantity',
-        label: '数量（箱/袋）',
+        label: '数量',
         width: 150,
         formatter: (row) => (
           <ElInputNumber
@@ -1114,6 +1266,19 @@
         label: '来源合同',
         minWidth: 150,
         formatter: (row) => row.sourceContractNo || '-'
+      },
+      {
+        prop: 'remark',
+        label: '备注',
+        minWidth: 170,
+        formatter: (row) => (
+          <ElInput
+            v-model={row.remark}
+            aria-label="货物备注"
+            maxlength={200}
+            placeholder="填写备注"
+          />
+        )
       },
       {
         prop: 'operation',
@@ -1210,7 +1375,7 @@
   }
 
   async function loadNumberRules(): Promise<void> {
-    const { data } = await fetchDocumentNumberRulesByKeys(['tms.order', 'tms.order_cargo'])
+    const { data } = await fetchDocumentNumberRulesByKeys(['tms.order'])
     numberRules.value = Object.fromEntries((data ?? []).map((rule) => [rule.ruleKey, rule]))
   }
 
@@ -1258,6 +1423,53 @@
     { immediate: true }
   )
 
+  watch(
+    () => [
+      form.data.shippingLongitude,
+      form.data.shippingLatitude,
+      form.data.receivingLongitude,
+      form.data.receivingLatitude
+    ],
+    () => {
+      if (canEstimateDistance.value) void calculateDistance()
+      else {
+        distanceRequestId += 1
+        form.data.distanceKm = null
+        distanceStatus.value = '请先在发货、收货地址地图选点'
+      }
+    }
+  )
+
+  async function calculateDistance(): Promise<void> {
+    const shippingLongitude = nullableNumber(form.data.shippingLongitude)
+    const shippingLatitude = nullableNumber(form.data.shippingLatitude)
+    const receivingLongitude = nullableNumber(form.data.receivingLongitude)
+    const receivingLatitude = nullableNumber(form.data.receivingLatitude)
+    if (
+      !isValidCoordinate(shippingLongitude, shippingLatitude) ||
+      !isValidCoordinate(receivingLongitude, receivingLatitude)
+    )
+      return
+    const requestId = ++distanceRequestId
+    distanceLoading.value = true
+    distanceStatus.value = '正在估算驾车距离…'
+    try {
+      const result = await estimateDrivingRoute(
+        { longitude: shippingLongitude, latitude: shippingLatitude! },
+        { longitude: receivingLongitude, latitude: receivingLatitude! }
+      )
+      if (requestId !== distanceRequestId) return
+      form.data.distanceKm = result.distanceKm
+      distanceStatus.value = '高德地图估算距离'
+    } catch {
+      if (requestId !== distanceRequestId) return
+      form.data.distanceKm = null
+      distanceStatus.value = '暂未获取到路线，可重新计算'
+    } finally {
+      if (requestId === distanceRequestId) distanceLoading.value = false
+    }
+  }
+
   async function loadOrderDetail(id: string): Promise<void> {
     const { data } = await fetchOrderDetail(id)
     if (!data) {
@@ -1275,13 +1487,22 @@
       ...createInitialForm(),
       ...cloneDeep(data),
       cargoItems: data.cargoItems?.length ? cloneDeep(data.cargoItems) : [createInitialCargoItem()],
-      imageUrls: data.imageUrls ?? []
+      imageUrls: data.imageUrls ?? [],
+      orderConfig: { ...createInitialOrderConfig(), ...data.orderConfig }
     })
   }
 
   function replaceForm(nextForm: OrderForm): void {
     const clonedForm = cloneDeep(nextForm)
     Object.assign(form.data, createInitialForm(), clonedForm, {
+      shippingAddressDetail: stripOrderRegionPrefix(
+        clonedForm.shippingAddressDetail,
+        clonedForm.shippingRegionPath ?? []
+      ),
+      receivingAddressDetail: stripOrderRegionPrefix(
+        clonedForm.receivingAddressDetail,
+        clonedForm.receivingRegionPath ?? []
+      ),
       shippingCustomerName:
         clonedForm.shippingCustomerName || clonedForm.shippingCustomer?.customerName || '',
       receivingCustomerName:
@@ -1439,6 +1660,7 @@
       cargoId: cargo.id ?? null,
       cargoName: cargo.cargoName,
       cargoCode: cargo.cargoCode ?? '',
+      specModel: cargo.specModel ?? '',
       packageType: cargo.unit || '',
       quantity: 1,
       unit: cargo.unit || '',
@@ -1457,6 +1679,7 @@
       cargoId: item.id ? String(item.id) : null,
       cargoName,
       cargoCode: String(item.cargoCode ?? ''),
+      specModel: String(item.specModel ?? ''),
       packageType: unit || row.packageType || '',
       unit: unit || row.unit || '',
       quantity: row.quantity ?? 1,
@@ -1494,6 +1717,14 @@
 
   async function handleCustomerSelect(mode: SelectorMode, row: CustomerItem): Promise<void> {
     Object.assign(form.data, await createCustomerContactPatch(mode, row))
+    await nextTick()
+    const isShipping = mode === 'shipping'
+    const contactForm = isShipping ? shippingFormRef.value : receivingFormRef.value
+    const contactFields = isShipping
+      ? (['shippingContactName', 'shippingContactPhone'] as const)
+      : (['receivingContactName', 'receivingContactPhone'] as const)
+    const filledFields = contactFields.filter((field) => textValue(form.data[field]))
+    if (filledFields.length) contactForm?.clearValidate([...filledFields])
     await applyCustomerPriceTemplate(row.id)
   }
 
@@ -1525,11 +1756,11 @@
     const canReadPhone = phoneAccess === 'read' || phoneAccess === 'edit'
     const canReadAddress = addressAccess === 'read' || addressAccess === 'edit'
     const contactPhone = canReadPhone ? address?.contactPhone || customer.contactPhone || '' : ''
+    const regionPath = canReadAddress
+      ? parseOrderRegionPath(address?.region || customer.region)
+      : []
     const addressText = canReadAddress
-      ? formatOrderAddress(
-          address?.region || customer.region,
-          address?.addressDetail || customer.addressDetail
-        )
+      ? textValue(address?.addressDetail || customer.addressDetail)
       : ''
     const longitude = canReadAddress ? (address?.longitude ?? customer.longitude ?? null) : null
     const latitude = canReadAddress ? (address?.latitude ?? customer.latitude ?? null) : null
@@ -1542,6 +1773,7 @@
         shippingContactName: contactName,
         shippingContactPhone: contactPhone,
         shippingAddressDetail: addressText,
+        shippingRegionPath: regionPath,
         shippingLongitude: longitude,
         shippingLatitude: latitude
       },
@@ -1552,6 +1784,7 @@
         receivingContactName: contactName,
         receivingContactPhone: contactPhone,
         receivingAddressDetail: addressText,
+        receivingRegionPath: regionPath,
         receivingLongitude: longitude,
         receivingLatitude: latitude
       }
@@ -1601,6 +1834,7 @@
       name: form.data.shippingContactName,
       phone: form.data.shippingContactPhone,
       address: form.data.shippingAddressDetail,
+      regionPath: form.data.shippingRegionPath,
       longitude: form.data.shippingLongitude,
       latitude: form.data.shippingLatitude
     }
@@ -1612,6 +1846,7 @@
       shippingContactName: form.data.receivingContactName,
       shippingContactPhone: form.data.receivingContactPhone,
       shippingAddressDetail: form.data.receivingAddressDetail,
+      shippingRegionPath: form.data.receivingRegionPath,
       shippingLongitude: form.data.receivingLongitude,
       shippingLatitude: form.data.receivingLatitude,
       receivingCustomerId: shipping.id,
@@ -1620,6 +1855,7 @@
       receivingContactName: shipping.name,
       receivingContactPhone: shipping.phone,
       receivingAddressDetail: shipping.address,
+      receivingRegionPath: shipping.regionPath,
       receivingLongitude: shipping.longitude,
       receivingLatitude: shipping.latitude
     })
@@ -1772,10 +2008,6 @@
         }
   }
 
-  function clearAddressCoordinates(mode: SelectorMode): void {
-    Object.assign(form.data, createCoordinatePatch(mode, null, null, null))
-  }
-
   function isValidCoordinate(
     longitude: number | null,
     latitude: number | null
@@ -1850,16 +2082,60 @@
       }))
   }
 
-  async function validateForms(): Promise<boolean> {
-    const isFormValid = await validateFormRefs(validatedFormRefs, pageRef)
-    if (!isFormValid) return false
+  async function validateContactStep(): Promise<boolean> {
+    const valid = await validateFormRefs(
+      [stationFormRef, shippingFormRef, receivingFormRef],
+      pageRef
+    )
+    if (!valid) return false
+    if (canEditOrderField('shipperAddress') && !textValue(form.data.shippingAddressDetail)) {
+      ElMessage.warning('请填写发货详细地址')
+      return false
+    }
+    if (canEditOrderField('receiverAddress') && !textValue(form.data.receivingAddressDetail)) {
+      ElMessage.warning('请填写收货详细地址')
+      return false
+    }
+    if (
+      form.data.departureAt &&
+      form.data.arrivalAt &&
+      dayjs(form.data.arrivalAt).isBefore(dayjs(form.data.departureAt))
+    ) {
+      ElMessage.warning('到货时间不能早于发货时间')
+      return false
+    }
+    return true
+  }
 
+  async function validateConfigStep(): Promise<boolean> {
+    return (await configRef.value?.validate()) ?? false
+  }
+
+  async function validateCargoStep(): Promise<boolean> {
+    const valid = await validateFormRefs([settlementFormRef], pageRef)
+    if (!valid) return false
     const hasCargoName = (form.data.cargoItems ?? []).some((item) => textValue(item.cargoName))
     if (!hasCargoName) {
       ElMessage.warning('请至少填写一条货物名称')
       return false
     }
 
+    return true
+  }
+
+  async function validateForms(): Promise<boolean> {
+    if (!(await validateContactStep())) {
+      step.value = 0
+      return false
+    }
+    if (!(await validateConfigStep())) {
+      step.value = 1
+      return false
+    }
+    if (!(await validateCargoStep())) {
+      step.value = 2
+      return false
+    }
     if (
       isNewOrder.value &&
       orderNumberRule.value &&
@@ -1873,7 +2149,20 @@
     return true
   }
 
+  async function nextStep(): Promise<void> {
+    const valid = step.value === 0 ? await validateContactStep() : await validateConfigStep()
+    if (!valid) return
+    step.value = Math.min(step.value + 1, 2)
+    pageRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  function navigateStep(index: number): void {
+    if (index <= step.value) step.value = index
+    else if (index === step.value + 1) void nextStep()
+  }
+
   async function handleSaveOnly(): Promise<void> {
+    if (page.saving) return
     const valid = await validateForms()
     if (!valid) return
 

@@ -127,7 +127,7 @@
         type: 'input',
         props: {
           maxlength: 30,
-          placeholder: '设置地区编码，用于生成货号'
+          placeholder: '设置站点所属地区编码'
         }
       },
       {

@@ -147,7 +147,6 @@
   const orderFieldAccess = ref<Api.Tms.Order.OrderFieldAccessMap>({})
 
   const orderExcelColumns = computed<ArtTableQueryExcelColumn[]>(() => [
-    { key: 'cargoNo', title: '货号' },
     { key: 'orderNo', title: '运单号' },
     { key: 'shippingContactName', title: '发货人' },
     ...(canViewOrderField('shipperContact')
@@ -206,10 +205,10 @@
     }),
     searchItems: computed<SearchFormItem[]>(() => [
       {
-        label: '货号',
+        label: '运单号',
         key: 'cargoKeyword',
         type: 'input',
-        props: { clearable: true, placeholder: '货号 / 运单号' }
+        props: { clearable: true, placeholder: '请输入运单号' }
       },
       {
         label: '发货人',
@@ -354,7 +353,6 @@
     ]),
     columnsFactory: (): ColumnOption<OrderRecord>[] => [
       { type: 'selection', width: 50, fixed: 'left', reserveSelection: true },
-      { prop: 'cargoNo', label: '货号', fixed: 'left', width: 130, showOverflowTooltip: true },
       {
         prop: 'orderNo',
         label: '运单号',

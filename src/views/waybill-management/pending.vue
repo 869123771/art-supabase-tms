@@ -34,6 +34,7 @@
     />
 
     <DispatchDialog ref="dispatchDialogRef" @success="handleDispatchSuccess" />
+    <SplitDispatchDialog ref="splitDialogRef" @success="handleDispatchSuccess" />
   </div>
 </template>
 
@@ -48,6 +49,7 @@
   import { useUserStore } from '@/store/modules/user'
   import { mergeFieldAccessMaps } from '@/utils/field-permission'
   import DispatchDialog from './modules/dispatch-dialog.vue'
+  import SplitDispatchDialog from './modules/split-dispatch-dialog.vue'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
   import {
@@ -58,6 +60,7 @@
     fetchWaybillTableData,
     type TableParams,
     type WaybillDialogExpose,
+    type SplitDialogExpose,
     type WaybillRecord,
     type WaybillSearchParams
   } from './modules/waybill-shared'
@@ -75,6 +78,7 @@
   const { getDictMap } = storeToRefs(useUserStore())
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dispatchDialogRef = ref<WaybillDialogExpose>()
+  const splitDialogRef = ref<SplitDialogExpose>()
   const fieldAccess = ref<Api.Tms.Waybill.WaybillFieldAccessMap>({})
   const paymentMethodOptions = computed(() => getDictMap.value.tmsOrderPaymentMethod ?? [])
 
@@ -86,7 +90,8 @@
       fieldAccess,
       router,
       tableQueryRef,
-      dispatchDialogRef
+      dispatchDialogRef,
+      splitDialogRef
     }),
     columnsFactory: () =>
       createWaybillColumns({
@@ -94,7 +99,8 @@
         fieldAccess,
         router,
         tableQueryRef,
-        dispatchDialogRef
+        dispatchDialogRef,
+        splitDialogRef
       })
   })
 

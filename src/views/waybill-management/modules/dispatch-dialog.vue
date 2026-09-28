@@ -2,7 +2,14 @@
   <ArtDialog ref="dialogRef">
     <div class="dispatch-dialog">
       <ElAlert
-        v-if="dialog.rows.length > 1"
+        v-if="dialog.mode === 'merge'"
+        type="warning"
+        :closable="false"
+        show-icon
+        :title="`合并 ${dialog.rows.length} 张原始运输单，生成 1 张调度执行单；各原始单仍独立对账`"
+      />
+      <ElAlert
+        v-else-if="dialog.rows.length > 1"
         type="info"
         :closable="false"
         show-icon
@@ -10,7 +17,6 @@
       />
       <div v-else class="dispatch-dialog__order">
         <span>运单号：{{ dialog.rows[0]?.orderNo || '-' }}</span>
-        <span>货号：{{ dialog.rows[0]?.cargoNo || '-' }}</span>
       </div>
 
       <section v-if="dialog.mode === 'single'" class="dispatch-dialog__advisor art-card-xs">
@@ -178,7 +184,8 @@
     dispatchWaybill,
     dispatchWaybillBatch,
     fetchDispatchVehicleOptions,
-    recommendDispatchResourcesByAi
+    recommendDispatchResourcesByAi,
+    mergeWaybills
   } from '@tms/api'
 
   defineOptions({ name: 'TmsWaybillDispatchDialog' })
@@ -191,12 +198,12 @@
 
   interface DialogOpenData {
     rows: WaybillRecord[]
-    mode: 'single' | 'batch'
+    mode: 'single' | 'batch' | 'merge'
   }
 
   interface DialogGroup {
     rows: WaybillRecord[]
-    mode: 'single' | 'batch'
+    mode: 'single' | 'batch' | 'merge'
   }
 
   interface FormGroup {
@@ -314,11 +321,11 @@
   async function handleOpen(data: DialogOpenData): Promise<void> {
     resetForm(data)
     await dialogRef.value?.handleOpen(data, {
-      title: data.mode === 'batch' ? '批量配载' : '车辆配载',
+      title: data.mode === 'merge' ? '合单配载' : data.mode === 'batch' ? '批量配载' : '车辆配载',
       subtitle: '核对运单任务并匹配车辆、司机与发车计划，确认后进入运输执行',
       size: 'lg',
       contentMaxHeight: '76vh',
-      confirmText: '确认',
+      confirmText: data.mode === 'merge' ? '确认合单并配载' : '确认配载',
       onOpen: async () => {
         await nextTick()
         formRef.value?.clearValidate()
@@ -353,9 +360,11 @@
       await formRef.value?.validate()
       const payload = normalizePayload()
       if (dialog.mode === 'batch') {
-        await dispatchWaybillBatch(payload)
+        await dispatchWaybillBatch(dialog.rows, payload)
+      } else if (dialog.mode === 'merge') {
+        await mergeWaybills(dialog.rows, payload)
       } else {
-        await dispatchWaybill(payload)
+        await dispatchWaybill(dialog.rows[0], payload)
       }
       emit('success')
       return true

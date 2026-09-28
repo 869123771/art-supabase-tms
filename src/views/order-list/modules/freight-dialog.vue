@@ -28,7 +28,6 @@
   type OrderRecord = Api.Tms.Order.OrderRecord
   type FreightForm = Api.Tms.Order.OrderFreightPayload & {
     orderNo?: string
-    cargoNo?: string | null
   }
 
   interface FormExpose {
@@ -63,7 +62,6 @@
     },
     items: computed<FormItem[]>(() => [
       { label: '运单号', key: 'orderNo', type: 'text', span: 12 },
-      { label: '货号', key: 'cargoNo', type: 'text', span: 12 },
       { label: '总运费', key: 'totalFee', type: 'number', props: moneyProps }
     ])
   })
@@ -72,7 +70,6 @@
     return {
       id: undefined,
       orderNo: '',
-      cargoNo: '',
       totalFee: 0
     }
   }
@@ -114,7 +111,6 @@
     Object.assign(form.data, createInitialForm(), {
       id: row.id,
       orderNo: row.orderNo,
-      cargoNo: row.cargoNo,
       totalFee: moneyValue(row.totalFee)
     })
     await dialogRef.value?.handleOpen(row, {

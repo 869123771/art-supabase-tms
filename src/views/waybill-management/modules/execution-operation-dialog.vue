@@ -7,7 +7,7 @@
         </span>
         <div>
           <small>{{ actionMeta.eyebrow }}</small>
-          <strong>{{ currentRow?.orderNo || '运输运单' }}</strong>
+          <strong>{{ currentRow?.waybillNo || currentRow?.orderNo || '运输运单' }}</strong>
           <p>{{ actionMeta.description }}</p>
         </div>
         <ElTag effect="light" round>{{ actionMeta.tag }}</ElTag>
@@ -65,6 +65,56 @@
           />
         </template>
       </ArtForm>
+      <section v-if="action === 'signature'" class="execution-dialog__sources art-card-xs">
+        <div class="execution-dialog__sources-heading">
+          <div>
+            <strong>原始运输单签收明细</strong>
+            <p>逐单登记实收件数和异常件数；原始单仅在全部货量签收后完成。</p>
+          </div>
+          <ElTag type="info" size="small">{{ receiptAllocations.length }} 张原始单</ElTag>
+        </div>
+        <div
+          v-for="item in receiptAllocations"
+          :key="item.allocationId"
+          class="execution-dialog__source"
+        >
+          <div class="execution-dialog__source-title">
+            <strong>{{ item.orderNo }}</strong>
+            <span>{{ item.customerName || '未关联客户' }} · 配载 {{ item.quantity }} 件</span>
+          </div>
+          <div class="execution-dialog__source-inputs">
+            <label>
+              <span>实收件数</span>
+              <ElInputNumber
+                v-model="item.signedQuantity"
+                :min="0"
+                :max="item.quantity"
+                :precision="3"
+                controls-position="right"
+              />
+            </label>
+            <label>
+              <span>异常件数</span>
+              <ElInputNumber
+                v-model="item.exceptionQuantity"
+                :min="0"
+                :max="item.quantity"
+                :precision="3"
+                controls-position="right"
+              />
+            </label>
+          </div>
+          <ElInput
+            v-if="item.exceptionQuantity > 0"
+            v-model="item.exceptionNote"
+            type="textarea"
+            :rows="2"
+            :maxlength="300"
+            show-word-limit
+            placeholder="说明破损、短少等异常，便于按原始单追责"
+          />
+        </div>
+      </section>
     </div>
   </ArtDialog>
 </template>
@@ -83,7 +133,8 @@
     completeWaybillExecution,
     fetchWaybillExecutionContext,
     recordWaybillDeparture,
-    signWaybill
+    fetchExecutionSources,
+    signExecutionAllocations
   } from '@tms/api'
   import type { WaybillRecord } from './waybill-shared'
 
@@ -106,6 +157,16 @@
     remark: string
   }
 
+  interface ReceiptAllocationForm {
+    allocationId: string
+    orderNo: string
+    customerName: string | null
+    quantity: number
+    signedQuantity: number
+    exceptionQuantity: number
+    exceptionNote: string
+  }
+
   interface FormExpose {
     validate: () => Promise<boolean>
     clearValidate: () => void
@@ -123,6 +184,7 @@
   const currentRow = shallowRef<WaybillRecord>()
   const action = ref<ExecutionAction>('departure')
   const context = shallowRef<Api.Tms.Waybill.ExecutionContext>()
+  const receiptAllocations = ref<ReceiptAllocationForm[]>([])
 
   const actionMetaMap = {
     departure: {
@@ -153,6 +215,9 @@
 
   const actionMeta = computed(() => actionMetaMap[action.value])
   const flowAlert = computed(() => {
+    if (action.value === 'signature' && currentRow.value?.driverWaybillSignedAt) {
+      return '复核会按原始单更新签收与异常件数并留下审计记录；车辆执行单的完成状态不变。'
+    }
     if (
       action.value === 'completion' &&
       context.value?.needsReturnCompletion &&
@@ -261,6 +326,19 @@
     if (!waybillId) throw new Error('该订单尚未生成司机运单')
     const result = await fetchWaybillExecutionContext(waybillId)
     context.value = result.data ?? undefined
+    if (action.value === 'signature') {
+      const sources = await fetchExecutionSources(waybillId)
+      if (sources.error) throw new Error('原始运输单签收明细加载失败')
+      receiptAllocations.value = (sources.data ?? []).map((source) => ({
+        allocationId: source.id,
+        orderNo: source.orderNo,
+        customerName: source.customerName ?? null,
+        quantity: Number(source.quantity),
+        signedQuantity: source.signedAt ? Number(source.signedQuantity) : Number(source.quantity),
+        exceptionQuantity: Number(source.exceptionQuantity),
+        exceptionNote: source.exceptionNote ?? ''
+      }))
+    }
     const record = result.data?.record
     Object.assign(form.data, createInitialForm(), {
       occurredAt:
@@ -329,13 +407,38 @@
         remark: normalizeNullableText(form.data.remark)
       })
     } else if (action.value === 'signature') {
-      await signWaybill({
+      if (!receiptAllocations.value.length) {
+        ElMessage.warning('没有可签收的原始运输单明细')
+        return false
+      }
+      for (const item of receiptAllocations.value) {
+        if (
+          item.signedQuantity < 0 ||
+          item.exceptionQuantity < 0 ||
+          item.signedQuantity + item.exceptionQuantity <= 0 ||
+          item.signedQuantity + item.exceptionQuantity > item.quantity + 0.000001
+        ) {
+          ElMessage.warning(`${item.orderNo} 的签收与异常件数超出配载货量`)
+          return false
+        }
+        if (item.exceptionQuantity > 0 && !item.exceptionNote.trim()) {
+          ElMessage.warning(`请填写 ${item.orderNo} 的异常说明`)
+          return false
+        }
+      }
+      await signExecutionAllocations({
         waybillId,
         signedAt: occurredAtIso,
         signerName: form.data.signerName.trim(),
         receiptUrls: [...form.data.receiptUrls],
         signatureUrls: [...form.data.signatureUrls],
-        remark: normalizeNullableText(form.data.remark)
+        remark: normalizeNullableText(form.data.remark),
+        allocations: receiptAllocations.value.map((item) => ({
+          allocationId: item.allocationId,
+          signedQuantity: item.signedQuantity,
+          exceptionQuantity: item.exceptionQuantity,
+          exceptionNote: normalizeNullableText(item.exceptionNote)
+        }))
       })
     } else {
       await completeWaybillExecution({
@@ -353,6 +456,7 @@
   async function resetForm(): Promise<void> {
     currentRow.value = undefined
     context.value = undefined
+    receiptAllocations.value = []
     Object.assign(form.data, createInitialForm())
     await nextTick()
     formRef.value?.clearValidate()
@@ -363,7 +467,10 @@
     currentRow.value = data.row
     action.value = data.action
     await dialogRef.value?.handleOpen(data, {
-      title: actionMeta.value.title,
+      title:
+        data.action === 'signature' && data.row.driverWaybillSignedAt
+          ? '复核签收'
+          : actionMeta.value.title,
       subtitle: actionMeta.value.description,
       confirmText: action.value === 'completion' ? '确认回场并完成' : '确认提交',
       contentMaxHeight: '78vh',
@@ -447,9 +554,64 @@
     &__form {
       padding: var(--art-space-4);
     }
+
+    &__sources {
+      display: grid;
+      gap: var(--art-space-3);
+      padding: var(--art-space-4);
+    }
+
+    &__sources-heading,
+    &__source-title {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--art-space-2);
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    &__sources-heading p {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+    }
+
+    &__source {
+      display: grid;
+      gap: var(--art-space-3);
+      padding: var(--art-space-3);
+      border: 1px solid var(--el-border-color-lighter);
+      border-radius: var(--el-border-radius-base);
+    }
+
+    &__source-title span,
+    &__source-inputs label span {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+    }
+
+    &__source-inputs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--art-space-3);
+
+      label {
+        display: grid;
+        gap: var(--art-space-2);
+        min-width: 0;
+      }
+
+      :deep(.el-input-number) {
+        width: 100%;
+      }
+    }
   }
 
   @media (width <= 640px) {
+    .execution-dialog__source-inputs {
+      grid-template-columns: 1fr;
+    }
+
     .execution-dialog__summary {
       grid-template-columns: 48px minmax(0, 1fr);
 

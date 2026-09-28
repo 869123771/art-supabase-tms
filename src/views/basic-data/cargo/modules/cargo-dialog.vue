@@ -49,6 +49,7 @@
     id: undefined,
     cargoCode: '',
     cargoName: '',
+    specModel: '',
     unit: '',
     lengthM: null,
     widthM: null,
@@ -104,6 +105,12 @@
       key: 'cargoName',
       type: 'input',
       props: { maxlength: 80, placeholder: '请输入货物名称' }
+    },
+    {
+      label: '规格型号',
+      key: 'specModel',
+      type: 'input',
+      props: { maxlength: 100, placeholder: '如 1200 × 800 mm / A 型' }
     },
     {
       label: '计量单位',

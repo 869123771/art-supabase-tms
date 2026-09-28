@@ -107,6 +107,22 @@
       </div>
     </ArtSectionCard>
 
+    <ArtSectionCard
+      v-if="detail.data?.orderConfig?.loadType"
+      class="order-detail__section"
+      preserve-content-structure
+      title="配置信息"
+    >
+      <ArtDescriptions :data="configurationData" :items="configurationItems" :columns="4" />
+      <div
+        v-if="canViewOrderField('proofAttachments') && configurationData.attachmentUrls?.length"
+        class="order-detail__configuration-files"
+      >
+        <strong>业务附件</strong>
+        <ArtUploadFile :model-value="configurationData.attachmentUrls" readonly multiple />
+      </div>
+    </ArtSectionCard>
+
     <ArtSectionCard class="order-detail__section" preserve-content-structure title="货物信息">
       <ArtTable
         :data="detail.cargoItems"
@@ -169,6 +185,7 @@
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
+  import ArtUploadFile from '@/components/core/forms/art-upload-file/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import type { ColumnOption } from '@/types'
   import { formatWithDayjs } from '@/utils/time'
@@ -182,6 +199,7 @@
 
   type OrderRecord = Api.Tms.Order.OrderRecord
   type CargoItem = Api.Tms.Order.CargoItem
+  type OrderConfig = Api.Tms.Order.OrderConfig
 
   interface StatusStep {
     label: string
@@ -223,7 +241,8 @@
 
   const route = useRoute()
   const router = useRouter()
-  const { getDictMap } = storeToRefs(useUserStore())
+  const userStore = useUserStore()
+  const { getDictMap } = storeToRefs(userStore)
   const normalizedOrderStatus = computed(() => normalizeOrderStatus(detail.data?.orderStatus))
   const detail: UnwrapNestedRefs<DetailGroup> = reactive<DetailGroup>({
     loading: false,
@@ -252,19 +271,102 @@
     cargoColumns: computed<ColumnOption<CargoItem>[]>(() => [
       { type: 'globalIndex', label: '序号', width: 70 },
       { prop: 'cargoName', label: '货物名称', minWidth: 180 },
+      { prop: 'specModel', label: '规格型号', minWidth: 150 },
       {
         prop: 'packageType',
         label: '包装',
         width: 130,
         dict: { code: 'tmsCargoUnit', display: 'text' }
       },
-      { prop: 'quantity', label: '数量（箱/袋）', width: 140 },
+      { prop: 'quantity', label: '数量', width: 110 },
       { prop: 'weightKg', label: '重量(kg)', width: 140 },
-      { prop: 'volumeM3', label: '体积(方)', width: 140 }
+      { prop: 'volumeM3', label: '体积(方)', width: 140 },
+      { prop: 'remark', label: '备注', minWidth: 160 }
     ])
   })
 
   const descriptionData = computed<Partial<OrderRecord>>(() => detail.data ?? {})
+  const configurationData = computed<Partial<OrderConfig>>(() => detail.data?.orderConfig ?? {})
+  const configurationItems = computed<ArtDescriptionItem<Partial<OrderConfig>>[]>(() => [
+    {
+      key: 'loadType',
+      label: '运输类型',
+      field: 'loadType',
+      dictCode: 'tmsOrderLoadType'
+    },
+    ...(configurationData.value.loadType === 'ftl'
+      ? [
+          { key: 'vehicleType', label: '车型', field: 'vehicleType' as const },
+          {
+            key: 'truckCount',
+            label: '整车数量',
+            value: (data: Partial<OrderConfig>) =>
+              data.truckCount == null ? '--' : `${data.truckCount} 车`
+          },
+          {
+            key: 'vehicleMetrics',
+            label: '车型规格',
+            value: (data: Partial<OrderConfig>) =>
+              `${data.vehicleLengthM ?? '--'} 米 / ${data.vehicleVolumeM3 ?? '--'} 方 / ${data.vehicleLoadTons ?? '--'} 吨`
+          }
+        ]
+      : []),
+    {
+      key: 'billingMode',
+      label: '计费模式',
+      field: 'billingMode',
+      dictCode: 'tmsOrderBillingMode'
+    },
+    { key: 'billingUnit', label: '计费单位', field: 'billingUnit', dictCode: 'tmsCargoUnit' },
+    {
+      key: 'cargoCategory',
+      label: '货物分类',
+      field: 'cargoCategory',
+      dictCode: 'tmsOrderCargoCategory'
+    },
+    ...(configurationData.value.cargoCategory === 'temperature'
+      ? [
+          {
+            key: 'temperature',
+            label: '温度阈值',
+            value: (data: Partial<OrderConfig>) => `${data.tempMinC} 至 ${data.tempMaxC} ℃`
+          }
+        ]
+      : []),
+    { key: 'packaging', label: '包装方式', field: 'packaging', dictCode: 'tmsOrderPackaging' },
+    {
+      key: 'selfPickup',
+      label: '是否自提',
+      value: (data: Partial<OrderConfig>) => (data.selfPickup ? '是' : '否')
+    },
+    {
+      key: 'insured',
+      label: '是否保价',
+      value: (data: Partial<OrderConfig>) => (data.insured ? '保价' : '不保价')
+    },
+    {
+      key: 'transportRequirements',
+      label: '运输要求',
+      value: (data: Partial<OrderConfig>) =>
+        data.transportRequirements
+          ?.map(
+            (item) =>
+              getDictMap.value.tmsOrderTransportRequirement?.find((option) => option.value === item)
+                ?.label || item
+          )
+          .join('、') || '--'
+    },
+    {
+      key: 'trackingMethod',
+      label: '跟踪方式',
+      field: 'trackingMethod',
+      dictCode: 'tmsOrderTrackingMethod'
+    },
+    ...(configurationData.value.trackingMethod
+      ? [{ key: 'trackingNumber', label: '跟踪编号', field: 'trackingNumber' as const }]
+      : []),
+    { key: 'remark', label: '备注', field: 'remark', span: 4 }
+  ])
   const deliveryAudit = computed(() => {
     const data = detail.data
     const status = normalizedOrderStatus.value
@@ -312,11 +414,22 @@
   })
   const basicItems: ArtDescriptionItem<Partial<OrderRecord>>[] = [
     { key: 'orderNo', label: '订单号', field: 'orderNo', copyable: true },
-    { key: 'cargoNo', label: '货号', field: 'cargoNo', copyable: true },
     { key: 'createBy', label: '开单人', field: 'createBy' },
     { key: 'createTime', label: '开单时间', field: 'createTime', format: 'datetime' },
     { key: 'originStation', label: '发货站', field: 'originStation' },
     { key: 'destinationStation', label: '到货站', field: 'destinationStation' },
+    { key: 'departureAt', label: '发货时间', field: 'departureAt', format: 'datetime' },
+    { key: 'arrivalAt', label: '到货时间', field: 'arrivalAt', format: 'datetime' },
+    ...(canViewOrderField('routeCoordinates')
+      ? [
+          {
+            key: 'distanceKm',
+            label: '公里数',
+            value: (data: Partial<OrderRecord>) =>
+              data.distanceKm == null ? '--' : `${data.distanceKm} km`
+          }
+        ]
+      : []),
     { key: 'transferStation', label: '中转站', field: 'transferStation' },
     {
       key: 'deliveryMethod',
@@ -338,6 +451,11 @@
     }
   ]
   const shippingItems = computed<ArtDescriptionItem<Partial<OrderRecord>>[]>(() => [
+    {
+      key: 'shippingCustomerName',
+      label: '发货方',
+      value: (data: Partial<OrderRecord>) => data.shippingCustomer?.customerName || '--'
+    },
     { key: 'shippingContactName', label: '姓名', field: 'shippingContactName' },
     ...(canViewOrderField('shipperContact')
       ? [
@@ -350,10 +468,26 @@
         ]
       : []),
     ...(canViewOrderField('shipperAddress')
-      ? [{ key: 'shippingAddressDetail', label: '发货地址', field: 'shippingAddressDetail' }]
+      ? [
+          {
+            key: 'shippingRegionPath',
+            label: '发货省市区',
+            value: (data: Partial<OrderRecord>) => data.shippingRegionPath?.join(' / ') || '--'
+          },
+          {
+            key: 'shippingAddressDetail',
+            label: '发货地址',
+            field: 'shippingAddressDetail' as const
+          }
+        ]
       : [])
   ])
   const receivingItems = computed<ArtDescriptionItem<Partial<OrderRecord>>[]>(() => [
+    {
+      key: 'receivingCustomerName',
+      label: '收货方',
+      value: (data: Partial<OrderRecord>) => data.receivingCustomer?.customerName || '--'
+    },
     { key: 'receivingContactName', label: '姓名', field: 'receivingContactName' },
     ...(canViewOrderField('receiverContact')
       ? [
@@ -366,7 +500,18 @@
         ]
       : []),
     ...(canViewOrderField('receiverAddress')
-      ? [{ key: 'receivingAddressDetail', label: '收货地址', field: 'receivingAddressDetail' }]
+      ? [
+          {
+            key: 'receivingRegionPath',
+            label: '收货省市区',
+            value: (data: Partial<OrderRecord>) => data.receivingRegionPath?.join(' / ') || '--'
+          },
+          {
+            key: 'receivingAddressDetail',
+            label: '收货地址',
+            field: 'receivingAddressDetail' as const
+          }
+        ]
       : [])
   ])
   const feeItems = createMoneyDescriptionItems([
@@ -440,7 +585,10 @@
     detail.loading = true
     detail.error = null
     try {
-      const { data } = await fetchOrderDetail(id)
+      const [{ data }] = await Promise.all([
+        fetchOrderDetail(id),
+        userStore.ensureDictLoaded('tmsOrderTransportRequirement')
+      ])
       detail.data = data ?? undefined
     } catch (error) {
       detail.error = error instanceof Error ? error : new Error('订单详情加载失败')
@@ -543,6 +691,14 @@
     &__section {
       padding: 18px 20px;
       margin-bottom: 12px;
+    }
+
+    &__configuration-files {
+      display: grid;
+      gap: var(--art-space-2);
+      padding-top: var(--art-space-4);
+      margin-top: var(--art-space-4);
+      border-top: 1px solid var(--el-border-color-lighter);
     }
 
     &__steps-card {

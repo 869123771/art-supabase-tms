@@ -3,7 +3,6 @@
     <div class="delivery-receipt-dialog">
       <div class="delivery-receipt-dialog__summary">
         <span>运单号：{{ form.data.orderNo || '-' }}</span>
-        <span>货号：{{ form.data.cargoNo || '-' }}</span>
       </div>
       <ElAlert
         class="delivery-receipt-dialog__flow-alert"
@@ -65,7 +64,6 @@
   type DeliveryRecord = Api.Tms.Delivery.DeliveryRecord
   type ReceiptArchiveForm = Api.Tms.Delivery.DeliveryReceiptArchivePayload & {
     orderNo?: string
-    cargoNo?: string | null
   }
 
   interface FormExpose {
@@ -136,7 +134,6 @@
     return {
       id: undefined,
       orderNo: '',
-      cargoNo: '',
       signedCodAmount: 0,
       receiptImageUrls: [],
       signedAt: dayjs().format('YYYY-MM-DD HH:mm:ss')
@@ -203,7 +200,6 @@
     Object.assign(form.data, createInitialForm(), {
       id: row.id,
       orderNo: row.orderNo,
-      cargoNo: row.cargoNo,
       signedCodAmount: moneyValue(row.codAmount),
       receiptImageUrls: [...(row.receiptImageUrls ?? [])],
       signedAt: row.signedAt

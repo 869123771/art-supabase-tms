@@ -57,13 +57,30 @@
             display="tag"
           />
         </div>
-        <dl v-if="canView('freightAmounts')" class="waybill-info-panel__fee-list">
+        <dl
+          v-if="
+            canView('freightAmounts') &&
+            waybill.executionKind !== 'merge' &&
+            waybill.executionKind !== 'split'
+          "
+          class="waybill-info-panel__fee-list"
+        >
           <div v-for="item in feeItems" :key="item.label">
             <dt>{{ item.label }}</dt>
             <dd>{{ money(item.value) }}</dd>
           </div>
         </dl>
-        <div v-if="canView('settlementAmounts')" class="waybill-info-panel__payment-summary">
+        <p v-else-if="canView('freightAmounts')" class="waybill-info-panel__allocation-hint">
+          执行运费由下方各原始运输单分摊金额组成；原始费用明细请进入对应原始单查看。
+        </p>
+        <div
+          v-if="
+            canView('settlementAmounts') &&
+            waybill.executionKind !== 'merge' &&
+            waybill.executionKind !== 'split'
+          "
+          class="waybill-info-panel__payment-summary"
+        >
           <span>应收/付款合计</span>
           <strong>{{ money(waybill.order?.paymentTotal) }}</strong>
         </div>
@@ -157,6 +174,64 @@
       </div>
     </ArtSectionCard>
 
+    <ArtSectionCard
+      v-if="waybill.sources?.length"
+      class="waybill-info-panel__section"
+      preserve-content-structure
+      title="原始运输单与分配"
+    >
+      <div class="waybill-info-panel__source-list">
+        <article
+          v-for="source in waybill.sources"
+          :key="source.id"
+          class="waybill-info-panel__source"
+        >
+          <div class="waybill-info-panel__source-heading">
+            <div>
+              <small>原始运输单</small>
+              <ElLink type="primary" underline="never" @click="emit('open-order', source.orderId)">
+                {{ source.orderNo }}
+              </ElLink>
+              <span>{{ source.customerName || '未关联客户' }}</span>
+            </div>
+            <div class="waybill-info-panel__source-status">
+              <ArtDictDisplay
+                dict-code="tmsWaybillDispatchStatus"
+                :value="source.dispatchStatus"
+                display="tag"
+              />
+              <ArtDictDisplay
+                dict-code="tmsOrderStatus"
+                :value="source.orderStatus"
+                display="tag"
+              />
+            </div>
+          </div>
+          <p v-if="source.receivingAddress" class="waybill-info-panel__source-address">{{
+            source.receivingAddress
+          }}</p>
+          <dl class="waybill-info-panel__source-facts">
+            <div
+              ><dt>配载件数</dt><dd>{{ source.quantity }}</dd></div
+            >
+            <div
+              ><dt>已签收</dt><dd>{{ source.signedQuantity }}</dd></div
+            >
+            <div
+              ><dt>异常件数</dt><dd>{{ source.exceptionQuantity }}</dd></div
+            >
+            <div v-if="canView('freightAmounts')"
+              ><dt>分摊运费</dt><dd>{{ money(source.freightAmount) }}</dd></div
+            >
+          </dl>
+          <p v-if="source.exceptionNote" class="waybill-info-panel__source-exception">
+            <ArtSvgIcon icon="ri:error-warning-line" aria-hidden="true" />
+            {{ source.exceptionNote }}
+          </p>
+        </article>
+      </div>
+    </ArtSectionCard>
+
     <div class="waybill-info-panel__bottom-grid">
       <ArtSectionCard
         class="waybill-info-panel__section"
@@ -209,16 +284,16 @@
         preserve-content-structure
         title="关联与审计"
       >
-        <div v-if="waybill.order" class="waybill-info-panel__order">
+        <div
+          v-if="waybill.order && waybill.sources?.length === 1"
+          class="waybill-info-panel__order"
+        >
           <div>
             <small>订单号</small>
             <ElLink type="primary" underline="never" @click="emit('open-order')">
               {{ waybill.order.orderNo }}
             </ElLink>
           </div>
-          <div
-            ><small>货号</small><strong>{{ waybill.order.cargoNo || '-' }}</strong></div
-          >
           <div>
             <small>订单状态</small>
             <ArtDictDisplay dict-code="tmsOrderStatus" :value="waybill.order.orderStatus" />
@@ -247,6 +322,13 @@
             ><small>开单时间</small><strong>{{ date(waybill.order.createTime) }}</strong></div
           >
         </div>
+        <ElAlert
+          v-else-if="(waybill.sources?.length ?? 0) > 1"
+          type="info"
+          :closable="false"
+          show-icon
+          title="该执行运单关联多张原始运输单，请在上方逐单查看状态与费用。"
+        />
         <ArtEmptyState
           v-else
           title="未关联订单"
@@ -259,11 +341,11 @@
             <span>运单备注</span>
             <p>{{ waybill.remark || '无' }}</p>
           </div>
-          <div>
+          <div v-if="waybill.sources?.length === 1">
             <span>订单备注</span>
             <p>{{ waybill.order?.orderRemark || '无' }}</p>
           </div>
-          <div>
+          <div v-if="waybill.sources?.length === 1">
             <span>调度备注</span>
             <p>{{ waybill.order?.dispatchRemark || '无' }}</p>
           </div>
@@ -285,7 +367,7 @@
 
   type CargoItem = Api.Tms.Order.CargoItem
   const props = defineProps<{ waybill: Api.Tms.Waybill.WaybillDetailRecord }>()
-  const emit = defineEmits<{ 'open-order': [] }>()
+  const emit = defineEmits<{ 'open-order': [orderId?: string] }>()
 
   const executionFacts = computed(() => [
     { label: '运单状态', value: statusLabel(props.waybill.status) },
@@ -322,7 +404,11 @@
     }
   ])
 
-  const cargoItems = computed(() => props.waybill.order?.cargoItems ?? [])
+  const cargoItems = computed(() =>
+    props.waybill.sources?.length
+      ? props.waybill.sources.flatMap((source) => source.cargoItems)
+      : (props.waybill.order?.cargoItems ?? [])
+  )
   const cargoQuantity = computed(
     () => props.waybill.cargoQuantity ?? props.waybill.order?.cargoQuantityTotal ?? '-'
   )
@@ -419,6 +505,95 @@
     &__section {
       min-width: 0;
       padding: var(--art-section-padding);
+    }
+
+    &__source-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+      gap: var(--art-space-3);
+    }
+
+    &__source {
+      display: grid;
+      gap: var(--art-space-3);
+      min-width: 0;
+      padding: var(--art-space-4);
+      background: var(--el-fill-color-blank);
+      border: 1px solid var(--el-border-color-lighter);
+      border-radius: var(--el-border-radius-base);
+    }
+
+    &__source-heading {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--art-space-2);
+      align-items: flex-start;
+      justify-content: space-between;
+
+      > div {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      small,
+      span {
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+
+    &__source-address {
+      margin: 0;
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      overflow-wrap: anywhere;
+    }
+
+    &__source-status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--art-space-2);
+      justify-content: flex-end;
+    }
+
+    &__source-facts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--art-space-2);
+      margin: 0;
+
+      > div {
+        display: flex;
+        gap: var(--art-space-2);
+        justify-content: space-between;
+        min-width: 0;
+      }
+
+      dt {
+        color: var(--el-text-color-secondary);
+      }
+
+      dd {
+        margin: 0;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+    }
+
+    &__source-exception {
+      display: flex;
+      gap: var(--art-space-2);
+      margin: 0;
+      color: var(--el-color-warning);
+      overflow-wrap: anywhere;
+    }
+
+    &__allocation-hint {
+      margin: var(--art-space-3) 0 0;
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--el-text-color-secondary);
     }
 
     &__top-grid,

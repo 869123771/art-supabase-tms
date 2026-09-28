@@ -24,9 +24,14 @@ export {
 } from '@tms/api/modules/driver'
 export {
   fetchTmsVehicleOptions,
-  fetchTmsVehicleReferences
+  fetchTmsVehicleReferences,
+  fetchTmsVehicleTypeProfiles
 } from '@tms/api/modules/vehicle-reference'
-export type { TmsVehicleOption, TmsVehicleReference } from '@tms/api/modules/vehicle-reference'
+export type {
+  TmsVehicleOption,
+  TmsVehicleReference,
+  TmsVehicleTypeProfile
+} from '@tms/api/modules/vehicle-reference'
 export {
   addCustomer,
   addCustomerAddress,
@@ -138,10 +143,16 @@ export {
   fetchWaybillExecutionContext,
   fetchWaybillList,
   fetchWaybillStatusCounts,
+  mergeWaybills,
   recommendDispatchResourcesByAi,
   recordWaybillDeparture,
   signWaybill
 } from '@tms/api/modules/waybill'
+export {
+  fetchExecutionSources,
+  signExecutionAllocations,
+  submitDispatchPlan
+} from '@tms/api/modules/dispatch-execution'
 export type { WaybillExportScope, WaybillListScope } from '@tms/api/modules/waybill'
 export {
   analyzeTransportAnomalyByAi,

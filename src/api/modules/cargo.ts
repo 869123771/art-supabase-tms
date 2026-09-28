@@ -27,7 +27,9 @@ const applyCargoFilters = <TQuery extends SupabaseQueryLike>(
   const enabledValue = normalizeBooleanFilter(enabled)
   if (enabledValue !== undefined) query = query.eq('enabled', enabledValue)
   if (keyword) {
-    query = query.or(buildOrIlikeFilter(['cargo_name', 'cargo_code', 'unit', 'remark'], keyword))
+    query = query.or(
+      buildOrIlikeFilter(['cargo_name', 'cargo_code', 'spec_model', 'unit', 'remark'], keyword)
+    )
   }
   return applyCreateTimeRange(query, createTimeRange)
 }
