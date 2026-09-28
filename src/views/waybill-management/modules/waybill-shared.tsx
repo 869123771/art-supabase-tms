@@ -16,7 +16,9 @@ import { formatWithDayjs } from '@/utils/time'
 import { formatCompactNumberValue } from '@/utils/ui/format'
 import { canViewField, formatSensitiveNumber, mergeFieldAccessMaps } from '@/utils/field-permission'
 import { useUserStore } from '@/store/modules/user'
+import { useWebsiteConfig } from '@/hooks/core/useWebsiteConfig'
 import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+import { printLoadedWaybill } from '../../modules/waybill-print'
 import {
   cancelAssignedWaybill,
   cancelWaybillOrder,
@@ -82,6 +84,7 @@ export interface WaybillListContext {
 
 interface RouteNavigator {
   push: (target: { name: string; params?: Record<string, string> }) => Promise<unknown>
+  resolve: (target: { name: string; params: Record<string, string> }) => { href: string }
 }
 
 export const WAYBILL_STATUS_ALL = '__all__'
@@ -768,14 +771,12 @@ function getMoreActions(context: WaybillListContext, row: WaybillRecord): Button
       color: row.waybillStatus === 'completed' ? 'var(--el-color-warning)' : undefined
     })
   }
-  if (row.dispatchStatus === 'loaded') {
-    actions.push({
-      key: 'print',
-      label: '打印',
-      icon: 'ri:printer-line',
-      auth: 'TmsLoadedWaybillList:Print'
-    })
-  }
+  actions.push({
+    key: 'print',
+    label: '打印',
+    icon: 'ri:printer-line',
+    auth: 'TmsLoadedWaybillList:Print'
+  })
   if (context.canCancel && canCancelWaybillOrder(row)) {
     actions.push({
       key: 'cancel-order',
@@ -814,7 +815,7 @@ function handleMoreAction(
       void context.executionOperationDialogRef?.value?.handleOpen({ row, action: 'signature' }),
     'completion-operation': () =>
       void context.executionOperationDialogRef?.value?.handleOpen({ row, action: 'completion' }),
-    print: () => handlePrint(row),
+    print: () => handlePrint(context, row),
     'cancel-order': () => void handleCancelOrder(context, row)
   }
 
@@ -898,9 +899,27 @@ async function handleConfirmAcceptance(
   }
 }
 
-function handlePrint(row: WaybillRecord): void {
-  if (row.dispatchStatus !== 'loaded') return
-  ElMessage.info('运单打印接口未接入')
+function handlePrint(context: WaybillListContext, row: WaybillRecord): void {
+  const { brandName, websiteConfig } = useWebsiteConfig()
+  const detailId = row.driverWaybillId || row.id
+  const detailUrl = detailId
+    ? new URL(
+        context.router.resolve({
+          name: row.driverWaybillId ? 'TmsWaybillDetail' : 'TmsOrderDetail',
+          params: { id: detailId }
+        }).href,
+        window.location.href
+      ).href
+    : undefined
+  const userStore = useUserStore()
+  const opened = printLoadedWaybill(row, {
+    brandName: brandName.value,
+    logoUrl: websiteConfig.value.logoUrl,
+    detailUrl,
+    label: (dictCode, value) =>
+      userStore.getDictItemByValue(dictCode, value ?? undefined)?.label || value || ''
+  })
+  if (!opened) ElMessage.warning('浏览器拦截了打印窗口，请允许弹出窗口后重试')
 }
 
 function formatCargoType(row: WaybillRecord): string {

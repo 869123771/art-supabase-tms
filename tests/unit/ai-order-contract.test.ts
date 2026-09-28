@@ -4,7 +4,7 @@ import {
   compareAiOrderPayloads,
   normalizeAiOrderProviderMetadata,
   validateAiOrderProviderPayload
-} from '../../supabase/functions/_shared/ai-order-contract'
+} from '../../../../supabase/functions/_shared/ai-order-contract'
 
 function createValidPayload() {
   return {

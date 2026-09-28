@@ -4,7 +4,7 @@ import {
   assessAiWaybillReceipt,
   normalizeAiWaybillReceiptResponse,
   validateAiWaybillReceiptProviderPayload
-} from '../../supabase/functions/_shared/ai-waybill-receipt-ocr-contract'
+} from '../../../../supabase/functions/_shared/ai-waybill-receipt-ocr-contract'
 
 function validPayload() {
   return {

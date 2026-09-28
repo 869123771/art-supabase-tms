@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { assessCarrierPerformance } from '../../supabase/functions/_shared/carrier-performance-rules'
+import { assessCarrierPerformance } from '../../../../supabase/functions/_shared/carrier-performance-rules'
 
 const now = new Date('2026-08-05T00:00:00.000Z')
 

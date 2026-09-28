@@ -3,7 +3,7 @@ import test from 'node:test'
 import {
   assessTransportAnomaly,
   detectTransportAnomalies
-} from '../../supabase/functions/_shared/transport-anomaly-rules'
+} from '../../../../supabase/functions/_shared/transport-anomaly-rules'
 
 const now = new Date('2026-08-04T08:00:00.000Z')
 

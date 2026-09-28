@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { recommendDispatchResources } from '../../supabase/functions/_shared/dispatch-recommendation-rules'
+import { recommendDispatchResources } from '../../../../supabase/functions/_shared/dispatch-recommendation-rules'
 
 const NOW = new Date('2026-08-04T08:00:00.000Z')
 

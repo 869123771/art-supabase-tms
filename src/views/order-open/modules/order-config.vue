@@ -13,255 +13,158 @@
     </div>
 
     <ElForm
-      ref="formRef"
+      v-if="config.loadType === 'ftl'"
+      ref="vehicleFormRef"
       :model="config"
-      :rules="rules"
+      :rules="vehicleRules"
       :validate-on-rule-change="false"
       label-position="top"
-      class="order-config__form"
+      class="order-config__vehicle-form"
     >
-      <div v-if="config.loadType === 'ftl'" class="order-config__vehicle">
-        <div class="order-config__section-heading">
-          <div
-            ><strong>选择车型</strong
-            ><span>选择已启用的车型规格，车长、容积和载重会自动带出</span></div
-          >
-          <ElButton v-if="vehicleError" link type="primary" @click="loadProfiles"
-            >重试加载</ElButton
-          >
-        </div>
-        <ElSkeleton v-if="vehicleLoading" :rows="2" animated />
-        <p v-else-if="vehicleError" class="order-config__hint is-error"
-          >车型规格加载失败，请重试。</p
-        >
-        <div v-else-if="vehicleProfiles.length" class="order-config__vehicle-grid">
-          <button
-            v-for="profile in vehicleProfiles"
-            :key="profile.id"
-            type="button"
-            class="order-config__vehicle-card"
-            :class="{
-              'is-selected':
-                config.vehicleType === profile.category && config.vehicleLengthM === profile.lengthM
-            }"
-            :aria-pressed="
-              config.vehicleType === profile.category && config.vehicleLengthM === profile.lengthM
-            "
-            @click="selectVehicle(profile)"
-          >
-            <VehicleTypeArt :category="profile.category" />
-            <strong>{{ profile.category }}</strong>
-            <small>{{ profile.lengthM == null ? '规格待配置' : `${profile.lengthM} 米` }}</small>
-          </button>
-        </div>
-        <p v-else class="order-config__hint">暂无已启用的车型规格，请先在车辆档案维护车型。</p>
-        <ElFormItem prop="vehicleType" class="order-config__vehicle-validation">
-          <span class="order-config__selected-vehicle">{{
-            config.vehicleType ? `已选择 ${config.vehicleType}` : '请选择一款车型'
-          }}</span>
-        </ElFormItem>
-        <div class="order-config__metrics">
-          <span
-            >车长 <strong>{{ metricText(config.vehicleLengthM, '米') }}</strong></span
-          >
-          <span
-            >容积 <strong>{{ metricText(config.vehicleVolumeM3, '立方米') }}</strong></span
-          >
-          <span
-            >载重 <strong>{{ metricText(config.vehicleLoadTons, '吨') }}</strong></span
-          >
-        </div>
-      </div>
-
-      <div class="order-config__grid">
-        <ElFormItem v-if="config.loadType === 'ftl'" label="整车数量" prop="truckCount">
-          <ElSelect v-model="config.truckCount" placeholder="请选择整车数量">
-            <ElOption v-for="count in 10" :key="count" :label="`${count} 车`" :value="count" />
-          </ElSelect>
-        </ElFormItem>
-        <ElFormItem label="计费模式" prop="billingMode">
-          <ElSelect
-            v-model="config.billingMode"
-            placeholder="请选择计费模式"
-            @change="config.billingUnit = ''"
-          >
-            <ElOption
-              v-for="item in billingModeOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </ElSelect>
-        </ElFormItem>
-        <ElFormItem label="计费单位" prop="billingUnit">
-          <ElSelect
-            v-model="config.billingUnit"
-            :disabled="!config.billingMode"
-            placeholder="选择与计费模式对应的单位"
-            filterable
-          >
-            <ElOption
-              v-for="item in billingUnitOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </ElSelect>
-        </ElFormItem>
-        <ElFormItem label="货物分类" prop="cargoCategory">
-          <ElSelect
-            v-model="config.cargoCategory"
-            placeholder="请选择货物分类"
-            @change="handleCategoryChange"
-          >
-            <ElOption
-              v-for="item in cargoCategoryOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </ElSelect>
-        </ElFormItem>
-        <ElFormItem
-          v-if="config.cargoCategory === 'temperature'"
-          label="温度阈值（℃）"
-          prop="tempMinC"
-        >
-          <div class="order-config__temperature">
-            <ElInputNumber
-              v-model="config.tempMinC"
-              :controls="false"
-              :min="-80"
-              :max="80"
-              placeholder="最低温"
-            />
-            <span>至</span>
-            <ElInputNumber
-              v-model="config.tempMaxC"
-              :controls="false"
-              :min="-80"
-              :max="80"
-              placeholder="最高温"
-            />
+      <ElFormItem prop="vehicleType" class="order-config__vehicle-validation">
+        <div class="order-config__vehicle">
+          <div class="order-config__section-heading">
+            <div>
+              <strong>选择车型</strong>
+              <span>先选车型，再选该车型的车长；容积和载重会自动带出</span>
+            </div>
+            <ElButton v-if="vehicleError" link type="primary" @click="loadProfiles"
+              >重试加载</ElButton
+            >
           </div>
-        </ElFormItem>
-        <ElFormItem label="包装方式" prop="packaging">
-          <ElSelect v-model="config.packaging" placeholder="请选择包装方式">
-            <ElOption
-              v-for="item in packagingOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </ElSelect>
-        </ElFormItem>
-        <ElFormItem label="是否自提">
-          <ElRadioGroup v-model="config.selfPickup">
-            <ElRadioButton
-              v-for="item in booleanOptions"
-              :key="item.value"
-              :value="item.value === 'true'"
-              >{{ item.label }}</ElRadioButton
-            >
-          </ElRadioGroup>
-        </ElFormItem>
-        <ElFormItem label="是否保价">
-          <ElRadioGroup v-model="config.insured">
-            <ElRadioButton
-              v-for="item in booleanOptions"
-              :key="item.value"
-              :value="item.value === 'true'"
-              >{{ item.value === 'true' ? '保价' : '不保价' }}</ElRadioButton
-            >
-          </ElRadioGroup>
-        </ElFormItem>
-        <ElFormItem label="允许与其他客户单合车">
-          <ElRadioGroup v-model="config.allowConsolidation">
-            <ElRadioButton
-              v-for="item in booleanOptions"
-              :key="item.value"
-              :value="item.value === 'true'"
-              >{{ item.value === 'true' ? '允许合单' : '单独运输' }}</ElRadioButton
-            >
-          </ElRadioGroup>
-          <p class="order-config__hint">客户明确允许后，调度才能与线路和货物条件相容的订单合车。</p>
-        </ElFormItem>
-        <ElFormItem label="运输要求" class="order-config__wide">
-          <ElCheckboxGroup v-model="config.transportRequirements" class="order-config__checks">
-            <ElCheckbox
-              v-for="item in transportRequirementOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </ElCheckboxGroup>
-        </ElFormItem>
-        <ElFormItem label="跟踪方式">
-          <ElSelect
-            v-model="config.trackingMethod"
-            clearable
-            placeholder="请选择跟踪方式"
-            @change="config.trackingNumber = ''"
+          <ElSkeleton v-if="vehicleLoading" :rows="2" animated />
+          <p v-else-if="vehicleError" class="order-config__hint is-error"
+            >车型规格加载失败，请重试。</p
           >
-            <ElOption
-              v-for="item in trackingMethodOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </ElSelect>
-        </ElFormItem>
-        <ElFormItem
-          v-if="config.trackingMethod"
-          :label="config.trackingMethod === 'electronic_receipt' ? '电子回单编号' : '快递单号'"
-          prop="trackingNumber"
-        >
-          <ElInput
-            v-model.trim="config.trackingNumber"
-            maxlength="80"
-            :placeholder="
-              config.trackingMethod === 'electronic_receipt'
-                ? '请输入电子回单编号'
-                : '请输入快递单号'
-            "
-          />
-        </ElFormItem>
-        <ElFormItem label="备注" class="order-config__wide">
-          <ElInput
-            v-model="config.remark"
-            type="textarea"
-            :rows="3"
-            maxlength="200"
-            show-word-limit
-            placeholder="补充包装、交接或特殊运输说明"
-          />
-        </ElFormItem>
-      </div>
+          <template v-else-if="vehicleCategories.length">
+            <div class="order-config__vehicle-grid" aria-label="车型">
+              <button
+                v-for="category in vehicleCategories"
+                :key="category"
+                type="button"
+                class="order-config__vehicle-card"
+                :class="{ 'is-selected': selectedVehicleCategory === category }"
+                :aria-pressed="selectedVehicleCategory === category"
+                @click="selectVehicleCategory(category)"
+              >
+                <VehicleTypeArt :category="category" />
+                <strong>{{ category }}</strong>
+              </button>
+            </div>
+            <div class="order-config__lengths">
+              <div class="order-config__length-heading">
+                <strong>车长</strong>
+                <span>{{ selectedVehicleCategory }}可选规格</span>
+              </div>
+              <div class="order-config__length-options" aria-label="车长规格">
+                <button
+                  v-for="profile in selectedVehicleProfiles"
+                  :key="profile.id"
+                  type="button"
+                  class="order-config__length-option"
+                  :class="{ 'is-selected': isSelectedVehicle(profile) }"
+                  :aria-pressed="isSelectedVehicle(profile)"
+                  :title="profileDetails(profile)"
+                  @click="selectVehicle(profile)"
+                >
+                  <span>{{ profileOptionLabel(profile) }}</span>
+                </button>
+              </div>
+            </div>
+          </template>
+          <p v-else class="order-config__hint">暂无已启用的车型规格，请先在车辆档案维护车型。</p>
+          <div v-if="config.vehicleType" class="order-config__metrics">
+            <span>已选 {{ config.vehicleType }}</span>
+            <span
+              >车长 <strong>{{ metricText(config.vehicleLengthM, '米') }}</strong></span
+            >
+            <span
+              >容积 <strong>{{ metricText(config.vehicleVolumeM3, '立方米') }}</strong></span
+            >
+            <span
+              >载重 <strong>{{ metricText(config.vehicleLoadTons, '吨') }}</strong></span
+            >
+          </div>
+        </div>
+      </ElFormItem>
     </ElForm>
-    <div class="order-config__attachments">
-      <div class="order-config__section-heading"
-        ><div
-          ><strong>业务附件</strong
-          ><span>支持图片、文档及压缩包，最多 6 个，单个不超过 2 MB</span></div
-        ></div
-      >
-      <ArtUploadFile
-        ref="attachmentUploadRef"
-        v-model="config.attachmentUrls"
-        title="上传附件"
-        multiple
-        :limit="6"
-        :file-size="2 * 1024 * 1024"
-        accept=".jpg,.jpeg,.png,.gif,.bmp,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar"
-        :readonly="!canEditAttachments"
-      />
+
+    <ArtForm
+      ref="settingsFormRef"
+      v-model="config"
+      :items="settingItems"
+      :rules="settingRules"
+      :span="6"
+      :gutter="16"
+      label-position="top"
+      root-class="order-config__settings-form p-0!"
+      :show-reset="false"
+      :show-submit="false"
+      :validate-on-rule-change="false"
+    >
+      <template #tempMinC>
+        <div class="order-config__temperature">
+          <ElInputNumber
+            v-model="config.tempMinC"
+            :controls="false"
+            :min="-80"
+            :max="80"
+            placeholder="最低温"
+            @change="validateTemperature"
+          />
+          <span>至</span>
+          <ElInputNumber
+            v-model="config.tempMaxC"
+            :controls="false"
+            :min="-80"
+            :max="80"
+            placeholder="最高温"
+            @change="validateTemperature"
+          />
+        </div>
+      </template>
+    </ArtForm>
+
+    <div class="order-config__bottom">
+      <div class="order-config__remark">
+        <label for="order-config-remark">备注</label>
+        <ElInput
+          id="order-config-remark"
+          v-model="config.remark"
+          type="textarea"
+          :rows="4"
+          maxlength="200"
+          show-word-limit
+          placeholder="补充包装、交接或特殊运输说明"
+        />
+      </div>
+      <div class="order-config__attachments">
+        <div class="order-config__section-heading">
+          <div>
+            <strong>业务附件</strong>
+            <span>支持图片、文档及压缩包，最多 6 个，单个不超过 2 MB</span>
+          </div>
+        </div>
+        <ArtUploadFile
+          ref="attachmentUploadRef"
+          v-model="config.attachmentUrls"
+          title="上传附件"
+          multiple
+          :limit="6"
+          :file-size="2 * 1024 * 1024"
+          accept=".jpg,.jpeg,.png,.gif,.bmp,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar"
+          :readonly="!canEditAttachments"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
   import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+  import { uniqBy } from 'lodash-es'
   import { storeToRefs } from 'pinia'
+  import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtUploadFile from '@/components/core/forms/art-upload-file/index.vue'
   import { fetchTmsVehicleTypeProfiles, type TmsVehicleTypeProfile } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'
@@ -270,11 +173,22 @@
   const config = defineModel<Api.Tms.Order.OrderConfig>({ required: true })
   defineProps<{ canEditAttachments: boolean }>()
   const { getDictMap } = storeToRefs(useUserStore())
-  const formRef = ref<FormInstance>()
+  const vehicleFormRef = ref<FormInstance>()
+  const settingsFormRef = ref<InstanceType<typeof ArtForm>>()
   const attachmentUploadRef = ref<{ hasPendingUpload: () => boolean }>()
   const vehicleProfiles = ref<TmsVehicleTypeProfile[]>([])
   const vehicleLoading = ref(false)
   const vehicleError = ref(false)
+  const selectedVehicleCategory = ref(config.value.vehicleType)
+  const vehicleCategories = computed(() =>
+    uniqBy(vehicleProfiles.value, 'category').map((profile) => profile.category)
+  )
+  const selectedVehicleProfiles = computed(() =>
+    uniqBy(
+      vehicleProfiles.value.filter((profile) => profile.category === selectedVehicleCategory.value),
+      (profile) => `${profile.lengthM}:${profile.volumeM3}:${profile.loadTons}`
+    )
+  )
   const loadTypeOptions = computed(() =>
     (getDictMap.value.tmsOrderLoadType ?? []).map((item) => ({
       label: item.label,
@@ -300,11 +214,16 @@
       )
     })
   )
-  const rules = computed<FormRules<Api.Tms.Order.OrderConfig>>(() => ({
-    vehicleType:
-      config.value.loadType === 'ftl'
-        ? [{ required: true, message: '请选择车型', trigger: 'change' }]
-        : [],
+  const vehicleRules = computed<FormRules<Api.Tms.Order.OrderConfig>>(() => ({
+    vehicleType: [
+      {
+        required: true,
+        message: selectedVehicleCategory.value ? '请选择车长规格' : '请选择车型和车长规格',
+        trigger: 'change'
+      }
+    ]
+  }))
+  const settingRules = computed<FormRules<Api.Tms.Order.OrderConfig>>(() => ({
     truckCount:
       config.value.loadType === 'ftl'
         ? [{ required: true, message: '请选择整车数量', trigger: 'change' }]
@@ -333,6 +252,123 @@
           ]
         : []
   }))
+  const settingItems = computed<FormItem[]>(() => [
+    ...(config.value.loadType === 'ftl'
+      ? [
+          {
+            key: 'truckCount',
+            label: '整车数量',
+            type: 'select' as const,
+            placeholder: '请选择整车数量',
+            options: Array.from({ length: 10 }, (_, index) => ({
+              label: `${index + 1} 车`,
+              value: index + 1
+            }))
+          }
+        ]
+      : []),
+    {
+      key: 'billingMode',
+      label: '计费模式',
+      type: 'select',
+      placeholder: '请选择计费模式',
+      options: billingModeOptions.value,
+      props: { onChange: () => (config.value.billingUnit = '') }
+    },
+    {
+      key: 'billingUnit',
+      label: '计费单位',
+      type: 'select',
+      placeholder: '选择与计费模式对应的单位',
+      options: billingUnitOptions.value,
+      props: { disabled: !config.value.billingMode, filterable: true }
+    },
+    {
+      key: 'cargoCategory',
+      label: '货物分类',
+      type: 'select',
+      placeholder: '请选择货物分类',
+      options: cargoCategoryOptions.value,
+      props: { onChange: handleCategoryChange }
+    },
+    ...(config.value.cargoCategory === 'temperature'
+      ? [
+          {
+            key: 'tempMinC',
+            label: '温度阈值（℃）',
+            type: 'input' as const
+          }
+        ]
+      : []),
+    {
+      key: 'packaging',
+      label: '包装方式',
+      type: 'select',
+      placeholder: '请选择包装方式',
+      options: packagingOptions.value
+    },
+    {
+      key: 'selfPickup',
+      label: '是否自提',
+      type: 'radioGroup',
+      options: booleanOptions.value.map((item) => ({
+        label: item.label,
+        value: item.value === 'true'
+      })),
+      props: { optionType: 'button' }
+    },
+    {
+      key: 'insured',
+      label: '是否保价',
+      type: 'radioGroup',
+      options: booleanOptions.value.map((item) => ({
+        label: item.value === 'true' ? '保价' : '不保价',
+        value: item.value === 'true'
+      })),
+      props: { optionType: 'button' }
+    },
+    {
+      key: 'allowConsolidation',
+      label: '允许与其他客户单合车',
+      type: 'radioGroup',
+      options: booleanOptions.value.map((item) => ({
+        label: item.value === 'true' ? '允许合单' : '单独运输',
+        value: item.value === 'true'
+      })),
+      props: { optionType: 'button' },
+      description: '客户明确允许后，调度才能与线路和货物条件相容的订单合车。'
+    },
+    {
+      key: 'transportRequirements',
+      label: '运输要求',
+      type: 'checkboxGroup',
+      span: config.value.trackingMethod ? 12 : 18,
+      options: transportRequirementOptions.value
+    },
+    {
+      key: 'trackingMethod',
+      label: '跟踪方式',
+      type: 'select',
+      placeholder: '请选择跟踪方式',
+      options: trackingMethodOptions.value,
+      props: { clearable: true, onChange: () => (config.value.trackingNumber = '') }
+    },
+    ...(config.value.trackingMethod
+      ? [
+          {
+            key: 'trackingNumber',
+            label:
+              config.value.trackingMethod === 'electronic_receipt' ? '电子回单编号' : '快递单号',
+            type: 'input' as const,
+            placeholder:
+              config.value.trackingMethod === 'electronic_receipt'
+                ? '请输入电子回单编号'
+                : '请输入快递单号',
+            props: { maxlength: 80 }
+          }
+        ]
+      : [])
+  ])
 
   async function loadProfiles(): Promise<void> {
     if (vehicleLoading.value) return
@@ -356,8 +392,65 @@
       vehicleVolumeM3: profile.volumeM3,
       vehicleLoadTons: profile.loadTons
     })
-    formRef.value?.clearValidate('vehicleType')
+    vehicleFormRef.value?.clearValidate('vehicleType')
   }
+
+  function selectVehicleCategory(category: string): void {
+    if (selectedVehicleCategory.value === category) return
+    selectedVehicleCategory.value = category
+    Object.assign(config.value, {
+      vehicleType: '',
+      vehicleLengthM: null,
+      vehicleVolumeM3: null,
+      vehicleLoadTons: null
+    })
+    vehicleFormRef.value?.clearValidate('vehicleType')
+  }
+
+  function isSelectedVehicle(profile: TmsVehicleTypeProfile): boolean {
+    return (
+      config.value.vehicleType === profile.category &&
+      config.value.vehicleLengthM === profile.lengthM &&
+      config.value.vehicleVolumeM3 === profile.volumeM3 &&
+      config.value.vehicleLoadTons === profile.loadTons
+    )
+  }
+
+  function profileLengthLabel(profile: TmsVehicleTypeProfile): string {
+    if (profile.lengthM != null) return `${profile.lengthM} 米`
+    return profile.loadTons != null ? `按载重 ${profile.loadTons} 吨` : '其他规格'
+  }
+
+  function profileOptionLabel(profile: TmsVehicleTypeProfile): string {
+    const length = profileLengthLabel(profile)
+    return hasDuplicateLength(profile)
+      ? `${length} · ${metricText(profile.loadTons, '吨')} / ${metricText(profile.volumeM3, '方')}`
+      : length
+  }
+
+  function profileDetails(profile: TmsVehicleTypeProfile): string {
+    return `容积 ${metricText(profile.volumeM3, '方')} · 载重 ${metricText(profile.loadTons, '吨')}`
+  }
+
+  function hasDuplicateLength(profile: TmsVehicleTypeProfile): boolean {
+    return selectedVehicleProfiles.value.some(
+      (candidate) => candidate.id !== profile.id && candidate.lengthM === profile.lengthM
+    )
+  }
+
+  watch(vehicleCategories, (categories) => {
+    if (!categories.length) return
+    if (!selectedVehicleCategory.value || !categories.includes(selectedVehicleCategory.value)) {
+      selectedVehicleCategory.value = categories[0] ?? ''
+    }
+  })
+
+  watch(
+    () => config.value.vehicleType,
+    (category) => {
+      if (category) selectedVehicleCategory.value = category
+    }
+  )
 
   watch(
     () => config.value.loadType,
@@ -370,6 +463,7 @@
   function handleLoadTypeChange(): void {
     if (config.value.loadType === 'ftl') {
       if (!vehicleProfiles.value.length) void loadProfiles()
+      else selectedVehicleCategory.value = vehicleCategories.value[0] ?? ''
       return
     }
     Object.assign(config.value, {
@@ -379,6 +473,7 @@
       vehicleLoadTons: null,
       truckCount: null
     })
+    selectedVehicleCategory.value = ''
   }
 
   function handleCategoryChange(): void {
@@ -386,6 +481,10 @@
       config.value.tempMinC = null
       config.value.tempMaxC = null
     }
+  }
+
+  function validateTemperature(): void {
+    void Promise.resolve(settingsFormRef.value?.validateField('tempMinC')).catch(() => undefined)
   }
 
   function metricText(value: number | null | undefined, unit: string): string {
@@ -397,12 +496,20 @@
       ElMessage.warning('请等待附件上传完成后再继续')
       return false
     }
-    try {
-      await formRef.value?.validate()
-      return true
-    } catch {
-      return false
+    let valid = true
+    if (config.value.loadType === 'ftl') {
+      try {
+        await vehicleFormRef.value?.validate()
+      } catch {
+        valid = false
+      }
     }
+    try {
+      await settingsFormRef.value?.validate()
+    } catch {
+      valid = false
+    }
+    return valid
   }
 
   defineExpose({ validate })
@@ -412,6 +519,7 @@
   .order-config {
     display: grid;
     gap: var(--art-space-5);
+    min-width: 0;
 
     &__intro,
     &__section-heading {
@@ -443,26 +551,39 @@
       color: var(--el-text-color-primary);
     }
 
+    &__vehicle-validation {
+      margin-bottom: 0;
+    }
+
+    &__vehicle-validation :deep(.el-form-item__content) {
+      display: block;
+      width: 100%;
+    }
+
     &__vehicle {
       display: grid;
       gap: var(--art-space-3);
+      width: 100%;
+      min-width: 0;
     }
 
     &__vehicle-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(142px, 1fr));
-      gap: var(--art-space-3);
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: var(--art-space-2);
+      max-width: 1220px;
     }
 
     &__vehicle-card {
       display: grid;
-      gap: 2px;
+      gap: 0;
       justify-items: center;
       min-width: 0;
-      padding: var(--art-space-2);
+      min-height: 100px;
+      padding: var(--art-space-2) var(--art-space-1);
       color: var(--el-text-color-regular);
       cursor: pointer;
-      background: var(--art-gray-100);
+      background: var(--default-box-color);
       border: 1px solid var(--el-border-color-lighter);
       border-radius: var(--art-control-radius);
       transition:
@@ -486,34 +607,96 @@
       color: var(--el-text-color-primary);
     }
 
-    &__vehicle-card small {
-      color: var(--el-text-color-secondary);
+    &__vehicle-card :deep(.vehicle-type-art) {
+      width: 116px;
+      height: 58px;
     }
 
-    &__vehicle-validation {
-      margin: -12px 0 0;
-
-      :deep(.el-form-item__content) {
-        line-height: 1.4;
-      }
+    &__lengths {
+      display: grid;
+      gap: var(--art-space-2);
+      padding-top: var(--art-space-2);
+      border-top: 1px solid var(--el-border-color-lighter);
     }
 
-    &__selected-vehicle {
+    &__length-heading {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--art-space-2);
+      align-items: baseline;
+    }
+
+    &__length-heading strong {
+      color: var(--el-text-color-primary);
+    }
+
+    &__length-heading span {
       font-size: var(--art-font-size-caption);
       color: var(--el-text-color-secondary);
+    }
+
+    &__length-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--art-space-2);
+    }
+
+    &__length-option {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 58px;
+      height: 32px;
+      padding: 0 10px;
+      font-size: 12px;
+      line-height: 1;
+      color: var(--el-text-color-regular);
+      cursor: pointer;
+      background: var(--default-box-color);
+      border: 1px solid var(--el-border-color);
+      border-radius: var(--art-control-radius);
+      transition:
+        background-color var(--art-motion-duration-fast) var(--art-motion-ease-out),
+        border-color var(--art-motion-duration-fast) var(--art-motion-ease-out),
+        color var(--art-motion-duration-fast) var(--art-motion-ease-out);
+    }
+
+    &__length-option:hover {
+      color: var(--theme-color);
+      border-color: var(--theme-color);
+    }
+
+    &__length-option.is-selected {
+      font-weight: 600;
+      color: var(--el-color-white);
+      background: var(--theme-color);
+      border-color: var(--theme-color);
+    }
+
+    &__length-option:focus-visible {
+      outline: 2px solid var(--theme-color);
+      outline-offset: 2px;
+    }
+
+    &__length-option span {
+      white-space: nowrap;
     }
 
     &__metrics {
       display: flex;
       flex-wrap: wrap;
-      gap: var(--art-space-3);
-      padding: var(--art-space-3);
-      background: var(--art-gray-100);
-      border-radius: var(--art-control-radius);
+      gap: var(--art-space-2) var(--art-space-5);
+      padding-top: var(--art-space-2);
+      border-top: 1px solid var(--el-border-color-lighter);
     }
 
     &__metrics span {
       color: var(--el-text-color-secondary);
+    }
+
+    &__metrics span:first-child {
+      font-weight: 600;
+      color: var(--el-text-color-primary);
     }
 
     &__metrics strong {
@@ -522,14 +705,16 @@
       color: var(--el-text-color-primary);
     }
 
-    &__grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0 var(--art-space-4);
+    :deep(.order-config__settings-form .el-col) {
+      min-width: 0;
     }
 
-    &__wide {
-      grid-column: 1 / -1;
+    :deep(.order-config__settings-form .el-form-item) {
+      margin-bottom: var(--art-space-4);
+    }
+
+    :deep(.order-config__settings-form .el-form-item__content) {
+      min-width: 0;
     }
 
     &__temperature {
@@ -544,46 +729,64 @@
       min-width: 0;
     }
 
-    &__checks {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--art-space-2) var(--art-space-4);
-    }
-
-    &__attachments {
+    &__bottom {
       display: grid;
-      gap: var(--art-space-3);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--art-space-5);
       padding-top: var(--art-space-4);
       border-top: 1px solid var(--el-border-color-lighter);
     }
 
+    &__remark,
+    &__attachments {
+      min-width: 0;
+    }
+
+    &__remark label {
+      display: block;
+      margin-bottom: var(--art-space-2);
+      color: var(--el-text-color-regular);
+    }
+
+    &__attachments {
+      display: grid;
+      gap: var(--art-space-2);
+      align-content: start;
+    }
+
     &__hint {
-      padding: var(--art-space-3);
       margin: 0;
       color: var(--el-text-color-secondary);
-      background: var(--art-gray-100);
-      border-radius: var(--art-control-radius);
     }
 
     &__hint.is-error {
       color: var(--el-color-danger);
     }
 
-    :deep(.el-select),
     :deep(.el-input-number) {
       width: 100%;
     }
   }
 
-  @media (width <= 1000px) {
-    .order-config__grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+  @media (width <= 1200px) {
+    .order-config__vehicle-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
+
+  @media (width <= 900px) {
+    .order-config__vehicle-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .order-config__bottom {
+      grid-template-columns: 1fr;
     }
   }
 
   @media (width <= 640px) {
-    .order-config__grid {
-      grid-template-columns: 1fr;
+    .order-config__vehicle-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 </style>

@@ -4,7 +4,7 @@
       <div class="print-count-dialog__row">
         <span class="print-count-dialog__label">打印数量</span>
         <ElRadioGroup v-model="form.option">
-          <ElRadio value="cargo_quantity">同货品数量</ElRadio>
+          <ElRadio v-if="printKind === 'label'" value="cargo_quantity">同货品数量</ElRadio>
           <ElRadio value="1">1张</ElRadio>
           <ElRadio value="2">2张</ElRadio>
           <ElRadio value="3">3张</ElRadio>
@@ -16,6 +16,7 @@
         v-if="form.option === 'custom'"
         v-model="form.customCount"
         :min="1"
+        :max="100"
         :precision="0"
         controls-position="right"
         class="print-count-dialog__custom"
@@ -50,8 +51,9 @@
   }>()
 
   const dialogRef = ref<ArtDialogExpose<PrintOpenData>>()
+  const printKind = ref<PrintKind>('waybill')
   const form = reactive<FormGroup>({
-    option: 'cargo_quantity',
+    option: '1',
     customCount: null
   })
 
@@ -62,7 +64,8 @@
   }
 
   async function handleOpen(data: PrintOpenData): Promise<void> {
-    form.option = 'cargo_quantity'
+    printKind.value = data.kind
+    form.option = data.kind === 'label' ? 'cargo_quantity' : '1'
     form.customCount = null
 
     await dialogRef.value?.handleOpen(data, {
@@ -75,6 +78,10 @@
         const count = resolveCount(openData)
         if (count < 1) {
           ElMessage.warning('请输入打印数量')
+          return false
+        }
+        if (count > 100) {
+          ElMessage.warning('单次最多打印 100 张')
           return false
         }
         emit('confirm', data.kind, count)

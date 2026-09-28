@@ -649,6 +649,7 @@
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import { useAmapGeocoder } from '@/hooks/core/useAmapGeocoder'
   import { useAuth } from '@/hooks/core/useAuth'
+  import { useWebsiteConfig } from '@/hooks/core/useWebsiteConfig'
   import { useLazyComponent } from '@/hooks/core/useLazyComponent'
   import type { ColumnOption } from '@/types'
   import { formatNameCodeOption } from '@/utils/form'
@@ -673,6 +674,7 @@
     synchronizeContractCargoFreight
   } from './modules/order-contract-detail'
   import { buildAiOrderFinalPayload } from './modules/ai-order-review'
+  import { printOrderWaybill } from '../modules/waybill-print'
   import type {
     AiAddressReferenceMatch,
     AiOrderApplyPayload,
@@ -821,6 +823,7 @@
   const route = useRoute()
   const router = useRouter()
   const userStore = useUserStore()
+  const { brandName, websiteConfig } = useWebsiteConfig()
   const { hasAuth, hasAnyAuth } = useAuth()
   const { geocodeAddress } = useAmapGeocoder()
   const { estimateDrivingRoute } = useAmapDrivingEstimate()
@@ -1345,6 +1348,10 @@
     void initializePage()
   })
 
+  watch(getOrderId, () => {
+    void initializePage()
+  })
+
   function getOrderId(): string {
     return typeof route.query.id === 'string' ? route.query.id : ''
   }
@@ -1371,6 +1378,7 @@
       page.error = error instanceof Error ? error : new Error('开单信息加载失败')
     } finally {
       page.loading = false
+      if (getOrderId() !== orderId) void initializePage()
     }
   }
 
@@ -1494,7 +1502,9 @@
 
   function replaceForm(nextForm: OrderForm): void {
     const clonedForm = cloneDeep(nextForm)
-    Object.assign(form.data, createInitialForm(), clonedForm, {
+    form.data = {
+      ...createInitialForm(),
+      ...clonedForm,
       shippingAddressDetail: stripOrderRegionPrefix(
         clonedForm.shippingAddressDetail,
         clonedForm.shippingRegionPath ?? []
@@ -1507,7 +1517,7 @@
         clonedForm.shippingCustomerName || clonedForm.shippingCustomer?.customerName || '',
       receivingCustomerName:
         clonedForm.receivingCustomerName || clonedForm.receivingCustomer?.customerName || ''
-    })
+    }
   }
 
   function fillDefaultOptions(): void {
@@ -2169,13 +2179,14 @@
     page.saving = true
     try {
       const payload = normalizePayload()
-      let savedOrderId = payload.id
-      if (payload.id) {
-        const { data } = await editOrder(payload)
-        savedOrderId = data?.id || payload.id
+      const editingOrderId = getOrderId()
+      let savedOrderId: string | undefined
+      if (editingOrderId) {
+        const { data } = await editOrder({ ...payload, id: editingOrderId })
+        savedOrderId = data?.id || editingOrderId
         ElMessage.success('订单修改成功')
       } else {
-        const { data } = await addOrder(payload)
+        const { data } = await addOrder({ ...payload, id: undefined })
         savedOrderId = data?.id
         ElMessage.success('开单成功')
       }
@@ -2228,7 +2239,30 @@
   }
 
   function handlePrintConfirm(kind: PrintKind, count: number): void {
-    ElMessage.success(`${kind === 'waybill' ? '运单' : '标签'}打印数量：${count}`)
+    if (kind === 'label') {
+      ElMessage.info('标签打印模板尚未配置')
+      return
+    }
+    const order = normalizePayload()
+    const orderId = getOrderId()
+    const detailUrl = orderId
+      ? new URL(
+          router.resolve({ name: 'TmsOrderDetail', params: { id: orderId } }).href,
+          window.location.href
+        ).href
+      : undefined
+    const opened = printOrderWaybill(
+      { ...order, id: orderId || undefined },
+      {
+        brandName: brandName.value,
+        logoUrl: websiteConfig.value.logoUrl,
+        detailUrl,
+        copies: count,
+        label: (dictCode, value) =>
+          userStore.getDictItemByValue(dictCode, value ?? undefined)?.label || value || ''
+      }
+    )
+    if (!opened) ElMessage.warning('浏览器拦截了打印窗口，请允许弹出窗口后重试')
   }
 
   function normalizePayload(): OrderRecord {

@@ -201,6 +201,9 @@ function toOrderWritePayload(params: OrderRecord): Record<string, unknown> {
   >
   if (!params.id) return payload
 
+  // The edit form never changes a document number. Keep the server's existing value.
+  delete payload.order_no
+
   Object.entries(ORDER_SENSITIVE_WRITE_FIELDS).forEach(([field, columns]) => {
     if (canEditField(params.fieldAccess, field as Api.Tms.Order.OrderFieldKey)) return
     columns.forEach((column) => delete payload[column])

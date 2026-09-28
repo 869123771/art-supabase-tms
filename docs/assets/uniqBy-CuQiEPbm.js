@@ -1,1 +1,0 @@
-import{r as e}from"./position-BaGFEhrt.js";import{r as t}from"./style-BbDhes6c.js";function n(n,r){return n&&n.length?e(n,t(r,2)):[]}export{n as t};

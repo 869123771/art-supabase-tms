@@ -1,5 +1,5 @@
 import { computed, type ComputedRef, type Ref } from 'vue'
-import { ElLink } from 'element-plus'
+import { ElLink, ElMessage } from 'element-plus'
 import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
 import type {
   ArtTableQueryExcelColumn,
@@ -14,6 +14,9 @@ import { pageInfoHandler } from '@/utils/table/tableUtils'
 import { exportDeliveryList, fetchDeliveryList } from '@tms/api'
 import { canEditField, canViewField, formatSensitiveNumber } from '@/utils/field-permission'
 import { formatCompactNumberValue } from '@/utils/ui/format'
+import { useUserStore } from '@/store/modules/user'
+import { useWebsiteConfig } from '@/hooks/core/useWebsiteConfig'
+import { printLoadedWaybill } from '../../modules/waybill-print'
 
 export type DeliveryMode = 'delivery' | 'transit'
 export type DeliveryRecord = Api.Tms.Delivery.DeliveryRecord
@@ -37,6 +40,7 @@ export interface DeliveryListContext {
 
 interface RouteNavigator {
   push: (target: { name: string; params?: Record<string, string> }) => Promise<unknown>
+  resolve: (target: { name: string; params: Record<string, string> }) => { href: string }
 }
 
 export const DELIVERY_STATUS_ALL = '__all__'
@@ -309,21 +313,28 @@ function openReceiptArchiveDialog(context: DeliveryListContext, row: DeliveryRec
 function getMoreActions(context: DeliveryListContext, row: DeliveryRecord): ButtonMoreItem[] {
   if (context.mode !== 'delivery') return []
 
+  const actions: ButtonMoreItem[] = [
+    {
+      key: 'print',
+      label: '打印运单',
+      icon: 'ri:printer-line',
+      auth: 'TmsDeliveryManagement:View'
+    }
+  ]
   const canArchiveReceipt =
     ['signed', 'completed'].includes(String(row.orderStatus)) &&
     canEditField(row.fieldAccess, 'settlementAmounts') &&
     canEditField(row.fieldAccess, 'proofAttachments')
-  if (!canArchiveReceipt) return []
-
-  return [
-    {
+  if (canArchiveReceipt) {
+    actions.push({
       key: 'archive-receipt',
       label: row.receiptImageUrls?.length ? '复核回单' : '归档回单',
       icon: 'ri:archive-2-line',
       color: 'var(--el-color-primary)',
       auth: 'TmsDeliveryManagement:ArchiveReceipt'
-    }
-  ]
+    })
+  }
+  return actions
 }
 
 function handleMoreAction(
@@ -332,6 +343,26 @@ function handleMoreAction(
   item: ButtonMoreItem
 ): void {
   if (item.key === 'archive-receipt') openReceiptArchiveDialog(context, row)
+  if (item.key === 'print') printDeliveryWaybill(context, row)
+}
+
+function printDeliveryWaybill(context: DeliveryListContext, row: DeliveryRecord): void {
+  const { brandName, websiteConfig } = useWebsiteConfig()
+  const userStore = useUserStore()
+  const detailUrl = row.id
+    ? new URL(
+        context.router.resolve({ name: 'TmsOrderDetail', params: { id: row.id } }).href,
+        window.location.href
+      ).href
+    : undefined
+  const opened = printLoadedWaybill(row, {
+    brandName: brandName.value,
+    logoUrl: websiteConfig.value.logoUrl,
+    detailUrl,
+    label: (dictCode, value) =>
+      userStore.getDictItemByValue(dictCode, value ?? undefined)?.label || value || ''
+  })
+  if (!opened) ElMessage.warning('浏览器拦截了打印窗口，请允许弹出窗口后重试')
 }
 
 function formatCargoType(row: DeliveryRecord): string {
