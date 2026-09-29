@@ -42,15 +42,25 @@
   import ArtAddressPicker from '@/components/core/forms/art-address-picker/index.vue'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
+  import { useTenantScopeFormPolicy } from '@/hooks/core/useTenantScopeFormPolicy'
   import { addCustomer, editCustomer, fetchCustomerOptions } from '@tms/api'
+  import type { MasterGroup } from '@/api/master-groups'
   import { fetchRegionOptions } from '@/api/common'
   import { useUserStore } from '@/store/modules/user'
+  import { useTenantScopeStore } from '@/store/modules/tenantScope'
   import { canEditField, canViewField } from '@/utils/field-permission'
+  import TreeUtils from '@/utils/tree'
 
   defineOptions({ name: 'TmsCustomerDialog' })
 
   type Customer = Api.Tms.BasicData.Customer
   type CustomerForm = Customer & { addressPicker?: undefined; regionPath: string[] }
+
+  export interface CustomerDialogOpenData {
+    row?: Customer
+    groups: MasterGroup[]
+    initialGroupId?: string
+  }
 
   interface DialogExposeForm {
     validate: () => Promise<boolean>
@@ -63,8 +73,31 @@
   }>()
 
   const { getDictMap } = storeToRefs(useUserStore())
-  const dialogRef = ref<ArtDialogExpose<Customer | undefined>>()
+  const tenantScopeStore = useTenantScopeStore()
+  const { effectiveTenantId, tenantOptions } = storeToRefs(tenantScopeStore)
+  const { shouldExposeTenantField } = useTenantScopeFormPolicy()
+  const dialogRef = ref<ArtDialogExpose<CustomerDialogOpenData>>()
   const formRef = ref<DialogExposeForm>()
+  const groups = ref<MasterGroup[]>([])
+  const groupTree = new TreeUtils({ parentKey: 'parentId' })
+  const groupOptions = computed(() =>
+    groupTree.listToTree(
+      groups.value
+        .filter((group) => group.tenantId === form.tenantId)
+        .map((group) => ({
+          id: group.id,
+          parentId: group.parentId,
+          label: `${group.name} · ${group.code}`,
+          value: group.id
+        }))
+    )
+  )
+  const tenantChoices = computed(() =>
+    tenantOptions.value.map((tenant) => ({
+      label: `${tenant.tenantName || tenant.tenantCode}（${tenant.tenantCode}）`,
+      value: tenant.id
+    }))
+  )
 
   const customerLevelOptions = computed(() => getDictMap.value.tmsCustomerLevel ?? [])
   const customerIndustryOptions = computed(() => getDictMap.value.tmsCustomerIndustry ?? [])
@@ -72,7 +105,9 @@
 
   const createInitialForm = (): CustomerForm => ({
     id: undefined,
+    tenantId: effectiveTenantId.value || undefined,
     parentUnitId: null,
+    groupId: null,
     customerCode: '',
     customerName: '',
     industry: '',
@@ -121,7 +156,10 @@
   const canEditCustomerField = (field: Api.Tms.BasicData.CustomerFieldKey): boolean =>
     canEditField(form.fieldAccess, field)
 
-  const formRules: FormRules<CustomerForm> = {
+  const formRules = computed<FormRules<CustomerForm>>(() => ({
+    tenantId: shouldExposeTenantField.value
+      ? [{ required: true, message: '请选择所属租户', trigger: 'change' }]
+      : [],
     customerName: [
       { required: true, message: '请输入客户名称', trigger: 'blur' },
       { min: 2, max: 100, message: '长度应为 2 到 100 个字符', trigger: 'blur' }
@@ -150,10 +188,26 @@
     contactEmail: [{ type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }],
     postalCode: [{ pattern: /^\d{6}$/, message: '邮编应为 6 位数字', trigger: 'blur' }],
     remark: [{ max: 500, message: '备注不能超过 500 个字符', trigger: 'blur' }]
-  }
+  }))
 
   const formItems = computed<FormItem[]>(() => [
     { label: '基础信息', key: 'baseSection', type: 'divider', span: 24 },
+    ...(shouldExposeTenantField.value
+      ? [
+          {
+            label: '所属租户',
+            key: 'tenantId',
+            type: 'select' as const,
+            options: tenantChoices.value,
+            props: {
+              disabled: Boolean(form.id),
+              filterable: true,
+              placeholder: '请选择客户所属租户',
+              onChange: () => (form.groupId = null)
+            }
+          }
+        ]
+      : []),
     {
       label: '客户编号',
       key: 'customerCode',
@@ -169,6 +223,18 @@
       key: 'customerName',
       type: 'input',
       props: { maxlength: 100, placeholder: '请输入客户名称' }
+    },
+    {
+      label: '客户分组',
+      key: 'groupId',
+      type: 'treeSelect',
+      options: groupOptions.value,
+      props: {
+        clearable: true,
+        filterable: true,
+        placeholder: form.tenantId ? '请选择客户分组' : '请先选择所属租户'
+      },
+      description: '选填；分组与左侧导航保持一致。'
     },
     {
       label: '所属行业',
@@ -376,6 +442,7 @@
     const payload: Customer = {
       ...rawPayload,
       parentUnitId: rawPayload.parentUnitId || null,
+      groupId: rawPayload.groupId || null,
       ...(rawPayload.region === undefined ? {} : { region: regionPath.join('/') }),
       regionAdcode: normalizeNullableText(rawPayload.regionAdcode),
       longitude,
@@ -434,8 +501,11 @@
     }
   }
 
-  const handleOpen = async (row?: Customer): Promise<void> => {
+  const handleOpen = async (data: CustomerDialogOpenData): Promise<void> => {
     await resetForm()
+    await tenantScopeStore.loadTenantOptions()
+    groups.value = data.groups
+    const row = data.row
     const isEdit = Boolean(row?.id)
     if (row) {
       replaceForm({
@@ -444,9 +514,15 @@
         tags: [...(row.tags ?? [])],
         regionPath: row.region?.split('/').filter(Boolean) ?? []
       })
+    } else if (data.initialGroupId) {
+      const selectedGroup = groups.value.find((group) => group.id === data.initialGroupId)
+      if (selectedGroup) {
+        form.tenantId = selectedGroup.tenantId
+        form.groupId = selectedGroup.id
+      }
     }
 
-    await dialogRef.value?.handleOpen(row, {
+    await dialogRef.value?.handleOpen(data, {
       title: isEdit ? '编辑客户' : '新增客户',
       subtitle: '维护客户基础、联系人和财务信息',
       contentMaxHeight: '72vh',

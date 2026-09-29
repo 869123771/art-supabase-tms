@@ -81,6 +81,8 @@ const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
 
 const CUSTOMER_PAYLOAD_KEYS = [
   'parentUnitId',
+  'groupId',
+  'tenantId',
   'customerCode',
   'customerName',
   'industry',
@@ -112,8 +114,13 @@ const CUSTOMER_PAYLOAD_KEYS = [
 ] as const satisfies readonly (keyof Customer)[]
 
 const CUSTOMER_ADDRESS_PAYLOAD_KEYS = [
+  'tenantId',
   'customerId',
   'addressType',
+  'partyName',
+  'addressShortName',
+  'businessHoursStart',
+  'businessHoursEnd',
   'contactName',
   'contactPhone',
   'region',
@@ -163,6 +170,7 @@ const toCustomerListRpcParams = (
       ? `${params.createTimeRange[1]}T23:59:59.999`
       : null,
     p_ids: params.ids?.length ? params.ids : null,
+    p_group_ids: params.groupIds?.length ? params.groupIds : null,
     p_purpose: purpose
   }
 }

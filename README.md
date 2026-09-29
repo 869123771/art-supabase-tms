@@ -63,6 +63,14 @@ AI 智能填单只生成可复核草稿；调度推荐和异常研判只提供�
 - “保存报价”保留草稿；“提交报价”仅在系统内标记为已提交，不发送客户通知。报价独立存于 `public.tms_order_quote`，不改写订单应收费用；每单保留一份当前报价。附件最多 6 个，必须属于订单租户。
 - 读写分别经 `tms_get_order_quote_secure`、`tms_save_order_quote_secure` RPC；菜单权限 `TmsOrderList:Quote`、订单字段权限、租户范围、金额与字典值由服务端复核。2026-09-28 使用事务回滚验证了同租户草稿与提交、金额合计、零额提交拒绝及平台全量、平台选定租户、普通用户的跨租户访问边界。
 
+### 基础资料补充
+
+- “黑名单”“投诉咨询”“电子合同”“运输协议”分别存于 `tms_driver_blacklist`、`tms_service_case`、`tms_electronic_contract`、`tms_transport_agreement`。四页复用平台的查询表格、详情描述、上传控件与空状态组件。
+- 服务单号、电子合同号、运输协议号通过系统编号规则按租户和月份生成，分别使用 `TS`、`DZHT`、`YSXY` 前缀与 3 位流水码。复制合同会生成新合同号，终止合同保留原记录。
+- 普通用户只可读取所属租户的资料；四表各有一条按租户范围读取策略和三条平台超级管理员写入策略。新增、编辑、删除、复制及终止操作由数据库边界约束。承运商和车辆参选按租户筛选，运输协议保存车辆档案中的车型与车长快照。
+- 合同复制与承运商参选 RPC 供已登录用户调用，函数内再次检查权限和租户范围；复制还检查平台超级管理员身份，普通用户的承运商参选结果不含联系人或法定代表人。
+- 2026-09-29 为四页各创建 2 条演示记录，并以事务回滚验证了新增、编辑、批量删除、合同复制与终止、编号生成及跨租户读写边界。数据库性能顾问对四张新表无提示；安全顾问对上述两个已登录用户可调用的受控 RPC 仍给出常规 [`SECURITY DEFINER` 提示](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable)。
+
 ## 司机端协同
 
 独立的 [`supabase-mobile-tms-driver`](https://gitee.com/wangyanghub/supabase-mobile-tms-driver) 提供 H5 与微信小程序司机工作台。司机可接单，完成装卸货定位打卡、发车、到达、签收、收车、凭证上传与费用上报；所有记录通过受控契约回流同一条 TMS 运单履约链路。

@@ -1,9 +1,9 @@
 <template>
-  <div class="business-workspace-page art-full-height">
+  <div class="tms-cargo-page business-workspace-page art-full-height">
     <BusinessWorkspaceHeader
       eyebrow="CARGO CATALOG"
-      title="货物资料"
-      description="沉淀货物名称、计量单位、体积重量与启用状态，提升开单录入和计价准确性。"
+      title="货物管理"
+      description="关联 MDM 物料编码，统一名称、规格与基本单位，并维护运输所需参数。"
       icon="ri:archive-stack-line"
       :tags="[
         { label: '货品标准化', type: 'primary' },
@@ -15,21 +15,45 @@
       </template>
     </BusinessWorkspaceHeader>
 
-    <ArtTableQuery
-      ref="tableQueryRef"
-      v-model="tableState.searchQuery"
-      :search-items="searchItems"
-      :api-fn="fetchTableData"
-      :columns-factory="columnsFactory"
-      :header-actions="headerActions"
-      header-actions-placement="workspace"
-      :search-bar-props="{ span: 6, labelWidth: 86, showExpand: false }"
-      :table-props="{
-        emptyText: '暂无货物资料',
-        emptyDescription: '可新增常用货物，或调整计量单位、状态、时间和关键字后重新查询。'
-      }"
-      focusable
-    />
+    <div class="tms-cargo-page__workspace"
+      ><ArtWorkspaceSplitter
+        primary-size="300px"
+        primary-min="250px"
+        primary-max="360px"
+        :breakpoint="900"
+        stacked-primary-size="340px"
+      >
+        <template #primary>
+          <MasterGroupPanel
+            title="物料分组"
+            :groups="groupState.rows"
+            :selected-id="groupState.selectedId"
+            :loading="groupState.loading"
+            :error="groupState.error"
+            @select="selectGroup"
+            @refresh="refreshGroups"
+          />
+        </template>
+        <div class="tms-cargo-page__table">
+          <ArtTableQuery
+            ref="tableQueryRef"
+            v-model="tableState.searchQuery"
+            :search-items="searchItems"
+            :api-fn="fetchTableData"
+            :columns-factory="columnsFactory"
+            :header-actions="headerActions"
+            :immediate="false"
+            header-actions-placement="workspace"
+            :search-bar-props="{ span: 6, labelWidth: 86, showExpand: false }"
+            :table-props="{
+              emptyText: '暂无货物资料',
+              emptyDescription: '可新增货物，或调整分组、状态、时间和关键字后重新查询。'
+            }"
+            focusable
+            focus-scope-selector=".tms-cargo-page__workspace"
+          />
+        </div> </ArtWorkspaceSplitter
+    ></div>
 
     <CargoDialog ref="dialogRef" @success="handleSaveSuccess" />
     <MasterDataDeleteGuard ref="deleteGuardRef" @cleared="handleDeleteGuardCleared" />
@@ -50,6 +74,9 @@
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import { formatWithDayjs } from '@/utils/time'
   import { useUserStore } from '@/store/modules/user'
+  import { useTenantScopeStore } from '@/store/modules/tenantScope'
+  import TreeUtils from '@/utils/tree'
+  import { fetchMasterGroups, type MasterGroup } from '@/api/master-groups'
   import {
     deleteCargo,
     deleteCargoBatch,
@@ -63,6 +90,11 @@
   } from '@/components/business/master-data-delete-guard/index.vue'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
+  import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
+  import MasterGroupPanel from '@/components/business/master-group-panel/index.vue'
+  import ArtWorkspaceSplitter from '@/components/core/layouts/art-workspace-splitter/index.vue'
+  import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
+  import type { CargoDialogOpenData } from './modules/cargo-dialog.vue'
 
   defineOptions({ name: 'TmsCargo' })
 
@@ -73,7 +105,7 @@
   type TableParams = SearchParams & Pick<Api.Common.PaginationParams, 'current' | 'size'>
 
   interface CargoDialogExpose {
-    handleOpen: (row?: Cargo) => Promise<void>
+    handleOpen: (data: CargoDialogOpenData) => Promise<void>
   }
 
   interface MasterDataDeleteGuardExpose {
@@ -81,14 +113,31 @@
   }
 
   const { getDictMap } = storeToRefs(useUserStore())
+  const { effectiveTenantId } = storeToRefs(useTenantScopeStore())
   const route = useRoute()
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<CargoDialogExpose>()
   const deleteGuardRef = ref<MasterDataDeleteGuardExpose>()
+  const groupState = reactive({
+    rows: [] as MasterGroup[],
+    selectedId: '',
+    loading: false,
+    error: ''
+  })
+  const groupTree = new TreeUtils({ parentKey: 'parentId' })
+  const selectedGroupIds = computed(() => {
+    if (!groupState.selectedId) return undefined
+    const descendants = groupTree
+      .getDescendants(groupTree.listToTree(groupState.rows), groupState.selectedId, true)
+      .map((item) => String(item.id))
+    return descendants.length ? descendants : [groupState.selectedId]
+  })
+  const groupNameById = computed(
+    () => new Map(groupState.rows.map((group) => [group.id, group.name]))
+  )
 
   const tableState = reactive<{ searchQuery: SearchParams }>({
     searchQuery: {
-      unit: '',
       enabled: undefined,
       createTimeRange: [],
       recordId: typeof route.query.recordId === 'string' ? route.query.recordId : '',
@@ -96,7 +145,6 @@
     }
   })
 
-  const cargoUnitOptions = computed(() => getDictMap.value.tmsCargoUnit ?? [])
   const commonBooleanOptions = computed(() =>
     (getDictMap.value.commonBoolean ?? []).map((item) => ({
       ...item,
@@ -105,8 +153,16 @@
   )
 
   const cargoExcelColumns: ArtTableQueryExcelColumn[] = [
-    { key: 'cargoName', title: '货物名称', required: true },
-    { key: 'unit', title: '计量单位', required: true },
+    { key: 'cargoCode', title: '物料编码', required: true },
+    { key: 'cargoName', title: '货物名称' },
+    {
+      key: 'unit',
+      title: 'MDM基本单位',
+      formatter: (_value, record) => {
+        const cargo = record as Cargo
+        return cargo.material?.baseUnit?.unitName || cargo.material?.basicUnit || cargo.unit || ''
+      }
+    },
     { key: 'lengthM', title: '长(m)' },
     { key: 'widthM', title: '宽(m)' },
     { key: 'heightM', title: '高(m)' },
@@ -116,22 +172,11 @@
     { key: 'enabled', title: '状态' },
     { key: 'remark', title: '备注' }
   ]
-
-  const unitLabelToValue = computed(() => {
-    const map = new Map<string, string>()
-    cargoUnitOptions.value.forEach((item) => {
-      if (item.label && item.value) map.set(item.label, item.value)
-    })
-    return map
-  })
+  const cargoImportColumns = cargoExcelColumns.filter(
+    (column) => column.key !== 'cargoName' && column.key !== 'unit'
+  )
 
   const searchItems = computed<SearchFormItem[]>(() => [
-    {
-      label: '计量单位',
-      key: 'unit',
-      type: 'select',
-      props: { options: cargoUnitOptions.value, clearable: true }
-    },
     {
       label: '状态',
       key: 'enabled',
@@ -156,7 +201,7 @@
       type: 'input',
       props: {
         clearable: true,
-        placeholder: '货物名称、编号、规格型号、单位或备注'
+        placeholder: '物料编码、货物名称、规格或备注'
       }
     }
   ])
@@ -165,9 +210,19 @@
     { type: 'selection', width: 50, fixed: 'left', reserveSelection: true },
     {
       prop: 'cargoName',
-      label: '货物名称',
-      minWidth: 180,
-      showOverflowTooltip: true
+      label: '物料 / 货物',
+      minWidth: 255,
+      formatter: (row) => (
+        <div class="tms-cargo-page__identity">
+          <span aria-hidden="true">
+            <ArtSvgIcon icon="ri:archive-drawer-line" />
+          </span>
+          <div>
+            <strong title={row.cargoName}>{row.cargoName}</strong>
+            <small title={row.cargoCode || ''}>{row.cargoCode || '旧货物 · 待关联物料'}</small>
+          </div>
+        </div>
+      )
     },
     {
       prop: 'specModel',
@@ -177,9 +232,19 @@
     },
     {
       prop: 'unit',
-      label: '单位',
-      width: 90,
-      dict: { code: 'tmsCargoUnit', display: 'text' }
+      label: '基本单位',
+      width: 110,
+      formatter: (row) =>
+        row.material?.baseUnit?.unitName || row.material?.basicUnit || row.unit || '-'
+    },
+    {
+      prop: 'materialGroupId',
+      label: '物料分组',
+      minWidth: 130,
+      formatter: (row) =>
+        row.materialGroupId
+          ? groupNameById.value.get(row.materialGroupId) || '分组不可见'
+          : '未分组'
     },
     {
       prop: 'lengthM',
@@ -238,17 +303,24 @@
     {
       prop: 'operation',
       label: '操作',
-      width: 120,
+      width: 156,
       fixed: 'right',
       formatter: (row) => (
-        <div>
+        <BusinessTableRowActions>
+          <ArtButtonTable
+            type="edit"
+            icon="ri:file-copy-line"
+            label="复制货物参数"
+            permission="TmsCargo:Add"
+            onClick={() => openDialog(row, true)}
+          />
           <ArtButtonTable type="edit" permission="TmsCargo:Edit" onClick={() => openDialog(row)} />
           <ArtButtonTable
             type="delete"
             permission="TmsCargo:Delete"
             onClick={() => handleDelete(row)}
           />
-        </div>
+        </BusinessTableRowActions>
       )
     }
   ]
@@ -258,11 +330,12 @@
     {
       type: 'import',
       permission: 'TmsCargo:Import',
-      importColumns: cargoExcelColumns,
+      importColumns: cargoImportColumns,
       importTransformer: (rows) =>
         rows.map((row) => normalizeImportRow(row as Record<string, unknown>)),
       importApi: async (rows) => {
-        await importCargoes(rows as Cargo[])
+        if (!effectiveTenantId.value) throw new Error('请先在顶部选择导入目标租户')
+        await importCargoes(rows as Cargo[], effectiveTenantId.value)
       },
       onImportError: () => {
         ElMessage.error('导入文件解析失败')
@@ -277,6 +350,7 @@
       exportApi: ({ selectedIds, searchParams, maxRows }) =>
         exportCargoList({
           ...(searchParams as SearchParams),
+          materialGroupIds: selectedGroupIds.value,
           ids: selectedIds.map(String),
           maxRows
         })
@@ -297,7 +371,7 @@
 
   const fetchTableData = (params: TableParams) => {
     const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
-    return fetchCargoList({ ...params, from, to })
+    return fetchCargoList({ ...params, materialGroupIds: selectedGroupIds.value, from, to })
   }
 
   const formatNumber = (value?: number | null, digits = 2): string => {
@@ -319,7 +393,6 @@
   const normalizeImportRow = (row: Record<string, unknown>): Cargo =>
     ({
       ...row,
-      unit: unitLabelToValue.value.get(String(row.unit ?? '')) || String(row.unit ?? ''),
       lengthM: parseOptionalNumber(row.lengthM),
       widthM: parseOptionalNumber(row.widthM),
       heightM: parseOptionalNumber(row.heightM),
@@ -329,9 +402,44 @@
       enabled: normalizeEnabled(row.enabled)
     }) as Cargo
 
-  const openDialog = (row?: Cargo): void => {
-    void dialogRef.value?.handleOpen(row)
+  const openDialog = (row?: Cargo, copy = false): void => {
+    void dialogRef.value?.handleOpen({
+      row,
+      copy,
+      groups: groupState.rows,
+      initialGroupId: groupState.selectedId || undefined
+    })
   }
+
+  const loadGroups = async (): Promise<void> => {
+    groupState.loading = true
+    groupState.error = ''
+    try {
+      groupState.rows = await fetchMasterGroups('material', effectiveTenantId.value)
+    } catch {
+      groupState.error = '物料分组加载失败，请重试'
+    } finally {
+      groupState.loading = false
+    }
+  }
+  const refreshGroups = (): void => {
+    void loadGroups()
+  }
+  const selectGroup = async (id: string): Promise<void> => {
+    groupState.selectedId = id
+    await tableQueryRef.value?.getData()
+  }
+  watch(
+    effectiveTenantId,
+    async () => {
+      groupState.selectedId = ''
+      groupState.rows = []
+      await loadGroups()
+      await nextTick()
+      await tableQueryRef.value?.refreshCreate()
+    },
+    { immediate: true }
+  )
 
   const handleSaveSuccess = (type: DialogType): void => {
     void (type === 'add'
@@ -389,3 +497,66 @@
     }
   }
 </script>
+
+<style scoped lang="scss">
+  .tms-cargo-page {
+    min-width: 0;
+    min-height: 0;
+
+    &__workspace {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    &__table {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    &__identity {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      min-width: 0;
+
+      > span {
+        display: grid;
+        flex: none;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        color: var(--el-color-primary);
+        background: var(--el-color-primary-light-9);
+        border-radius: 9px;
+      }
+
+      > div {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      strong,
+      small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      strong {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+
+      small {
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+  }
+</style>

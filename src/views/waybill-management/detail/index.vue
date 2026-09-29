@@ -127,6 +127,17 @@
         <ElTabPane v-if="canView('routeCoordinates')" label="轨迹和定位" name="route" lazy>
           <WaybillRoutePanel :waybill="detail.data" />
         </ElTabPane>
+        <ElTabPane name="fees" lazy>
+          <template #label>
+            <span class="waybill-detail__tab-label"
+              >费用明细<ElBadge
+                v-if="detail.data.costs.length"
+                :value="detail.data.costs.length"
+                :max="99"
+            /></span>
+          </template>
+          <WaybillFeePanel :waybill="detail.data" />
+        </ElTabPane>
       </ElTabs>
     </section>
   </ArtPageShell>
@@ -141,6 +152,7 @@
   import { formatWithDayjs } from '@/utils/time'
   import { canViewField } from '@/utils/field-permission'
   import WaybillDocumentPanel from './modules/waybill-document-panel.vue'
+  import WaybillFeePanel from './modules/waybill-fee-panel.vue'
   import WaybillInfoPanel from './modules/waybill-info-panel.vue'
   import WaybillOperationPanel from './modules/waybill-operation-panel.vue'
   import WaybillRoutePanel from './modules/waybill-route-panel.vue'
@@ -148,7 +160,7 @@
 
   defineOptions({ name: 'TmsWaybillDetail' })
 
-  type DetailTab = 'overview' | 'tracking' | 'operations' | 'documents' | 'route'
+  type DetailTab = 'overview' | 'tracking' | 'operations' | 'documents' | 'route' | 'fees'
 
   interface DetailGroup {
     activeTab: DetailTab
@@ -323,7 +335,7 @@
 
   function normalizeTab(value: unknown): DetailTab {
     const normalized = String(value) === 'info' ? 'overview' : String(value)
-    return ['overview', 'tracking', 'operations', 'documents', 'route'].includes(normalized)
+    return ['overview', 'tracking', 'operations', 'documents', 'route', 'fees'].includes(normalized)
       ? (normalized as DetailTab)
       : 'overview'
   }

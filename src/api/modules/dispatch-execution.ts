@@ -40,7 +40,8 @@ export async function fetchDispatchWorkbench(
     countOnly?: boolean
     ids?: string[]
   },
-  mode: 'pending' | 'loaded'
+  mode: 'pending' | 'loaded',
+  showErrorMessage = true
 ) {
   const from = Math.max(params.from ?? 0, 0)
   const to = Math.max(params.maxRows ? from + params.maxRows - 1 : (params.to ?? 9), from)
@@ -75,7 +76,7 @@ export async function fetchDispatchWorkbench(
           )
         )
       }),
-    { showErrorMessage: true }
+    { showErrorMessage }
   )
   return {
     data: result.data?.records ?? [],

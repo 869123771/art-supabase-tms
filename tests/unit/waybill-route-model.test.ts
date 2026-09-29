@@ -23,6 +23,7 @@ function createWaybill(): Api.Tms.Waybill.WaybillDetailRecord {
     deliveryPhotos: [],
     receiptAttachments: [],
     expenseLocations: [],
+    costs: [],
     createTime: '2026-08-13T04:00:00Z',
     updateTime: '2026-08-13T12:00:00Z',
     events: [

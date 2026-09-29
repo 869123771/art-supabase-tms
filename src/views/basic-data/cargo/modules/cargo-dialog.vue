@@ -16,37 +16,51 @@
 
 <script setup lang="ts">
   import type { FormRules } from 'element-plus'
-  import { omit } from 'lodash-es'
+  import TreeUtils from '@/utils/tree'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
-  import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
-  import { addCargo, editCargo } from '@tms/api'
-  import { useUserStore } from '@/store/modules/user'
+  import { useTenantScopeStore } from '@/store/modules/tenantScope'
+  import { useTenantScopeFormPolicy } from '@/hooks/core/useTenantScopeFormPolicy'
+  import type { MasterGroup } from '@/api/master-groups'
+  import {
+    addCargo,
+    editCargo,
+    fetchCargoMaterialOptions,
+    type CargoMaterialOption
+  } from '@tms/api'
 
   defineOptions({ name: 'TmsCargoDialog' })
 
   type Cargo = Api.Tms.BasicData.Cargo
   type CargoForm = Cargo
 
+  export interface CargoDialogOpenData {
+    row?: Cargo
+    copy?: boolean
+    groups: MasterGroup[]
+    initialGroupId?: string
+  }
+
   interface DialogExposeForm {
     validate: () => Promise<boolean>
     clearValidate: () => void
   }
 
-  const emit = defineEmits<{
-    (event: 'success', type: 'add' | 'edit'): void
-  }>()
-
-  const { getDictMap } = storeToRefs(useUserStore())
-  const dialogRef = ref<ArtDialogExpose<Cargo | undefined>>()
+  const emit = defineEmits<{ (event: 'success', type: 'add' | 'edit'): void }>()
+  const { effectiveTenantId, tenantOptions } = storeToRefs(useTenantScopeStore())
+  const { shouldExposeTenantField } = useTenantScopeFormPolicy()
+  const dialogRef = ref<ArtDialogExpose<CargoDialogOpenData>>()
   const formRef = ref<DialogExposeForm>()
-  const cargoNumber = useDocumentNumberRule('master.cargo')
+  const materials = ref<CargoMaterialOption[]>([])
+  const groups = ref<MasterGroup[]>([])
+  const groupTree = new TreeUtils({ parentKey: 'parentId' })
 
-  const cargoUnitOptions = computed(() => getDictMap.value.tmsCargoUnit ?? [])
-
-  const createInitialForm = (): CargoForm => ({
+  const initialForm = (): CargoForm => ({
     id: undefined,
+    tenantId: effectiveTenantId.value || undefined,
+    materialId: null,
+    materialGroupId: null,
     cargoCode: '',
     cargoName: '',
     specModel: '',
@@ -60,116 +74,120 @@
     enabled: true,
     remark: ''
   })
-
-  const form = reactive<CargoForm>(createInitialForm())
-
-  const formRules: FormRules<CargoForm> = {
-    cargoCode: [
-      {
-        validator: (_rule, value, callback) =>
-          cargoNumber.manualRequired(Boolean(form.id)) && !String(value || '').trim()
-            ? callback(new Error('请输入货物编码'))
-            : callback(),
-        trigger: 'blur'
-      }
-    ],
-    cargoName: [
-      { required: true, message: '请输入货物名称', trigger: 'blur' },
-      { min: 2, max: 80, message: '长度应为 2 到 80 个字符', trigger: 'blur' }
-    ],
-    unit: [{ required: true, message: '请选择计量单位', trigger: 'change' }],
+  const form = reactive<CargoForm>(initialForm())
+  const tenantChoices = computed(() =>
+    tenantOptions.value.map((tenant) => ({
+      label: tenant.tenantName || tenant.tenantCode,
+      value: tenant.id
+    }))
+  )
+  const groupOptions = computed(() =>
+    groupTree.listToTree(
+      groups.value
+        .filter((group) => group.tenantId === form.tenantId)
+        .map((group) => ({
+          id: group.id,
+          parentId: group.parentId,
+          label: `${group.name} · ${group.code}`,
+          value: group.id
+        }))
+    )
+  )
+  const materialOptions = computed(() =>
+    materials.value.map((material) => ({
+      label: `${material.materialCode} · ${material.materialName}`,
+      value: material.id
+    }))
+  )
+  const unitLabel = computed(() => {
+    const material = materials.value.find((item) => item.id === form.materialId)
+    return material?.baseUnit?.unitName || material?.basicUnit || form.unit || ''
+  })
+  const formRules = computed<FormRules<CargoForm>>(() => ({
+    tenantId: shouldExposeTenantField.value
+      ? [{ required: true, message: '请选择所属租户', trigger: 'change' }]
+      : [],
+    materialId: [{ required: true, message: '请选择 MDM 物料编码', trigger: 'change' }],
     remark: [{ max: 500, message: '备注不能超过 500 个字符', trigger: 'blur' }]
-  }
-
-  const numberInputProps = {
-    min: 0,
-    precision: 2,
-    controlsPosition: 'right',
-    class: '!w-full'
-  }
-
+  }))
+  const numberInputProps = { min: 0, precision: 2, controlsPosition: 'right', class: '!w-full' }
   const formItems = computed<FormItem[]>(() => [
-    { label: '基础信息', key: 'baseSection', type: 'divider', span: 24 },
+    { label: '物料身份', key: 'materialSection', type: 'divider', span: 24 },
+    ...(shouldExposeTenantField.value
+      ? [
+          {
+            label: '所属租户',
+            key: 'tenantId',
+            type: 'select' as const,
+            span: 12,
+            props: {
+              options: tenantChoices.value,
+              filterable: true,
+              disabled: Boolean(form.id),
+              placeholder: '请选择货物所属租户',
+              onChange: handleTenantChange
+            }
+          }
+        ]
+      : []),
     {
-      label: '货物编码',
-      key: 'cargoCode',
-      type: 'input',
+      label: '物料编码',
+      key: 'materialId',
+      type: 'select',
+      span: 16,
       props: {
-        maxlength: 30,
-        ...cargoNumber.inputProps(Boolean(form.id), '请输入货物编码', true)
+        options: materialOptions.value,
+        filterable: true,
+        clearable: true,
+        disabled: !form.tenantId,
+        placeholder: '从 MDM 物料编码中选择',
+        onChange: applyMaterial
       },
-      description: cargoNumber.description.value
+      description: '名称、规格和唯一计量单位取自 MDM 物料主数据。'
+    },
+    {
+      label: '物料分组',
+      key: 'materialGroupId',
+      type: 'treeSelect',
+      span: 8,
+      options: groupOptions.value,
+      props: { clearable: true, filterable: true, placeholder: '请选择物料分组' }
     },
     {
       label: '货物名称',
       key: 'cargoName',
       type: 'input',
-      props: { maxlength: 80, placeholder: '请输入货物名称' }
+      props: { disabled: true, placeholder: '选择物料后自动带入' }
     },
     {
       label: '规格型号',
       key: 'specModel',
       type: 'input',
-      props: { maxlength: 100, placeholder: '如 1200 × 800 mm / A 型' }
+      props: { disabled: true, placeholder: '从物料编码带入' }
     },
     {
       label: '计量单位',
       key: 'unit',
-      type: 'select',
-      props: {
-        options: cargoUnitOptions.value,
-        clearable: true,
-        placeholder: '请选择计量单位'
-      }
+      type: 'text',
+      content: () => unitLabel.value || '选择物料后自动带入'
     },
-    {
-      label: '长(m)',
-      key: 'lengthM',
-      type: 'number',
-      props: numberInputProps
-    },
-    {
-      label: '宽(m)',
-      key: 'widthM',
-      type: 'number',
-      props: numberInputProps
-    },
-    {
-      label: '高(m)',
-      key: 'heightM',
-      type: 'number',
-      props: numberInputProps
-    },
+    { label: '运输参数', key: 'transportSection', type: 'divider', span: 24 },
+    { label: '长(m)', key: 'lengthM', type: 'number', props: numberInputProps },
+    { label: '宽(m)', key: 'widthM', type: 'number', props: numberInputProps },
+    { label: '高(m)', key: 'heightM', type: 'number', props: numberInputProps },
     {
       label: '体积(m³)',
       key: 'volumeM3',
       type: 'number',
-      props: {
-        ...numberInputProps,
-        precision: 3
-      }
+      props: { ...numberInputProps, precision: 3 }
     },
-    {
-      label: '重量(kg)',
-      key: 'weightKg',
-      type: 'number',
-      props: numberInputProps
-    },
-    {
-      label: '价值(元)',
-      key: 'valueAmount',
-      type: 'number',
-      props: numberInputProps
-    },
+    { label: '重量(kg)', key: 'weightKg', type: 'number', props: numberInputProps },
+    { label: '价值(元)', key: 'valueAmount', type: 'number', props: numberInputProps },
     {
       label: '状态',
       key: 'enabled',
       type: 'switch',
-      props: {
-        activeText: '启用',
-        inactiveText: '停用',
-        inlinePrompt: true
-      }
+      props: { activeText: '启用', inactiveText: '停用', inlinePrompt: true }
     },
     {
       label: '备注信息',
@@ -178,100 +196,111 @@
       span: 24,
       props: {
         type: 'textarea',
-        rows: 4,
+        rows: 3,
         maxlength: 500,
         showWordLimit: true,
-        placeholder: '请输入备注信息'
+        placeholder: '补充运输注意事项'
       }
     }
   ])
 
-  const replaceForm = (nextForm: CargoForm): void => {
-    Object.keys(form).forEach((key) => delete form[key as keyof CargoForm])
-    Object.assign(form, nextForm)
+  const replaceForm = (next: CargoForm): void => {
+    Object.assign(form, initialForm(), next)
   }
-
-  const resetForm = async (): Promise<void> => {
-    replaceForm(createInitialForm())
-    await nextTick()
-    formRef.value?.clearValidate()
+  const loadMaterials = async (): Promise<void> => {
+    materials.value = form.tenantId ? await fetchCargoMaterialOptions(form.tenantId) : []
   }
-
-  const normalizeNumber = (value?: number | null): number | null => {
-    if (value === null || value === undefined || Number.isNaN(Number(value))) return null
-    return Number(value)
+  const handleTenantChange = (): void => {
+    form.materialId = null
+    form.materialGroupId = null
+    form.cargoCode = ''
+    form.cargoName = ''
+    form.specModel = ''
+    form.unit = ''
+    void loadMaterials()
   }
-
-  const normalizePayload = (): Cargo => {
-    const payload = omit(structuredClone(toRaw(form)), [
-      'tenantId',
-      'createBy',
-      'createTime',
-      'updateBy',
-      'updateTime'
-    ]) as Cargo
-
-    return {
-      ...payload,
-      lengthM: normalizeNumber(payload.lengthM),
-      widthM: normalizeNumber(payload.widthM),
-      heightM: normalizeNumber(payload.heightM),
-      volumeM3: normalizeNumber(payload.volumeM3),
-      weightKg: normalizeNumber(payload.weightKg),
-      valueAmount: normalizeNumber(payload.valueAmount),
-      remark: payload.remark || null
-    }
+  const applyMaterial = (id?: string): void => {
+    const material = materials.value.find((item) => item.id === id)
+    form.cargoCode = material?.materialCode || ''
+    form.cargoName = material?.materialName || ''
+    form.specModel = material?.specificationModel || ''
+    form.unit = material?.basicUnit || ''
+    if (material?.materialGroupId) form.materialGroupId = material.materialGroupId
   }
-
+  const normalizeNumber = (value?: number | null): number | null =>
+    value === null || value === undefined || Number.isNaN(Number(value)) ? null : Number(value)
+  const payload = (): Cargo => ({
+    id: form.id,
+    tenantId: form.tenantId,
+    materialId: form.materialId,
+    materialGroupId: form.materialGroupId,
+    cargoName: form.cargoName,
+    unit: form.unit,
+    lengthM: normalizeNumber(form.lengthM),
+    widthM: normalizeNumber(form.widthM),
+    heightM: normalizeNumber(form.heightM),
+    volumeM3: normalizeNumber(form.volumeM3),
+    weightKg: normalizeNumber(form.weightKg),
+    valueAmount: normalizeNumber(form.valueAmount),
+    enabled: form.enabled,
+    remark: form.remark || null
+  })
   const handleSubmit = async (): Promise<boolean> => {
     try {
       await formRef.value?.validate()
     } catch {
       return false
     }
-
     try {
-      const payload = normalizePayload()
       const type = form.id ? 'edit' : 'add'
-      if (type === 'edit') await editCargo(payload)
-      else await addCargo(payload)
+      if (type === 'edit') await editCargo(payload())
+      else await addCargo(payload())
       emit('success', type)
       return true
     } catch {
       return false
     }
   }
-
-  const handleOpen = async (row?: Cargo): Promise<void> => {
-    await resetForm()
-    const isEdit = Boolean(row?.id)
-    if (row) {
-      replaceForm({
-        ...createInitialForm(),
-        ...structuredClone(toRaw(row))
-      })
+  const handleOpen = async (data: CargoDialogOpenData): Promise<void> => {
+    groups.value = data.groups
+    const selectedGroup = groups.value.find((group) => group.id === data.initialGroupId)
+    replaceForm({
+      ...initialForm(),
+      ...(data.row ? structuredClone(toRaw(data.row)) : {}),
+      tenantId:
+        data.row?.tenantId || selectedGroup?.tenantId || effectiveTenantId.value || undefined,
+      id: data.copy ? undefined : data.row?.id,
+      materialId: data.copy ? null : data.row?.materialId || null,
+      materialGroupId: data.row?.materialGroupId || data.initialGroupId || null
+    })
+    if (data.copy) {
+      form.cargoCode = ''
+      form.cargoName = ''
+      form.specModel = ''
+      form.unit = ''
     }
-
-    await dialogRef.value?.handleOpen(row, {
-      title: isEdit ? '编辑货物' : '新增货物',
-      subtitle: '维护货物基础信息、尺寸重量和计量单位',
+    await dialogRef.value?.handleOpen(data, {
+      title: data.copy ? '复制货物参数' : data.row ? '编辑货物' : '新增货物',
+      subtitle: data.copy
+        ? '运输参数已复制，请选择另一条 MDM 物料编码。'
+        : '物料身份来自 MDM，运输参数供 TMS 开单使用。',
       contentMaxHeight: '70vh',
       loading: true,
-      loadingText: '正在加载编号规则…',
+      loadingText: '正在加载物料编码…',
       onOpen: async (_openData, api) => {
         try {
-          await cargoNumber.loadRule()
+          await loadMaterials()
         } finally {
           api.setLoading(false)
         }
       },
       onConfirm: handleSubmit,
-      onReset: () => void resetForm()
+      onReset: () => {
+        replaceForm(initialForm())
+        void loadMaterials()
+        void nextTick().then(() => formRef.value?.clearValidate())
+      }
     })
   }
-
-  defineExpose({
-    handleOpen,
-    handleClose: () => dialogRef.value?.handleClose()
-  })
+  defineExpose({ handleOpen, handleClose: () => dialogRef.value?.handleClose() })
 </script>

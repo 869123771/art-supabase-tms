@@ -99,6 +99,12 @@ export const loadedWaybillStatusTabValues = [
   'cancelled'
 ]
 
+const dispatchModeLabels = {
+  carrier: '承运方',
+  self_operated: '自营',
+  individual_driver: '个体司机'
+} satisfies Record<NonNullable<WaybillRecord['dispatchMode']>, string>
+
 const waybillDispatchStatusFallbackMap: Record<string, Api.DataCenter.DictListItem> = {
   pending: {
     name: '待配载',
@@ -583,6 +589,12 @@ export const createWaybillColumns = (
         width: 100,
         formatter: (row) =>
           ({ single: '普通配载', merge: '合单', split: '拆单' })[row.executionKind ?? 'single']
+      },
+      {
+        prop: 'dispatchMode',
+        label: '调度对象',
+        width: 100,
+        formatter: (row) => (row.dispatchMode ? dispatchModeLabels[row.dispatchMode] : '-')
       },
       ...orderColumns,
       { prop: 'dispatchDriverName', label: '司机', width: 100, showOverflowTooltip: true },

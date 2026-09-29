@@ -41,6 +41,7 @@ declare global {
           id?: string
           tenantId?: string
           parentUnitId?: string | null
+          groupId?: string | null
           customerCode?: string
           customerName: string
           industry?: string
@@ -81,6 +82,7 @@ declare global {
           Pick<Customer, 'customerLevel' | 'industry' | 'enabled'> &
             Api.Common.CommonSearchParams & {
               customerId?: string
+              groupIds?: string[]
               keyword?: string
               createTimeRange?: string[]
             }
@@ -114,6 +116,10 @@ declare global {
           tenantId?: string
           customerId: string | null
           addressType: CustomerAddressType
+          partyName?: string | null
+          addressShortName?: string | null
+          businessHoursStart?: string | null
+          businessHoursEnd?: string | null
           contactName: string
           contactPhone: string
           region: string
@@ -262,6 +268,7 @@ declare global {
           carrierCode?: string
           companyName: string
           carrierType: string
+          dispatchChannel?: 'online' | 'offline'
           businessLicenseNo?: string
           taxRegistrationNo?: string
           legalRepresentative?: string
@@ -540,6 +547,17 @@ declare global {
         interface Cargo {
           id?: string
           tenantId?: string
+          materialId?: string | null
+          materialGroupId?: string | null
+          material?: {
+            id: string
+            materialCode: string
+            materialName: string
+            specificationModel?: string | null
+            basicUnit: string
+            materialGroupId?: string | null
+            baseUnit?: { unitName: string; symbol?: string | null } | null
+          } | null
           cargoCode?: string
           cargoName: string
           specModel?: string | null
@@ -559,8 +577,9 @@ declare global {
         }
 
         type CargoSearchParams = Partial<
-          Pick<Cargo, 'unit' | 'enabled'> &
+          Pick<Cargo, 'enabled'> &
             Api.Common.CommonSearchParams & {
+              materialGroupIds?: string[]
               keyword?: string
               createTimeRange?: string[]
               recordId?: string
@@ -1049,6 +1068,7 @@ declare global {
           sourceOrderNos?: string[]
           sourceOrderCount?: number
           executionKind?: 'single' | 'merge' | 'split'
+          dispatchMode?: 'carrier' | 'self_operated' | 'individual_driver' | null
           remainingCargoItems?: Api.Tms.Order.CargoItem[]
           remainingQuantityTotal?: number
           remainingWeightTotal?: number
@@ -1070,7 +1090,10 @@ declare global {
         }
 
         interface DispatchPlanExecution {
-          dispatchVehicleId: string
+          dispatchMode?: 'carrier' | 'self_operated' | 'individual_driver'
+          dispatchCarrierId?: string | null
+          dispatchAgreementId?: string | null
+          dispatchVehicleId?: string | null
           dispatchDriverId?: string | null
           plannedDepartureTime: string
           plannedArrivalTime: string
@@ -1139,6 +1162,52 @@ declare global {
             itemName: string
             businessCategory?: string | null
           } | null
+        }
+
+        type WaybillCostFieldKey =
+          'costAmounts' | 'paymentDetails' | 'driverPhone' | 'expenseLocation' | 'expenseEvidence'
+
+        interface WaybillCostRecord {
+          id: string
+          costNo?: string | null
+          sourceType?: string | null
+          costType: string
+          amount?: number | string | null
+          quantity?: number | string | null
+          unitPrice?: number | string | null
+          occurredOn: string
+          providerName?: string | null
+          payeeName?: string | null
+          paymentChannel?: string | null
+          invoiceNo?: string | null
+          meterNo?: string | null
+          expenseLocation?: string | null
+          expenseRegion?: string | null
+          remark?: string | null
+          attachments?: string[]
+          reporterNameSnapshot?: string | null
+          auditStatus?: string | null
+          settlementStatus?: string | null
+          submittedAt?: string | null
+          reviewedAt?: string | null
+          reviewRemark?: string | null
+          paidAt?: string | null
+          expenseItem?: {
+            id: string
+            itemCode: string
+            itemName: string
+          } | null
+          reimbursement?: {
+            id: string
+            reimbursementNo: string
+            status: string
+          } | null
+          expensePayment?: {
+            id: string
+            paymentNo: string
+            paymentDate?: string | null
+          } | null
+          fieldAccess?: Partial<Record<WaybillCostFieldKey, Api.Tms.BasicData.FieldAccessLevel>>
         }
 
         interface WaybillDriverSummary {
@@ -1257,6 +1326,7 @@ declare global {
           events: WaybillEventRecord[]
           proofs: WaybillProofRecord[]
           cargoOperations: CargoOperationRecord[]
+          costs: WaybillCostRecord[]
           expenseLocations: WaybillExpenseLocationRecord[]
           sources?: ExecutionSource[]
           execution?: ExecutionRecord | null
@@ -1289,6 +1359,9 @@ declare global {
         interface WaybillDispatchPayload {
           id?: string
           ids?: string[]
+          dispatchMode: 'carrier' | 'self_operated' | 'individual_driver'
+          dispatchCarrierId?: string | null
+          dispatchAgreementId?: string | null
           dispatchVehicleId: string
           dispatchDriverId?: string | null
           dispatchPlateNo: string

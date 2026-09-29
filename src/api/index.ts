@@ -11,6 +11,38 @@ export {
   importCarriers
 } from '@tms/api/modules/carrier'
 export {
+  addDriverBlacklist,
+  addElectronicContract,
+  addServiceCase,
+  addTransportAgreement,
+  copyElectronicContract,
+  deleteTmsBasicRecords,
+  editServiceCase,
+  editTransportAgreement,
+  fetchBasicRecordCarrierOptions,
+  fetchDriverBlacklistList,
+  fetchElectronicContractDetail,
+  fetchElectronicContractList,
+  fetchServiceCaseList,
+  fetchTransportAgreementList,
+  terminateElectronicContract
+} from '@tms/api/modules/basic-records'
+export type {
+  BasicRecordCarrierOption,
+  BlacklistInput,
+  BlacklistSearch,
+  DriverBlacklistRecord,
+  ElectronicContractInput,
+  ElectronicContractRecord,
+  ElectronicContractSearch,
+  ServiceCaseInput,
+  ServiceCaseRecord,
+  ServiceCaseSearch,
+  TransportAgreementInput,
+  TransportAgreementRecord,
+  TransportAgreementSearch
+} from '@tms/api/modules/basic-records'
+export {
   addDriver,
   deleteDriver,
   deleteDriverBatch,
@@ -84,8 +116,10 @@ export {
   editCargo,
   exportCargoList,
   fetchCargoList,
+  fetchCargoMaterialOptions,
   importCargoes
 } from '@tms/api/modules/cargo'
+export type { CargoMaterialOption } from '@tms/api/modules/cargo'
 export {
   addContract,
   deleteContract,
@@ -154,7 +188,38 @@ export {
   signExecutionAllocations,
   submitDispatchPlan
 } from '@tms/api/modules/dispatch-execution'
+export {
+  fetchDispatchAgreement,
+  fetchDispatchCandidates,
+  remindDispatchAgreement
+} from '@tms/api/modules/dispatch-candidates'
+export type {
+  DispatchAgreementDetail,
+  DispatchCarrierCandidate,
+  DispatchDriverCandidate,
+  DispatchMode,
+  DispatchVehicleCandidate
+} from '@tms/api/modules/dispatch-candidates'
 export type { WaybillExportScope, WaybillListScope } from '@tms/api/modules/waybill'
+export {
+  changeAppointmentStatus,
+  deleteAppointment,
+  fetchAppointmentCandidates,
+  fetchAppointmentList,
+  fetchAppointmentWorkspace,
+  recordAppointmentArrival,
+  saveAppointment
+} from '@tms/api/modules/appointment'
+export type {
+  AppointmentArrivalPayload,
+  AppointmentCandidate,
+  AppointmentKind,
+  AppointmentListRow,
+  AppointmentRecord,
+  AppointmentSavePayload,
+  AppointmentSearchParams,
+  AppointmentStatus
+} from '@tms/api/modules/appointment'
 export {
   analyzeTransportAnomalyByAi,
   fetchInTransitMonitorList,

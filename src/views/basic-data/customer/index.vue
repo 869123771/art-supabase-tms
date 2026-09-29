@@ -1,5 +1,5 @@
 <template>
-  <div class="business-workspace-page art-full-height">
+  <div class="tms-customer-page business-workspace-page art-full-height">
     <BusinessWorkspaceHeader
       eyebrow="客户主数据"
       title="客户资料"
@@ -12,22 +12,50 @@
       </template>
     </BusinessWorkspaceHeader>
 
-    <ArtTableQuery
-      ref="tableQueryRef"
-      v-model="tableState.searchQuery"
-      :search-items="searchItems"
-      :api-fn="fetchTableData"
-      :columns-factory="columnsFactory"
-      :header-actions="headerActions"
-      :selection-actions="selectionActions"
-      header-actions-placement="workspace"
-      :search-bar-props="{ span: 6, labelWidth: 86, showExpand: true }"
-      :table-props="{
-        emptyText: '暂无客户资料',
-        emptyDescription: '可新增客户，或调整客户等级、行业、状态和关键字后重新查询。'
-      }"
-      focusable
-    />
+    <div class="tms-customer-page__workspace">
+      <ArtWorkspaceSplitter
+        primary-size="300px"
+        primary-min="250px"
+        primary-max="360px"
+        :breakpoint="900"
+        stacked-primary-size="340px"
+      >
+        <template #primary>
+          <MasterGroupPanel
+            title="客户分组"
+            :groups="groupState.rows"
+            :selected-id="groupState.selectedId"
+            :loading="groupState.loading"
+            :error="groupState.error"
+            @select="selectGroup"
+            @refresh="refreshGroups"
+          />
+        </template>
+
+        <div class="tms-customer-page__table">
+          <ArtTableQuery
+            ref="tableQueryRef"
+            v-model="tableState.searchQuery"
+            :search-items="searchItems"
+            :api-fn="fetchTableData"
+            :columns-factory="columnsFactory"
+            :header-actions="headerActions"
+            :selection-actions="selectionActions"
+            :immediate="false"
+            header-actions-placement="workspace"
+            :search-bar-props="{ span: 6, labelWidth: 86, showExpand: true }"
+            :table-props="{
+              rowKey: 'id',
+              tableLayout: 'fixed',
+              emptyText: '暂无客户资料',
+              emptyDescription: '可新增客户，或调整分组、等级、行业、状态和关键字后重新查询。'
+            }"
+            focusable
+            focus-scope-selector=".tms-customer-page__workspace"
+          />
+        </div>
+      </ArtWorkspaceSplitter>
+    </div>
 
     <CustomerDialog ref="dialogRef" @success="handleSaveSuccess" />
   </div>
@@ -53,7 +81,10 @@
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import { formatWithDayjs } from '@/utils/time'
   import { canViewField, type FieldAccessLevel } from '@/utils/field-permission'
+  import TreeUtils from '@/utils/tree'
+  import { fetchMasterGroups, type MasterGroup } from '@/api/master-groups'
   import { useUserStore } from '@/store/modules/user'
+  import { useTenantScopeStore } from '@/store/modules/tenantScope'
   import { financeRouteNames } from '@/router/business-paths'
   import {
     cleanupCustomerDeleteSafeDependencies,
@@ -74,6 +105,9 @@
   import CustomerDialog from './modules/customer-dialog.vue'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
+  import MasterGroupPanel from '@/components/business/master-group-panel/index.vue'
+  import ArtWorkspaceSplitter from '@/components/core/layouts/art-workspace-splitter/index.vue'
+  import type { CustomerDialogOpenData } from './modules/customer-dialog.vue'
 
   defineOptions({ name: 'TmsCustomer' })
 
@@ -84,7 +118,7 @@
   type TableParams = SearchParams & Pick<Api.Common.PaginationParams, 'current' | 'size'>
 
   interface CustomerDialogExpose {
-    handleOpen: (row?: Customer) => Promise<void>
+    handleOpen: (data: CustomerDialogOpenData) => Promise<void>
   }
 
   interface CustomerDeleteDependencyMeta {
@@ -111,9 +145,27 @@
   const router = useRouter()
   const route = useRoute()
   const { getDictMap } = storeToRefs(useUserStore())
+  const { effectiveTenantId } = storeToRefs(useTenantScopeStore())
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<CustomerDialogExpose>()
   const customerFieldAccess = ref<Api.Tms.BasicData.CustomerFieldAccessMap>({})
+  const groupState = reactive({
+    rows: [] as MasterGroup[],
+    selectedId: '',
+    loading: false,
+    error: ''
+  })
+  const groupTree = new TreeUtils({ parentKey: 'parentId' })
+  const selectedGroupIds = computed(() => {
+    if (!groupState.selectedId) return undefined
+    const descendants = groupTree
+      .getDescendants(groupTree.listToTree(groupState.rows), groupState.selectedId, true)
+      .map((group) => String(group.id))
+    return descendants.length ? descendants : [groupState.selectedId]
+  })
+  const groupNameById = computed(
+    () => new Map(groupState.rows.map((group) => [group.id, group.name]))
+  )
 
   const fieldAccessRank: Record<FieldAccessLevel, number> = {
     hidden: 0,
@@ -303,6 +355,13 @@
       link: { permission: 'TmsCustomer:View', onClick: openAddressManage }
     },
     {
+      prop: 'groupId',
+      label: '客户分组',
+      minWidth: 140,
+      formatter: (row) =>
+        row.groupId ? groupNameById.value.get(row.groupId) || '分组不可见' : '未分组'
+    },
+    {
       prop: 'industry',
       label: '所属行业',
       width: 130,
@@ -415,6 +474,7 @@
       exportApi: ({ selectedIds, searchParams, maxRows }) =>
         exportCustomerList({
           ...(searchParams as SearchParams),
+          groupIds: selectedGroupIds.value,
           ids: selectedIds.map(String),
           maxRows
         })
@@ -458,13 +518,54 @@
 
   const fetchTableData = async (params: TableParams) => {
     const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
-    const result = await fetchCustomerList({ ...params, from, to })
+    const result = await fetchCustomerList({
+      ...params,
+      groupIds: selectedGroupIds.value,
+      from,
+      to
+    })
     customerFieldAccess.value = mergeCustomerFieldAccess(result.fieldAccess, result.data ?? [])
     return result
   }
 
   const openDialog = (row?: Customer): void => {
-    void dialogRef.value?.handleOpen(row)
+    void dialogRef.value?.handleOpen({
+      row,
+      groups: groupState.rows,
+      initialGroupId: row ? undefined : groupState.selectedId || undefined
+    })
+  }
+
+  let groupLoadVersion = 0
+
+  const loadGroups = async (): Promise<void> => {
+    const version = ++groupLoadVersion
+    groupState.loading = true
+    groupState.error = ''
+    try {
+      const rows = await fetchMasterGroups('customer', effectiveTenantId.value)
+      if (version !== groupLoadVersion) return
+      groupState.rows = rows
+      if (groupState.selectedId && !rows.some((group) => group.id === groupState.selectedId)) {
+        groupState.selectedId = ''
+      }
+    } catch (error) {
+      if (version !== groupLoadVersion) return
+      groupState.error = getFriendlySupabaseErrorMessage(error, '客户分组加载失败，请重试')
+    } finally {
+      if (version === groupLoadVersion) groupState.loading = false
+    }
+  }
+
+  const refreshGroups = async (): Promise<void> => {
+    await loadGroups()
+    await tableQueryRef.value?.refreshCreate()
+  }
+
+  const selectGroup = (id: string): void => {
+    if (groupState.selectedId === id) return
+    groupState.selectedId = id
+    void tableQueryRef.value?.refreshCreate()
   }
 
   const openAddressManage = (row: Customer): void => {
@@ -845,6 +946,7 @@
     const customerId = typeof route.query.customerId === 'string' ? route.query.customerId : ''
     const changed = tableState.searchQuery.customerId !== customerId
     if (!customerId && !changed) return
+    if (customerId) groupState.selectedId = ''
     tableState.searchQuery.customerId = customerId
     if (customerId) tableState.searchQuery.keyword = ''
     if (changed || forceRefresh) {
@@ -865,6 +967,18 @@
   }
 
   watch(
+    effectiveTenantId,
+    async () => {
+      groupState.selectedId = ''
+      groupState.rows = []
+      await loadGroups()
+      await nextTick()
+      await tableQueryRef.value?.refreshCreate()
+    },
+    { immediate: true }
+  )
+
+  watch(
     () => route.fullPath,
     () => void syncCustomerDeleteReturn(),
     { flush: 'post' }
@@ -872,6 +986,28 @@
 
   onActivated(() => void syncCustomerDeleteReturn(true))
 </script>
+
+<style scoped lang="scss">
+  .tms-customer-page {
+    min-width: 0;
+    min-height: 0;
+
+    &__workspace {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    &__table {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+      min-height: 0;
+    }
+  }
+</style>
 
 <style lang="scss">
   .customer-delete-blocker-message-box {

@@ -73,6 +73,9 @@ export async function fetchWaybillDetail(waybillId: string) {
       })),
       proofs: data.proofs ?? [],
       cargoOperations: data.cargoOperations ?? [],
+      costs: Array.isArray(data.costs)
+        ? data.costs.map((cost) => ({ ...cost, attachments: normalizeUrlList(cost.attachments) }))
+        : [],
       expenseLocations: normalizeExpenseLocations(data.expenseLocations ?? []),
       sources: sourcesResult.data ?? [],
       execution: data.execution ?? null
@@ -224,6 +227,9 @@ function createPlanExecution(
   rows: WaybillRecord[]
 ): Api.Tms.Waybill.DispatchPlanExecution {
   return {
+    dispatchMode: params.dispatchMode,
+    dispatchCarrierId: params.dispatchCarrierId,
+    dispatchAgreementId: params.dispatchAgreementId,
     dispatchVehicleId: params.dispatchVehicleId,
     dispatchDriverId: params.dispatchDriverId,
     plannedDepartureTime: params.plannedDepartureTime,

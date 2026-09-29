@@ -16,6 +16,7 @@ const createWaybill = (
     status: 'transporting',
     routePoints,
     expenseLocations,
+    costs: [],
     events: [],
     proofs: [],
     cargoOperations: [],

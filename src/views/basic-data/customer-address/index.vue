@@ -2,8 +2,8 @@
   <div class="business-workspace-page art-full-height">
     <BusinessWorkspaceHeader
       eyebrow="ADDRESS DIRECTORY"
-      title="客户地址簿"
-      description="维护客户常用收发货地址、联系人与地址类型，减少重复录入并提升开单效率。"
+      title="常用地址"
+      description="集中维护收发货地点、联系人与营业时间，粘贴或语音输入可快速识别。"
       icon="ri:map-pin-user-line"
       :tags="[
         { label: '地址资产', type: 'primary' },
@@ -27,8 +27,8 @@
       header-actions-placement="workspace"
       :search-bar-props="{ span: 6, labelWidth: 82, showExpand: false }"
       :table-props="{
-        emptyText: '暂无客户地址',
-        emptyDescription: '可新增常用地址，或调整客户、地址类型、时间和关键字后重新查询。'
+        emptyText: '暂无常用地址',
+        emptyDescription: '新增常用地址，或调整地址类型、时间和关键字后重新查询。'
       }"
       focusable
     />
@@ -40,6 +40,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { ElTag } from 'element-plus'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
@@ -51,12 +52,11 @@
   import { pageInfoHandler } from '@/utils/table/tableUtils'
   import { formatWithDayjs } from '@/utils/time'
   import { canEditField, canViewField, type FieldAccessLevel } from '@/utils/field-permission'
-  import { useUserStore } from '@/store/modules/user'
+  import { addressTypeOptions } from './address-type'
   import {
     deleteCustomerAddress,
     deleteCustomerAddressBatch,
-    fetchCustomerAddressList,
-    fetchCustomerOptions
+    fetchCustomerAddressList
   } from '@tms/api'
   import CustomerAddressDialog from './modules/customer-address-dialog.vue'
   import AddressGeofenceDialog from './modules/address-geofence-dialog.vue'
@@ -72,7 +72,6 @@
   const { confirmAction } = useArtFeedback()
 
   type CustomerAddress = Api.Tms.BasicData.CustomerAddress
-  type CustomerOption = Api.Tms.BasicData.CustomerOption
   type SearchParams = Api.Tms.BasicData.CustomerAddressSearchParams
   type TableParams = SearchParams & Pick<Api.Common.PaginationParams, 'current' | 'size'>
 
@@ -96,7 +95,6 @@
   }
 
   const route = useRoute()
-  const { getDictMap } = storeToRefs(useUserStore())
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<AddressDialogExpose>()
   const geofenceDialogRef = ref<GeofenceDialogExpose>()
@@ -127,7 +125,6 @@
 
   const routeCustomerId = computed(() => String(route.query.customerId ?? ''))
   const customerName = computed(() => String(route.query.customerName ?? ''))
-  const addressTypeOptions = computed(() => getDictMap.value.tmsAddressType ?? [])
   const tableApiParams = computed<Partial<TableParams>>(() => ({
     customerId: routeCustomerId.value || undefined
   }))
@@ -151,31 +148,11 @@
       props: {
         options: [
           { label: '全部', value: undefined },
-          ...addressTypeOptions.value.map((item) => ({
+          ...addressTypeOptions.map((item) => ({
             label: item.label,
             value: item.value
           }))
         ]
-      }
-    },
-    {
-      label: '客户',
-      key: 'customerId',
-      type: 'select',
-      api: fetchCustomerOptions,
-      resultField: 'data',
-      labelField: 'customerName',
-      valueField: 'id',
-      labelFn: (option) => {
-        const customer = option as CustomerOption
-        return customer.customerCode
-          ? `${customer.customerName}（${customer.customerCode}）`
-          : customer.customerName
-      },
-      props: {
-        clearable: true,
-        filterable: true,
-        placeholder: '请选择客户名称或编号'
       }
     },
     {
@@ -194,7 +171,7 @@
       label: '关键词',
       key: 'keyword',
       type: 'input',
-      props: { clearable: true, placeholder: '联系人、电话或详细地址' }
+      props: { clearable: true, placeholder: '地址简称、收发货方、联系人或地址' }
     }
   ])
 
@@ -205,13 +182,28 @@
       prop: 'addressType',
       label: '地址类型',
       width: 120,
-      dict: { code: 'tmsAddressType', display: 'tag' }
+      formatter: (row) => (
+        <ElTag
+          type={row.addressType === 'shipping' ? 'primary' : 'success'}
+          effect="light"
+          size="small"
+        >
+          {addressTypeOptions.find((item) => item.value === row.addressType)?.label || '-'}
+        </ElTag>
+      )
     },
     {
-      prop: 'customerName',
-      label: '客户',
-      minWidth: 190,
-      formatter: (row) => row.customer?.customerName || customerName.value || '-'
+      prop: 'addressShortName',
+      label: '地址简称',
+      minWidth: 165,
+      formatter: (row) => row.addressShortName || '-'
+    },
+    {
+      prop: 'partyName',
+      label: '收/发货方',
+      minWidth: 175,
+      showOverflowTooltip: true,
+      formatter: (row) => row.partyName || '-'
     },
     { prop: 'contactName', label: '联系人', width: 120 },
     ...(canViewField(addressFieldAccess.value, 'contactPhone')
@@ -236,6 +228,15 @@
           } satisfies ColumnOption<CustomerAddress>
         ]
       : []),
+    {
+      prop: 'businessHoursStart',
+      label: '营业时间',
+      width: 145,
+      formatter: (row) =>
+        row.businessHoursStart && row.businessHoursEnd
+          ? `${row.businessHoursStart}–${row.businessHoursEnd}`
+          : '-'
+    },
     {
       prop: 'isDefault',
       label: '默认',

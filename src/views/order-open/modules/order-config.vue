@@ -72,7 +72,13 @@
               </div>
             </div>
           </template>
-          <p v-else class="order-config__hint">暂无已启用的车型规格，请先在车辆档案维护车型。</p>
+          <ArtEmptyState
+            v-else
+            title="暂无已启用的车型规格"
+            description="请先在车辆档案维护车型。"
+            size="compact"
+            :visual-size="72"
+          />
           <div v-if="config.vehicleType" class="order-config__metrics">
             <span>已选 {{ config.vehicleType }}</span>
             <span
@@ -165,6 +171,7 @@
   import { uniqBy } from 'lodash-es'
   import { storeToRefs } from 'pinia'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import ArtUploadFile from '@/components/core/forms/art-upload-file/index.vue'
   import { fetchTmsVehicleTypeProfiles, type TmsVehicleTypeProfile } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'

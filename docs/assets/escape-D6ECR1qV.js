@@ -1,1 +1,0 @@
-import{co as e}from"./style-BXIola5x.js";function t(e){return function(t){return e?.[t]}}var n=t({"&":`&amp;`,"<":`&lt;`,">":`&gt;`,'"':`&quot;`,"'":`&#39;`}),r=/[&<>"']/g,i=RegExp(r.source);function a(t){return t=e(t),t&&i.test(t)?t.replace(r,n):t}export{a as t};

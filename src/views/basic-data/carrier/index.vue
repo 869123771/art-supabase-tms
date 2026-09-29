@@ -210,6 +210,12 @@
       dict: { code: 'tmsCarrierType', display: 'text' }
     },
     {
+      prop: 'dispatchChannel',
+      label: '调度渠道',
+      width: 110,
+      dict: { code: 'tmsCarrierDispatchChannel', display: 'text' }
+    },
+    {
       prop: 'driverCount',
       label: '司机数量',
       width: 100,

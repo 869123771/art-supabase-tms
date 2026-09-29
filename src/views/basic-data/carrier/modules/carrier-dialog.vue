@@ -70,6 +70,7 @@
   const formRef = ref<DialogExposeForm>()
 
   const carrierTypeOptions = computed(() => getDictMap.value.tmsCarrierType ?? [])
+  const dispatchChannelOptions = computed(() => getDictMap.value.tmsCarrierDispatchChannel ?? [])
 
   const createInitialForm = (): CarrierForm => ({
     id: undefined,
@@ -77,6 +78,7 @@
     carrierCode: '',
     companyName: '',
     carrierType: '',
+    dispatchChannel: 'offline',
     businessLicenseNo: '',
     taxRegistrationNo: '',
     legalRepresentative: '',
@@ -128,6 +130,7 @@
       { min: 2, max: 100, message: '长度应为 2 到 100 个字符', trigger: 'blur' }
     ],
     carrierType: [{ required: true, message: '请选择承运商类型', trigger: 'change' }],
+    dispatchChannel: [{ required: true, message: '请选择调度渠道', trigger: 'change' }],
     carrierCode: [
       {
         validator: (_rule, value, callback) =>
@@ -183,6 +186,15 @@
         options: carrierTypeOptions.value,
         clearable: true,
         placeholder: '请选择承运商类型'
+      }
+    },
+    {
+      label: '调度渠道',
+      key: 'dispatchChannel',
+      type: 'select',
+      props: {
+        options: dispatchChannelOptions.value,
+        placeholder: '请选择线上或线下'
       }
     },
     {

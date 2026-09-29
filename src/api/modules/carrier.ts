@@ -33,6 +33,7 @@ const CARRIER_PAYLOAD_KEYS = [
   'carrierCode',
   'companyName',
   'carrierType',
+  'dispatchChannel',
   'businessLicenseNo',
   'taxRegistrationNo',
   'legalRepresentative',

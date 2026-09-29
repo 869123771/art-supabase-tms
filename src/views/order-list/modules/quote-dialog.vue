@@ -121,9 +121,13 @@
               />
             </div>
           </div>
-          <p v-else class="mt-3 text-sm text-[var(--art-gray-700)]">
-            暂无补充费用，可从上方选择费用项。
-          </p>
+          <ArtEmptyState
+            v-else
+            title="暂无补充费用"
+            description="可从上方选择费用项。"
+            size="compact"
+            :visual-size="64"
+          />
         </div>
         <div
           class="mt-3 flex flex-wrap items-baseline justify-end gap-x-3 border-t border-[var(--art-gray-200)] pt-3 text-sm"
@@ -199,6 +203,7 @@
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
+  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import ArtUploadFile from '@/components/core/forms/art-upload-file/index.vue'
   import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
   import { formatWithDayjs } from '@/utils/time'

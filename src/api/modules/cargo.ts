@@ -11,24 +11,74 @@ import type { ApiRequestOptions } from '@/types/api/request'
 type Cargo = Api.Tms.BasicData.Cargo
 type CargoSearchParams = Api.Tms.BasicData.CargoSearchParams
 
+export interface CargoMaterialOption {
+  id: string
+  tenantId: string
+  materialCode: string
+  materialName: string
+  specificationModel?: string | null
+  basicUnit: string
+  materialGroupId?: string | null
+  baseUnit?: { unitName: string; symbol?: string | null } | null
+}
+
 interface WriteOptions {
   showMessage?: boolean
 }
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
+const cargoSelect =
+  '*,material:mdm_material!mdm_cargo_material_tenant_fkey(id,material_code,material_name,specification_model,basic_unit,material_group_id,baseUnit:mdm_unit_of_measure!mdm_material_base_unit_fkey(unit_name,symbol))'
+const cargoWriteKeys = [
+  'tenantId',
+  'materialId',
+  'materialGroupId',
+  'lengthM',
+  'widthM',
+  'heightM',
+  'volumeM3',
+  'weightKg',
+  'valueAmount',
+  'enabled',
+  'remark'
+] as const satisfies readonly (keyof Cargo)[]
+
+const cargoPayload = (cargo: Cargo): Record<string, unknown> =>
+  keysToSnakeDeep(
+    Object.fromEntries(
+      cargoWriteKeys.filter((key) => cargo[key] !== undefined).map((key) => [key, cargo[key]])
+    )
+  )
+
+export async function fetchCargoMaterialOptions(tenantId: string): Promise<CargoMaterialOption[]> {
+  const { data } = await responseHandle<CargoMaterialOption[]>(
+    () =>
+      supabase
+        .from('mdm_material')
+        .select(
+          'id,tenant_id,material_code,material_name,specification_model,basic_unit,material_group_id,baseUnit:mdm_unit_of_measure!mdm_material_base_unit_fkey(unit_name,symbol)'
+        )
+        .eq('tenant_id', tenantId)
+        .eq('status', 'enabled')
+        .order('material_code')
+        .limit(1000),
+    { breakReturn: true, showErrorMessage: false }
+  )
+  return data ?? []
+}
 
 const applyCargoFilters = <TQuery extends SupabaseQueryLike>(
   query: TQuery,
   params: CargoSearchParams
 ): TQuery => {
-  const { unit, enabled, keyword, createTimeRange, recordId } = params
+  const { materialGroupIds, enabled, keyword, createTimeRange, recordId } = params
   if (recordId) query = query.eq('id', recordId)
-  if (unit) query = query.eq('unit', unit)
+  if (materialGroupIds?.length) query = query.in('material_group_id', materialGroupIds)
   const enabledValue = normalizeBooleanFilter(enabled)
   if (enabledValue !== undefined) query = query.eq('enabled', enabledValue)
   if (keyword) {
     query = query.or(
-      buildOrIlikeFilter(['cargo_name', 'cargo_code', 'spec_model', 'unit', 'remark'], keyword)
+      buildOrIlikeFilter(['cargo_name', 'cargo_code', 'spec_model', 'remark'], keyword)
     )
   }
   return applyCreateTimeRange(query, createTimeRange)
@@ -38,7 +88,7 @@ export async function fetchCargoList(params: CargoSearchParams, options?: ApiReq
   const { from = 0, to = 9 } = params
   let query = supabase
     .from('mdm_cargo')
-    .select('*', { count: 'exact' })
+    .select(cargoSelect, { count: 'exact' })
     .order('create_time', { ascending: false })
     .range(from, to)
   query = applyCargoFilters(query, params)
@@ -53,7 +103,7 @@ export async function exportCargoList(
   const { ids, maxRows = 10000 } = params
   let query = supabase
     .from('mdm_cargo')
-    .select('*')
+    .select(cargoSelect)
     .order('create_time', { ascending: false })
     .limit(maxRows)
   query = ids?.length ? query.in('id', ids) : applyCargoFilters(query, params)
@@ -64,16 +114,17 @@ export async function exportCargoList(
 
 export async function addCargo(params: Cargo, options: WriteOptions = {}) {
   return await responseHandle<Cargo>(
-    () => supabase.from('mdm_cargo').insert(keysToSnakeDeep(params)).select().single(),
+    () => supabase.from('mdm_cargo').insert(cargoPayload(params)).select(cargoSelect).single(),
     { showMessage: options.showMessage ?? true, breakReturn: true }
   )
 }
 
 export async function editCargo(params: Cargo) {
   const { id, ...data } = params
+  if (!id) throw new Error('货物 ID 不能为空')
   return await responseHandle(
-    () => supabase.from('mdm_cargo').update(keysToSnakeDeep(data)).eq('id', id),
-    { showMessage: true, breakReturn: true }
+    () => supabase.from('mdm_cargo').update(cargoPayload(data)).eq('id', id).select('id').single(),
+    { showMessage: true, breakReturn: true, requireAffected: true }
   )
 }
 
@@ -91,12 +142,21 @@ export async function deleteCargoBatch(ids: string[]) {
   )
 }
 
-export async function importCargoes(rows: Cargo[]) {
-  return await responseHandle(
-    () =>
-      supabase
-        .from('mdm_cargo')
-        .upsert(keysToSnakeDeep(rows), { onConflict: 'tenant_id,cargo_name' }),
-    { showMessage: true, breakReturn: true }
-  )
+export async function importCargoes(rows: Cargo[], tenantId: string) {
+  const materials = await fetchCargoMaterialOptions(tenantId)
+  const byCode = new Map(materials.map((material) => [material.materialCode, material]))
+  const payloads = rows.map((row) => {
+    const material = byCode.get(String(row.cargoCode ?? '').trim())
+    if (!material) throw new Error(`物料编码“${row.cargoCode || ''}”不存在或未启用`)
+    return cargoPayload({
+      ...row,
+      tenantId,
+      materialId: material.id,
+      materialGroupId: row.materialGroupId || material.materialGroupId || null
+    })
+  })
+  return await responseHandle(() => supabase.from('mdm_cargo').insert(payloads), {
+    showMessage: true,
+    breakReturn: true
+  })
 }
