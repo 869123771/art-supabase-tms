@@ -58,12 +58,15 @@
         </ElButton>
       </div>
 
-      <ElForm
+      <ArtForm
         v-if="!loadFailed"
         ref="formRef"
-        :model="form"
+        :model-value="form"
+        custom-layout
+        :show-reset="false"
+        :show-submit="false"
         label-position="top"
-        class="space-y-4"
+        form-class="space-y-4"
         :disabled="saving"
       >
         <section
@@ -333,7 +336,7 @@
             </div>
           </div>
         </section>
-      </ElForm>
+      </ArtForm>
 
       <ArtEmptyState
         v-if="!loadFailed && !form.entries.length"
@@ -350,7 +353,8 @@
 
 <script setup lang="ts">
   import dayjs from 'dayjs'
-  import { ElMessage, type FormInstance, type FormItemRule } from 'element-plus'
+  import { ElMessage, type FormItemRule } from 'element-plus'
+  import ArtForm from '@/components/core/forms/art-form/index.vue'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
@@ -412,7 +416,7 @@
       anchorWaybillId: string
     }) => Promise<void>
   }>()
-  const formRef = ref<FormInstance>()
+  const formRef = ref<InstanceType<typeof ArtForm>>()
   const waybill = ref<AppointmentListRow | null>(null)
   const candidates = ref<AppointmentCandidate[]>([])
   const form = reactive<{ entries: EditableEntry[] }>({ entries: [] })
@@ -584,7 +588,7 @@
       return false
     }
     if (!form.entries.length) return true
-    const valid = await formRef.value?.validate().catch(() => false)
+    const valid = await formRef.value?.validate()?.catch(() => false)
     if (!valid) return false
     saving.value = true
     let savedCount = 0

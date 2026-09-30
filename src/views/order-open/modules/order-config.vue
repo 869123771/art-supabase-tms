@@ -12,14 +12,17 @@
       />
     </div>
 
-    <ElForm
+    <ArtForm
       v-if="config.loadType === 'ftl'"
       ref="vehicleFormRef"
-      :model="config"
+      v-model="config"
       :rules="vehicleRules"
       :validate-on-rule-change="false"
       label-position="top"
-      class="order-config__vehicle-form"
+      custom-layout
+      :show-reset="false"
+      :show-submit="false"
+      form-class="order-config__vehicle-form"
     >
       <ElFormItem prop="vehicleType" class="order-config__vehicle-validation">
         <div class="order-config__vehicle">
@@ -93,7 +96,7 @@
           </div>
         </div>
       </ElFormItem>
-    </ElForm>
+    </ArtForm>
 
     <ArtForm
       ref="settingsFormRef"
@@ -167,7 +170,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+  import { ElMessage, type FormRules } from 'element-plus'
   import { uniqBy } from 'lodash-es'
   import { storeToRefs } from 'pinia'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
@@ -180,7 +183,7 @@
   const config = defineModel<Api.Tms.Order.OrderConfig>({ required: true })
   defineProps<{ canEditAttachments: boolean }>()
   const { getDictMap } = storeToRefs(useUserStore())
-  const vehicleFormRef = ref<FormInstance>()
+  const vehicleFormRef = ref<InstanceType<typeof ArtForm>>()
   const settingsFormRef = ref<InstanceType<typeof ArtForm>>()
   const attachmentUploadRef = ref<{ hasPendingUpload: () => boolean }>()
   const vehicleProfiles = ref<TmsVehicleTypeProfile[]>([])
