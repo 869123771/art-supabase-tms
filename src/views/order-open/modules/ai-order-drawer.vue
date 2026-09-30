@@ -24,9 +24,9 @@
       <div v-if="!effectiveTenantId" class="ai-order-drawer__tenant-target art-card-xs">
         <div>
           <strong>选择建档租户</strong>
-          <p>一键建档需要明确目标租户；选择后会按该租户重新匹配已有档案。</p>
+          <p>当前为全部租户。请关闭窗口，在页头选择业务租户后重新打开智能填单。</p>
         </div>
-        <PlatformTenantScopeSwitcher />
+        <ElButton type="primary" plain @click="drawerRef?.handleClose()">关闭后选择租户</ElButton>
       </div>
 
       <div v-if="!state.analysis" class="ai-order-drawer__start-grid">
@@ -192,7 +192,6 @@
   import { ElMessage } from 'element-plus'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
-  import PlatformTenantScopeSwitcher from '@/components/business/platform-tenant-scope-switcher/index.vue'
   import { analyzeOrderByAi, generateAiOrderExample } from '@tms/api'
   import { useAuth } from '@/hooks/core/useAuth'
   import { useTenantScopeStore } from '@/store/modules/tenantScope'
@@ -600,8 +599,8 @@
         color: var(--el-text-color-secondary);
       }
 
-      :deep(.tenant-scope-switcher) {
-        margin-right: 0;
+      .el-button {
+        flex: none;
       }
     }
 
@@ -819,15 +818,8 @@
         flex-direction: column;
         align-items: flex-start;
 
-        :deep(.tenant-scope-switcher) {
-          justify-content: space-between;
+        .el-button {
           width: 100%;
-          max-width: none;
-        }
-
-        :deep(.tenant-scope-switcher > span),
-        :deep(.tenant-scope-switcher__arrow) {
-          display: block;
         }
       }
 
