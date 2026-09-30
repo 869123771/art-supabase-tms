@@ -3,13 +3,13 @@
     <template #header>
       <div class="ai-order-master-data__heading">
         <div>
-          <ArtSectionTitle :show-line="false">前置资料一键建档</ArtSectionTitle>
-          <p>勾选资料完整的项目，统一创建后自动重新匹配到当前订单。</p>
+          <ArtSectionTitle :show-line="false">待建档的前置资料</ArtSectionTitle>
+          <p>勾选资料完整且有新增权限的项目，一键创建后自动重新匹配到当前订单。</p>
         </div>
         <div class="ai-order-master-data__counts">
-          <ElTag type="success" effect="plain">可创建 {{ readyCount }} 项</ElTag>
+          <ElTag type="success" effect="plain">可建档 {{ readyCount }} 项</ElTag>
           <ElTag v-if="blockedCount" type="danger" effect="plain">
-            待补充 {{ blockedCount }} 项
+            暂不可创建 {{ blockedCount }} 项
           </ElTag>
         </div>
       </div>
@@ -44,7 +44,7 @@
 
     <div class="ai-order-master-data__hint">
       <ArtSvgIcon icon="ri:shield-check-line" />
-      <span>仅写入当前租户的所选档案；整批失败会全部回滚，订单仍需手动保存。</span>
+      <span>仅写入所选租户中有权创建的档案；整批失败会全部回滚，订单仍需手动保存。</span>
     </div>
   </ArtSectionCard>
 </template>

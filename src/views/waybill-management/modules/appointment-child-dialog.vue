@@ -4,28 +4,30 @@
       <p class="text-sm text-[var(--el-text-color-secondary)]">
         勾选本次预约对应的调度子单。已取消的运单不可选择。
       </p>
-      <ElCheckboxGroup v-model="selectedIds" class="grid max-h-[50vh] gap-2 overflow-y-auto">
-        <ElCheckbox
-          v-for="candidate in candidates"
-          :key="candidate.id"
-          :value="candidate.id"
-          :disabled="candidate.id === anchorWaybillId || candidate.status === 'cancelled'"
-          class="m-0! flex h-auto! min-h-14 items-start rounded-lg border border-[var(--el-border-color-lighter)] px-3 py-2"
-        >
-          <span class="grid min-w-0 gap-1 leading-5">
-            <strong class="font-medium text-[var(--el-text-color-primary)]">
-              {{ candidate.waybillNo }}
-            </strong>
-            <small
-              class="truncate text-[var(--el-text-color-secondary)]"
-              :title="candidate.shipperAddress || ''"
-            >
-              {{ candidate.sourceOrderNos.join('、') }} ·
-              {{ candidate.shipperAddress || '发货地址未开放' }}
-            </small>
-          </span>
-        </ElCheckbox>
-      </ElCheckboxGroup>
+      <ElScrollbar max-height="50vh">
+        <ElCheckboxGroup v-model="selectedIds" class="grid gap-2">
+          <ElCheckbox
+            v-for="candidate in candidates"
+            :key="candidate.id"
+            :value="candidate.id"
+            :disabled="candidate.id === anchorWaybillId || candidate.status === 'cancelled'"
+            class="m-0! flex h-auto! min-h-14 items-start rounded-lg border border-[var(--el-border-color-lighter)] px-3 py-2"
+          >
+            <span class="grid min-w-0 gap-1 leading-5">
+              <strong class="font-medium text-[var(--el-text-color-primary)]">
+                {{ candidate.waybillNo }}
+              </strong>
+              <small
+                class="truncate text-[var(--el-text-color-secondary)]"
+                :title="candidate.shipperAddress || ''"
+              >
+                {{ candidate.sourceOrderNos.join('、') }} ·
+                {{ candidate.shipperAddress || '发货地址未开放' }}
+              </small>
+            </span>
+          </ElCheckbox>
+        </ElCheckboxGroup>
+      </ElScrollbar>
       <ArtEmptyState
         v-if="!candidates.length"
         title="暂无可选的调度子单"

@@ -41,6 +41,25 @@
       </div>
     </div>
 
+    <ElAlert
+      v-if="errorMessage"
+      class="ai-order-source__status"
+      type="error"
+      title="识别未完成"
+      :description="errorMessage"
+      :closable="false"
+      show-icon
+    />
+    <ElAlert
+      v-else-if="noticeMessage"
+      class="ai-order-source__status"
+      type="warning"
+      title="已使用内置示例"
+      :description="noticeMessage"
+      :closable="false"
+      show-icon
+    />
+
     <div class="ai-order-source__actions">
       <span>
         <ArtSvgIcon icon="ri:shield-check-line" />
@@ -71,9 +90,16 @@
   defineOptions({ name: 'TmsAiOrderSourcePanel' })
 
   const model = defineModel<AiOrderInputModel>({ required: true })
-  const { analyzing = false, generatingExample = false } = defineProps<{
+  const {
+    analyzing = false,
+    generatingExample = false,
+    errorMessage = '',
+    noticeMessage = ''
+  } = defineProps<{
     analyzing?: boolean
     generatingExample?: boolean
+    errorMessage?: string
+    noticeMessage?: string
   }>()
   const emit = defineEmits<{ analyze: []; 'generate-example': [] }>()
 
@@ -85,7 +111,7 @@
       span: 24,
       props: {
         type: 'textarea',
-        rows: 8,
+        rows: 6,
         maxlength: 8000,
         showWordLimit: true,
         resize: 'none',
@@ -165,6 +191,10 @@
       }
     }
 
+    &__status {
+      margin-top: 14px;
+    }
+
     :deep(.ai-order-source__form) {
       padding: 0;
 
@@ -174,7 +204,7 @@
     }
 
     :deep(.ai-order-source__form .el-textarea__inner) {
-      min-height: clamp(240px, 38vh, 440px) !important;
+      min-height: clamp(190px, 25vh, 300px) !important;
       line-height: 1.7;
     }
 

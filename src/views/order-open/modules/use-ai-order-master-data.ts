@@ -66,7 +66,8 @@ export function useAiOrderMasterData() {
         title: `货物：${cargoName || `第${reference.index + 1}条`}`,
         description: `${cargoName || '-'} · ${unit || '默认计件'}`,
         ready: cargoName.length >= 2,
-        reason: cargoName.length >= 2 ? undefined : '缺少有效货物名称'
+        reason: cargoName.length >= 2 ? undefined : '缺少有效货物名称',
+        requiredPermissions: ['TmsCargo:Add']
       })
     })
 
@@ -134,7 +135,10 @@ export function useAiOrderMasterData() {
     }
 
     const { data } = await createAiOrderMasterData(tasks)
-    return data?.length ?? 0
+    if (!data || data.length !== tasks.length) {
+      throw new Error('建档结果未确认，请重新匹配后核对档案')
+    }
+    return data.length
   }
 
   function pushStationTask(
@@ -154,7 +158,8 @@ export function useAiOrderMasterData() {
       title,
       description: `${stationName || '-'} · ${stationTypeLabel(stationType)}`,
       ready,
-      reason: ready ? undefined : '缺少有效站点名称'
+      reason: ready ? undefined : '缺少有效站点名称',
+      requiredPermissions: ['TmsStation:Add']
     })
   }
 
@@ -183,7 +188,10 @@ export function useAiOrderMasterData() {
           addressDetail
         ]),
         ready,
-        reason: ready ? undefined : getCustomerNotReadyReason(config)
+        reason: ready ? undefined : getCustomerNotReadyReason(config),
+        requiredPermissions: hasAddress
+          ? ['TmsCustomer:Add', 'TmsCustomerAddress:Add']
+          : ['TmsCustomer:Add']
       })
       return
     }
@@ -199,7 +207,8 @@ export function useAiOrderMasterData() {
           addressDetail
         ]),
         ready: addressReady,
-        reason: addressReady ? undefined : getAddressNotReadyReason(config)
+        reason: addressReady ? undefined : getAddressNotReadyReason(config),
+        requiredPermissions: ['TmsCustomerAddress:Add']
       })
     }
   }

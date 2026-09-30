@@ -6,9 +6,9 @@
           <ArtSvgIcon icon="ri:sparkling-2-line" />
         </div>
         <div class="ai-order-drawer__hero-copy">
-          <span>AI ORDER COPILOT</span>
+          <span>AI 智能开单</span>
           <h2>把聊天和图片快速变成可开单资料</h2>
-          <p>识别、核对、匹配、建档集中在一个工作区，最终仍由你确认并保存订单。</p>
+          <p>提取客户、路线、货物、结算与运输配置，核对后回填当前订单。</p>
         </div>
         <div class="ai-order-drawer__progress" aria-label="智能填单进度">
           <div class="is-complete"><strong>1</strong><span>提供资料</span></div>
@@ -26,6 +26,8 @@
           v-model="form.data"
           :analyzing="state.analyzing"
           :generating-example="state.generatingExample"
+          :error-message="state.errorMessage"
+          :notice-message="state.noticeMessage"
           @analyze="handleAnalyze"
           @generate-example="handleGenerateExample"
         />
@@ -42,7 +44,7 @@
                 icon="ri:file-search-line"
                 aria-hidden="true"
               />
-              <span><b>提取运输信息</b><small>识别路线、收发货人、货品和费用等字段</small></span>
+              <span><b>提取开单信息</b><small>识别路线、联系人、货品、费用与运输配置</small></span>
             </div>
             <div>
               <ArtSvgIcon
@@ -58,12 +60,12 @@
                 icon="ri:checkbox-circle-line"
                 aria-hidden="true"
               />
-              <span><b>确认后回填</b><small>检查缺失或低可信字段，再填入当前订单</small></span>
+              <span><b>核对后回填</b><small>检查缺失字段，整车车型和时间仍需人工确认</small></span>
             </div>
           </div>
           <ElAlert
             title="AI 不会自动保存或建档"
-            description="开单仍需人工确认并保存；新建基础资料仅平台超级管理员可操作。"
+            description="开单仍需人工确认并保存；有对应新增权限的用户可在所属租户建档，跨租户操作须先选定目标租户。"
             type="info"
             :closable="false"
             show-icon
@@ -77,6 +79,8 @@
           v-model="form.data"
           :analyzing="state.analyzing"
           :generating-example="state.generatingExample"
+          :error-message="state.errorMessage"
+          :notice-message="state.noticeMessage"
           @analyze="handleAnalyze"
           @generate-example="handleGenerateExample"
         />
@@ -102,9 +106,31 @@
         </section>
 
         <div class="ai-order-drawer__analysis-grid">
-          <AiOrderResultPanel :analysis="state.analysis" />
+          <AiOrderResultPanel :analysis="state.analysis" :options="state.openData?.options" />
           <div class="ai-order-drawer__master-column">
-            <AiOrderReferencePanel :analysis="state.analysis" :references="state.references" />
+            <ElAlert
+              v-if="state.matchingReferences"
+              title="正在匹配已有档案"
+              description="识别结果已生成，正在核对站点、客户、地址和货物资料。"
+              type="info"
+              :closable="false"
+              show-icon
+            />
+            <div v-else-if="state.referenceError" class="ai-order-drawer__match-error">
+              <ElAlert
+                title="档案匹配暂不可用"
+                description="识别结果仍可核对和回填；回填后请手动选择站点、客户及货物档案。"
+                type="warning"
+                :closable="false"
+                show-icon
+              />
+              <ElButton type="primary" plain @click="handleRetryReferences">重新匹配档案</ElButton>
+            </div>
+            <AiOrderReferencePanel
+              v-else
+              :analysis="state.analysis"
+              :references="state.references"
+            />
             <AiOrderMasterDataPanel
               v-if="masterDataTasks.length"
               v-model:selected-keys="state.selectedMasterDataKeys"
@@ -112,9 +138,9 @@
               :creating="state.creatingMasterData"
             />
             <ElAlert
-              v-else
-              title="前置资料已就绪，可直接填入当前订单"
-              description="客户、地址、站点和货物均已匹配到有效档案。"
+              v-else-if="!state.matchingReferences && !state.referenceError"
+              title="无需新建基础资料"
+              description="已匹配的档案会关联到订单；未识别的信息请在回填后补充。"
               type="success"
               :closable="false"
               show-icon
@@ -127,11 +153,12 @@
     <template #footer="{ api, loading }">
       <ElButton @click="api.handleClose()">取消</ElButton>
       <ElButton
-        v-if="masterDataTasks.length && canCreateMasterData"
+        v-if="masterDataTasks.length"
         type="primary"
         plain
         :loading="state.creatingMasterData"
         :disabled="!state.selectedMasterDataKeys.length || loading"
+        :title="createMasterDataHint"
         @click="handleCreateMasterData(state.selectedMasterDataKeys)"
       >
         一键建档 {{ state.selectedMasterDataKeys.length }} 项
@@ -139,7 +166,7 @@
       <ElButton
         type="primary"
         :loading="loading"
-        :disabled="!state.analysis || state.creatingMasterData"
+        :disabled="!state.analysis || state.creatingMasterData || state.matchingReferences"
         @click="api.handleConfirm()"
       >
         填入当前订单
@@ -158,7 +185,8 @@
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import { analyzeOrderByAi, generateAiOrderExample } from '@tms/api'
-  import { useUserStore } from '@/store/modules/user'
+  import { useAuth } from '@/hooks/core/useAuth'
+  import { useTenantScopeStore } from '@/store/modules/tenantScope'
   import { getBuiltInOrderExample } from './ai-order-examples'
   import AiOrderMasterDataPanel from './ai-order-master-data-panel.vue'
   import AiOrderReferencePanel from './ai-order-reference-panel.vue'
@@ -168,6 +196,7 @@
     AiOrderApplyPayload,
     AiOrderDrawerOpenData,
     AiOrderInputModel,
+    AiOrderMasterDataTask,
     AiOrderReferenceMatches
   } from './ai-order-types'
   import { useAiOrderMasterData } from './use-ai-order-master-data'
@@ -183,6 +212,7 @@
 
   interface DrawerState {
     analyzing: boolean
+    matchingReferences: boolean
     creatingMasterData: boolean
     generatingExample: boolean
     analysis: Api.Tms.Order.AiOrderAnalyzeResponse | null
@@ -190,6 +220,9 @@
     references: AiOrderReferenceMatches
     selectedMasterDataKeys: string[]
     sourceExpanded: boolean
+    errorMessage: string
+    noticeMessage: string
+    referenceError: boolean
   }
 
   const emit = defineEmits<{
@@ -197,7 +230,8 @@
   }>()
 
   const drawerRef = ref<ArtDrawerExpose<AiOrderDrawerOpenData>>()
-  const { isPlatformSuper } = storeToRefs(useUserStore())
+  const { hasAuth } = useAuth()
+  const { effectiveTenantId } = storeToRefs(useTenantScopeStore())
   const { resolveReferences } = useAiOrderReferenceMatcher()
   const { buildTasks, createTasks } = useAiOrderMasterData()
 
@@ -207,20 +241,42 @@
 
   const state: UnwrapNestedRefs<DrawerState> = reactive<DrawerState>({
     analyzing: false,
+    matchingReferences: false,
     creatingMasterData: false,
     generatingExample: false,
     analysis: null,
     openData: null,
     references: createEmptyReferences(),
     selectedMasterDataKeys: [],
-    sourceExpanded: true
+    sourceExpanded: true,
+    errorMessage: '',
+    noticeMessage: '',
+    referenceError: false
   })
 
   const masterDataTasks = computed(() => {
-    if (!state.analysis) return []
-    return buildTasks(state.analysis.order, state.references)
+    if (!state.analysis || state.matchingReferences || state.referenceError) return []
+    return buildTasks(state.analysis.order, state.references).map((task) => {
+      const missingPermissions = task.requiredPermissions.filter(
+        (permission) => !hasAuth(permission)
+      )
+      const reason = !effectiveTenantId.value
+        ? '请先在页头选择目标租户'
+        : missingPermissions.length
+          ? `缺少${missingPermissions.map((permission) => masterDataPermissionLabels[permission]).join('、')}权限`
+          : undefined
+      return {
+        ...task,
+        ready: task.ready && !reason,
+        reason: task.reason || reason
+      }
+    })
   })
-  const canCreateMasterData = computed(() => isPlatformSuper.value)
+  const createMasterDataHint = computed(() => {
+    if (!effectiveTenantId.value) return '请先在页头选择目标租户'
+    if (!state.selectedMasterDataKeys.length) return '请先勾选资料完整且有新增权限的项目'
+    return `创建所选的 ${state.selectedMasterDataKeys.length} 项基础资料`
+  })
   const inputSummary = computed(() => {
     const characterCount = trim(form.data.prompt).length
     const imageCount = form.data.imageUrls.filter(Boolean).length
@@ -229,6 +285,33 @@
       imageCount ? `${imageCount} 张图片` : ''
     ]
     return parts.filter(Boolean).join(' · ') || '已提供资料'
+  })
+  let requestVersion = 0
+
+  const masterDataPermissionLabels: Record<
+    AiOrderMasterDataTask['requiredPermissions'][number],
+    string
+  > = {
+    'TmsStation:Add': '站点新增',
+    'TmsCustomer:Add': '客户新增',
+    'TmsCustomerAddress:Add': '客户地址新增',
+    'TmsCargo:Add': '货物新增'
+  }
+
+  watch(effectiveTenantId, (nextTenantId, previousTenantId) => {
+    if (nextTenantId === previousTenantId) return
+
+    const version = ++requestVersion
+    state.references = createEmptyReferences()
+    state.selectedMasterDataKeys = []
+    if (state.analyzing) {
+      state.analyzing = false
+      state.noticeMessage = '租户范围已变化，请重新识别资料'
+    }
+    if (state.generatingExample) state.generatingExample = false
+    if (state.analysis) {
+      void matchReferences(state.analysis.order, version)
+    }
   })
 
   async function handleOpen(data: AiOrderDrawerOpenData): Promise<void> {
@@ -248,7 +331,7 @@
   }
 
   async function handleAnalyze(): Promise<void> {
-    if (state.generatingExample || state.creatingMasterData) return
+    if (state.generatingExample || state.creatingMasterData || state.matchingReferences) return
 
     const prompt = trim(form.data.prompt)
     const imageUrls = form.data.imageUrls.filter(Boolean)
@@ -258,27 +341,57 @@
     }
 
     state.analyzing = true
+    state.errorMessage = ''
+    state.noticeMessage = ''
     state.analysis = null
     state.references = createEmptyReferences()
     state.selectedMasterDataKeys = []
+    state.referenceError = false
+    const version = ++requestVersion
     try {
       const { data, error } = await analyzeOrderByAi({
         prompt,
         imageUrls,
         options: state.openData?.options
       })
+      if (version !== requestVersion) return
       if (error || !data?.order) {
-        ElMessage.error(getFriendlySupabaseErrorMessage(error, 'AI 识别失败，请稍后重试'))
+        state.errorMessage = getFriendlySupabaseErrorMessage(error, 'AI 识别失败，请检查资料后重试')
         return
       }
 
       state.analysis = data
-      state.references = await resolveReferences(data.order)
       state.sourceExpanded = false
       ElMessage.success('识别完成，请确认结果后填入订单')
+      await matchReferences(data.order, version)
+    } catch (error) {
+      if (version === requestVersion) {
+        state.errorMessage = getFriendlySupabaseErrorMessage(error, 'AI 识别失败，请检查网络后重试')
+      }
     } finally {
-      state.analyzing = false
+      if (version === requestVersion) state.analyzing = false
     }
+  }
+
+  async function matchReferences(
+    order: Api.Tms.Order.AiOrderDraft,
+    version: number
+  ): Promise<void> {
+    state.matchingReferences = true
+    state.referenceError = false
+    try {
+      const matches = await resolveReferences(order)
+      if (version === requestVersion) state.references = matches
+    } catch {
+      if (version === requestVersion) state.referenceError = true
+    } finally {
+      if (version === requestVersion) state.matchingReferences = false
+    }
+  }
+
+  async function handleRetryReferences(): Promise<void> {
+    if (!state.analysis || state.matchingReferences) return
+    await matchReferences(state.analysis.order, requestVersion)
   }
 
   async function handleGenerateExample(): Promise<void> {
@@ -297,33 +410,46 @@
     }
 
     state.generatingExample = true
+    state.errorMessage = ''
+    state.noticeMessage = ''
+    state.referenceError = false
+    const version = ++requestVersion
     try {
       const { data, error } = await generateAiOrderExample({
         options: state.openData?.options
       })
+      if (version !== requestVersion) return
 
       form.data.prompt = data?.prompt || getBuiltInOrderExample()
       state.analysis = null
       state.references = createEmptyReferences()
       state.sourceExpanded = true
       if (error || !data?.prompt) {
-        ElMessage.warning('AI 示例暂时不可用，已为你填入内置示例')
+        state.noticeMessage = 'AI 示例暂时不可用，已填入内置示例。可直接修改并尝试识别。'
         return
       }
       ElMessage.success('已生成一份完整示例，可直接修改后识别')
+    } catch {
+      if (version === requestVersion) {
+        form.data.prompt = getBuiltInOrderExample()
+        state.noticeMessage = 'AI 示例暂时不可用，已填入内置示例。可直接修改并尝试识别。'
+      }
     } finally {
-      state.generatingExample = false
+      if (version === requestVersion) state.generatingExample = false
     }
   }
 
   async function handleCreateMasterData(keys: string[]): Promise<void> {
-    if (!canCreateMasterData.value) {
-      ElMessage.warning('仅平台超级管理员可执行 AI 主数据建档')
+    if (!effectiveTenantId.value) {
+      ElMessage.warning(createMasterDataHint.value)
       return
     }
     if (!state.analysis || !keys.length || state.creatingMasterData) return
+    const targetTenantId = effectiveTenantId.value
 
-    const selectedTasks = masterDataTasks.value.filter((task) => keys.includes(task.key))
+    const selectedTasks = masterDataTasks.value.filter(
+      (task) => task.ready && keys.includes(task.key)
+    )
     if (!selectedTasks.length) return
 
     try {
@@ -340,15 +466,33 @@
       return
     }
 
+    if (effectiveTenantId.value !== targetTenantId) {
+      ElMessage.warning('租户范围已变化，请重新核对目标租户后建档')
+      return
+    }
+
     state.creatingMasterData = true
     try {
-      const createdCount = await createTasks(state.analysis.order, state.references, keys)
-      state.references = await resolveReferences(state.analysis.order)
-      ElMessage.success(`已创建 ${createdCount} 项基础资料，可继续填入订单`)
+      const createdCount = await createTasks(
+        state.analysis.order,
+        state.references,
+        selectedTasks.map((task) => task.key)
+      )
+      if (effectiveTenantId.value !== targetTenantId) {
+        state.referenceError = true
+        ElMessage.warning('建档时租户范围已变化，请重新匹配档案后继续')
+        return
+      }
+      await matchReferences(state.analysis.order, requestVersion)
+      if (state.referenceError) {
+        ElMessage.warning(`已创建 ${createdCount} 项基础资料，请点击“重新匹配档案”确认关联`)
+      } else {
+        ElMessage.success(`已创建 ${createdCount} 项基础资料，可继续填入订单`)
+      }
     } catch (error) {
-      state.references = await resolveReferences(state.analysis.order)
+      await matchReferences(state.analysis.order, requestVersion)
       ElMessage.error(
-        getFriendlySupabaseErrorMessage(error, '建档失败，本次未创建任何资料，请检查后重试')
+        getFriendlySupabaseErrorMessage(error, '建档结果未确认，请核对档案匹配结果后重试')
       )
     } finally {
       state.creatingMasterData = false
@@ -358,6 +502,10 @@
   function handleApply(): boolean {
     if (!state.analysis) {
       ElMessage.warning('请先完成智能识别')
+      return false
+    }
+    if (state.matchingReferences) {
+      ElMessage.warning('请等待档案匹配完成')
       return false
     }
 
@@ -386,16 +534,21 @@
   }
 
   function resetState(data: AiOrderDrawerOpenData | null): void {
+    requestVersion += 1
     Object.assign(form.data, createInitialInput())
     Object.assign(state, {
       analyzing: false,
+      matchingReferences: false,
       creatingMasterData: false,
       generatingExample: false,
       analysis: null,
       openData: data,
       references: createEmptyReferences(),
       selectedMasterDataKeys: [],
-      sourceExpanded: true
+      sourceExpanded: true,
+      errorMessage: '',
+      noticeMessage: '',
+      referenceError: false
     })
   }
 
@@ -514,6 +667,12 @@
       display: grid;
       gap: 16px;
       min-width: 0;
+    }
+
+    &__match-error {
+      display: grid;
+      gap: 10px;
+      justify-items: start;
     }
 
     &__source-summary {

@@ -34,10 +34,12 @@
     </ArtSectionCard>
 
     <section class="waybill-document-panel__section art-card-xs">
-      <div class="waybill-document-panel__toolbar">
-        <ElSegmented v-model="activeCategory" :options="filterOptions" />
-        <span>当前显示 {{ filteredDocuments.length }} 份</span>
-      </div>
+      <ElScrollbar class="waybill-document-panel__toolbar-scroll">
+        <div class="waybill-document-panel__toolbar">
+          <ElSegmented v-model="activeCategory" :options="filterOptions" />
+          <span>当前显示 {{ filteredDocuments.length }} 份</span>
+        </div>
+      </ElScrollbar>
 
       <div v-if="filteredDocuments.length" class="waybill-document-panel__gallery">
         <article v-for="(document, index) in filteredDocuments" :key="document.url">
@@ -531,7 +533,6 @@
       align-items: center;
       justify-content: space-between;
       padding-bottom: var(--art-space-4);
-      overflow-x: auto;
 
       > span {
         flex: none;

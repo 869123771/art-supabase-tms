@@ -674,6 +674,7 @@
     synchronizeContractCargoFreight
   } from './modules/order-contract-detail'
   import { buildAiOrderFinalPayload } from './modules/ai-order-review'
+  import { mergeAiOrderConfig } from './modules/ai-order-config'
   import { printOrderWaybill } from '../modules/waybill-print'
   import type {
     AiAddressReferenceMatch,
@@ -1878,7 +1879,13 @@
         deliveryMethods: toAiOptions(form.deliveryMethodOptions),
         paymentMethods: toAiOptions(form.paymentMethodOptions),
         transportModes: toAiOptions(form.transportModeOptions),
-        cargoUnits: toAiOptions(form.cargoUnitOptions)
+        cargoUnits: toAiOptions(form.cargoUnitOptions),
+        loadTypes: toAiOptions(getDictMap.value.tmsOrderLoadType ?? []),
+        billingModes: toAiOptions(getDictMap.value.tmsOrderBillingMode ?? []),
+        cargoCategories: toAiOptions(getDictMap.value.tmsOrderCargoCategory ?? []),
+        packagingOptions: toAiOptions(getDictMap.value.tmsOrderPackaging ?? []),
+        transportRequirements: toAiOptions(getDictMap.value.tmsOrderTransportRequirement ?? []),
+        trackingMethods: toAiOptions(getDictMap.value.tmsOrderTrackingMethod ?? [])
       }
     })
   }
@@ -1939,6 +1946,7 @@
     }
 
     Object.assign(form.data, patch)
+    form.data.orderConfig = mergeAiOrderConfig(form.data.orderConfig, draft.orderConfig)
     await stationFormRef.value?.reloadOptions()
     if (draft.cargoItems?.some((item) => textValue(item.cargoName))) {
       form.data.cargoItems = draft.cargoItems.map((item) => ({

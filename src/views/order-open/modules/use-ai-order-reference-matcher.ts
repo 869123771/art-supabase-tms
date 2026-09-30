@@ -83,13 +83,19 @@ export function useAiOrderReferenceMatcher() {
     stationType: string
   ): Promise<StationOption[]> {
     if (!trim(String(name ?? ''))) return []
-    const { data } = await fetchStationOptions({ keyword: String(name), stationType })
+    const { data, error } = await fetchStationOptions({ keyword: String(name), stationType })
+    if (error) throw error
     return data ?? []
   }
 
   async function fetchCustomerMatches(name?: string | null): Promise<CustomerItem[]> {
     if (!trim(String(name ?? ''))) return []
-    const { data } = await fetchCustomerSelectorList({ keyword: String(name), from: 0, to: 9 })
+    const { data, error } = await fetchCustomerSelectorList({
+      keyword: String(name),
+      from: 0,
+      to: 9
+    })
+    if (error) throw error
     return data ?? []
   }
 
@@ -102,12 +108,13 @@ export function useAiOrderReferenceMatcher() {
     if (!source) return { status: 'empty' }
     if (!customerId) return { label: source, status: 'unmatched' }
 
-    const { data } = await fetchCustomerAddressList({
+    const { data, error } = await fetchCustomerAddressList({
       customerId,
       addressType,
       from: 0,
       to: 99
     })
+    if (error) throw error
     const matched = findUniqueMatch(
       source,
       data ?? [],
@@ -131,7 +138,8 @@ export function useAiOrderReferenceMatcher() {
     const source = trim(String(name ?? ''))
     if (!source) return { index, status: 'empty' }
 
-    const { data } = await fetchCargoList({ keyword: source, from: 0, to: 19 })
+    const { data, error } = await fetchCargoList({ keyword: source, from: 0, to: 19 })
+    if (error) throw error
     return {
       index,
       ...createMatch(source, data ?? [], (item: Cargo) => item.cargoName)

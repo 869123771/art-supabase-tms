@@ -21,9 +21,7 @@
         </ElRadioGroup>
       </div>
 
-      <div
-        class="max-w-full overflow-x-auto rounded border border-[var(--el-border-color-lighter)]"
-      >
+      <ElScrollbar class="max-w-full rounded border border-[var(--el-border-color-lighter)]">
         <table class="w-full min-w-[640px] border-collapse text-left text-sm">
           <thead class="bg-[var(--el-fill-color-light)]">
             <tr>
@@ -68,7 +66,7 @@
             </tr>
           </tbody>
         </table>
-      </div>
+      </ElScrollbar>
       <p v-if="validationError" role="alert" class="m-0 text-sm text-[var(--el-color-danger)]">
         {{ validationError }}
       </p>

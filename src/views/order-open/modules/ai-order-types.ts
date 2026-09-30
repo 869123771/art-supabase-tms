@@ -35,6 +35,9 @@ export interface AiOrderMasterDataTask {
   description: string
   ready: boolean
   reason?: string
+  requiredPermissions: Array<
+    'TmsStation:Add' | 'TmsCustomer:Add' | 'TmsCustomerAddress:Add' | 'TmsCargo:Add'
+  >
 }
 
 export interface AiOrderApplyPayload {

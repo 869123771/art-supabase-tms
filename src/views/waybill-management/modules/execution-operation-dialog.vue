@@ -24,6 +24,13 @@
         :closable="false"
         show-icon
       />
+      <ElAlert
+        v-if="currentRow && !attachmentTenantId"
+        type="warning"
+        title="运单缺少租户归属，暂不能上传附件，请返回列表刷新后重试"
+        :closable="false"
+        show-icon
+      />
 
       <ArtForm
         ref="formRef"
@@ -40,6 +47,8 @@
         <template #photoUrls>
           <ArtUploadImage
             v-model="form.data.photoUrls"
+            :resource-tenant-id="attachmentTenantId"
+            :disabled="!attachmentTenantId"
             :title="action === 'completion' ? '收车照片' : '发车照片'"
             :size="92"
             :limit="5"
@@ -49,6 +58,8 @@
         <template #receiptUrls>
           <ArtUploadImage
             v-model="form.data.receiptUrls"
+            :resource-tenant-id="attachmentTenantId"
+            :disabled="!attachmentTenantId"
             title="签收回单"
             :size="92"
             :limit="5"
@@ -58,6 +69,8 @@
         <template #signatureUrls>
           <ArtUploadImage
             v-model="form.data.signatureUrls"
+            :resource-tenant-id="attachmentTenantId"
+            :disabled="!attachmentTenantId"
             title="签字确认照片"
             :size="92"
             :limit="3"
@@ -129,6 +142,7 @@
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
+  import { useTenantScopeStore } from '@/store/modules/tenantScope'
   import {
     completeWaybillExecution,
     fetchWaybillExecutionContext,
@@ -182,6 +196,10 @@
   const dialogRef = ref<ArtDialogExpose<OpenData>>()
   const formRef = ref<FormExpose>()
   const currentRow = shallowRef<WaybillRecord>()
+  const tenantScopeStore = useTenantScopeStore()
+  const attachmentTenantId = computed(
+    () => currentRow.value?.tenantId || tenantScopeStore.effectiveTenantId || ''
+  )
   const action = ref<ExecutionAction>('departure')
   const context = shallowRef<Api.Tms.Waybill.ExecutionContext>()
   const receiptAllocations = ref<ReceiptAllocationForm[]>([])

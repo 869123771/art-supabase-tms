@@ -32,6 +32,7 @@ export function buildAiOrderFinalPayload(order: OrderForm): Api.Tms.Order.AiOrde
     codAmount: nullableNumber(order.codAmount),
     handlingFee: nullableNumber(order.handlingFee),
     transportMode: nullableText(order.transportMode),
-    orderRemark: nullableText(order.orderRemark)
+    orderRemark: nullableText(order.orderRemark),
+    orderConfig: { ...order.orderConfig }
   }
 }

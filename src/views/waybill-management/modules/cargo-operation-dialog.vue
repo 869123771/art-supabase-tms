@@ -26,6 +26,13 @@
         :title="policyTitle"
         :description="policyDescription"
       />
+      <ElAlert
+        v-if="currentRow && !attachmentTenantId"
+        type="warning"
+        title="运单缺少租户归属，暂不能上传附件，请返回列表刷新后重试"
+        :closable="false"
+        show-icon
+      />
 
       <ArtSectionCard
         class="cargo-operation-dialog__checkin"
@@ -75,6 +82,12 @@
         <template #photoUrls>
           <ArtUploadImage
             v-model="form.data.photoUrls"
+            :resource-tenant-id="attachmentTenantId"
+            :disabled="
+              !attachmentTenantId ||
+              !context?.operation ||
+              context.operation.operationStatus === 'completed'
+            "
             :title="`${operationTitle}照片`"
             :size="92"
             :limit="5"
@@ -84,6 +97,12 @@
         <template #weighbridgeTicketUrls>
           <ArtUploadImage
             v-model="form.data.weighbridgeTicketUrls"
+            :resource-tenant-id="attachmentTenantId"
+            :disabled="
+              !attachmentTenantId ||
+              !context?.operation ||
+              context.operation.operationStatus === 'completed'
+            "
             :title="`${operationTitle}磅单`"
             :size="92"
             :limit="3"
@@ -117,6 +136,7 @@
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
+  import { useTenantScopeStore } from '@/store/modules/tenantScope'
   import {
     checkInWaybillCargoOperation,
     completeWaybillCargoOperation,
@@ -182,6 +202,10 @@
   const dialogRef = ref<ArtDialogExpose<OpenData>>()
   const formRef = ref<FormExpose>()
   const currentRow = shallowRef<WaybillRecord>()
+  const tenantScopeStore = useTenantScopeStore()
+  const attachmentTenantId = computed(
+    () => currentRow.value?.tenantId || tenantScopeStore.effectiveTenantId || ''
+  )
   const operationType = ref<OperationType>('loading')
   const checkinOnly = ref(false)
   const context = shallowRef<OperationContext>()

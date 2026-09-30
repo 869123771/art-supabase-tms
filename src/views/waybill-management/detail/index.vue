@@ -69,7 +69,7 @@
           <span><i></i>待执行</span>
         </div>
       </div>
-      <div class="waybill-detail__journey-scroll">
+      <ElScrollbar class="waybill-detail__journey-scroll">
         <ol class="waybill-detail__journey-track">
           <li
             v-for="(node, index) in journeyNodes"
@@ -89,7 +89,7 @@
             <i v-if="index < journeyNodes.length - 1"></i>
           </li>
         </ol>
-      </div>
+      </ElScrollbar>
     </section>
 
     <section v-if="detail.data" class="waybill-detail__workspace">
@@ -523,8 +523,6 @@
 
     &__journey-scroll {
       padding-bottom: 2px;
-      overflow-x: auto;
-      scrollbar-width: thin;
     }
 
     &__journey-track {

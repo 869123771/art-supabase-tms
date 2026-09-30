@@ -776,6 +776,12 @@ declare global {
             paymentMethods?: AiOrderOption[]
             transportModes?: AiOrderOption[]
             cargoUnits?: AiOrderOption[]
+            loadTypes?: AiOrderOption[]
+            billingModes?: AiOrderOption[]
+            cargoCategories?: AiOrderOption[]
+            packagingOptions?: AiOrderOption[]
+            transportRequirements?: AiOrderOption[]
+            trackingMethods?: AiOrderOption[]
           }
         }
 
@@ -818,6 +824,25 @@ declare global {
           handlingFee?: number | null
           transportMode?: string | null
           orderRemark?: string | null
+          orderConfig?: AiOrderConfigDraft | null
+        }
+
+        interface AiOrderConfigDraft {
+          loadType?: OrderConfig['loadType'] | null
+          allowConsolidation?: boolean | null
+          truckCount?: number | null
+          billingMode?: OrderConfig['billingMode'] | null
+          billingUnit?: string | null
+          cargoCategory?: string | null
+          tempMinC?: number | null
+          tempMaxC?: number | null
+          packaging?: string | null
+          selfPickup?: boolean | null
+          insured?: boolean | null
+          transportRequirements?: string[] | null
+          trackingMethod?: string | null
+          trackingNumber?: string | null
+          remark?: string | null
         }
 
         interface AiOrderAnalyzeResponse {

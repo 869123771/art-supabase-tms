@@ -16,6 +16,13 @@ function createValidPayload() {
     order: {
       originStationName: '杭州',
       transportFee: 120,
+      orderConfig: {
+        loadType: 'ltl',
+        billingMode: 'weight',
+        truckCount: 1,
+        selfPickup: false,
+        transportRequirements: ['moisture_proof']
+      },
       cargoItems: [
         {
           cargoName: '纸箱',
@@ -42,12 +49,14 @@ test('AI order contract rejects unsafe numeric and confidence values', () => {
   payload.confidence = 1.2
   payload.order.transportFee = -1
   payload.order.cargoItems[0].quantity = -2
+  payload.order.orderConfig.truckCount = 0
 
   const result = validateAiOrderProviderPayload(payload)
   assert.equal(result.valid, false)
   assert.ok(result.errors.some((error) => error.includes('confidence')))
   assert.ok(result.errors.some((error) => error.includes('transportFee')))
   assert.ok(result.errors.some((error) => error.includes('quantity')))
+  assert.ok(result.errors.some((error) => error.includes('truckCount')))
 })
 
 test('AI order metadata normalizer accepts nested cargo confidence without rejecting the order', () => {
@@ -76,18 +85,25 @@ test('AI order comparison only scores fields actually proposed by AI', () => {
         originStationName: ' 杭州 ',
         destinationStationName: null,
         transportFee: 120,
-        cargoItems: [{ cargoName: '纸箱', quantity: 2 }]
+        cargoItems: [{ cargoName: '纸箱', quantity: 2 }],
+        orderConfig: { loadType: 'ltl', billingMode: 'weight', insured: false }
       },
       {
         originStationName: '杭州',
         destinationStationName: '上海',
         transportFee: 130,
-        cargoItems: [{ quantity: 2, cargoName: '纸箱' }]
+        cargoItems: [{ quantity: 2, cargoName: '纸箱' }],
+        orderConfig: { loadType: 'ltl', billingMode: 'volume', insured: false, packaging: 'box' }
       }
     ),
     {
-      acceptedFields: ['cargoItems', 'originStationName'],
-      correctedFields: ['transportFee']
+      acceptedFields: [
+        'cargoItems',
+        'orderConfig.insured',
+        'orderConfig.loadType',
+        'originStationName'
+      ],
+      correctedFields: ['orderConfig.billingMode', 'transportFee']
     }
   )
 })
