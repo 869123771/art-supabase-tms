@@ -54,11 +54,23 @@ test('AI 智能填单可核对运输配置并在窄屏正常展示', async ({ pa
   const pageErrors: string[] = []
   let analysisRequests = 0
   let failReferences = false
+  let ordinaryCreateTaskCount = 0
   page.on('pageerror', (error) => pageErrors.push(error.message))
 
   await page.route('**/rest/v1/rpc/current_is_super', (route) =>
     route.fulfill({ status: 200, json: false })
   )
+  await page.route('**/rest/v1/rpc/create_ai_order_master_data', (route) => {
+    expect(route.request().headers()['x-art-tenant-scope']).toBeUndefined()
+    const body = route.request().postDataJSON() as {
+      p_tasks: Array<{ key: string; kind: string }>
+    }
+    ordinaryCreateTaskCount = body.p_tasks.length
+    return route.fulfill({
+      status: 200,
+      json: body.p_tasks.map((task) => ({ ...task, id: '77777777-7777-4777-8777-777777777777' }))
+    })
+  })
 
   await page.route('**/functions/v1/ai-order-assistant', async (route) => {
     const requestBody = route.request().postDataJSON() as { action?: string } | null
@@ -85,22 +97,13 @@ test('AI 智能填单可核对运输配置并在窄屏正常展示', async ({ pa
     const path = '/src/store/modules/menu.ts'
     const { useMenuStore } = await import(/* @vite-ignore */ path)
     const store = useMenuStore()
-    store.setButtonList([
-      ...store.buttonList,
-      ...[
-        'TmsStation:Add',
-        'TmsCustomer:Add',
-        'TmsCustomerAddress:Add',
-        'TmsCargo:Add'
-      ].map((name) => ({
-        id: `test-${name}`,
-        name,
-        type: 'button',
-        path: '',
-        component: '',
-        meta: { title: '新增' }
-      }))
+    const denied = new Set([
+      'TmsStation:Add',
+      'TmsCustomer:Add',
+      'TmsCustomerAddress:Add',
+      'TmsCargo:Add'
     ])
+    store.setButtonList(store.buttonList.filter((button) => !denied.has(button.name)))
   })
   await openButton.click()
 
@@ -144,10 +147,27 @@ test('AI 智能填单可核对运输配置并在窄屏正常展示', async ({ pa
   await expect(drawer.getByText('运输配置', { exact: true })).toBeVisible()
   await expect(drawer.getByText('零担', { exact: true })).toBeVisible()
   await expect(drawer.getByText('待建档的前置资料')).toBeVisible()
-  await expect(
-    drawer.getByText('仅平台超级管理员可执行 AI 主数据建档', { exact: false }).first()
-  ).toBeVisible()
+  await expect(drawer.getByText('缺少站点新增权限').first()).toBeVisible()
   await expect(drawer.getByRole('button', { name: '一键建档 0 项' })).toBeDisabled()
+  await page.evaluate(async () => {
+    const path = '/src/store/modules/menu.ts'
+    const { useMenuStore } = await import(/* @vite-ignore */ path)
+    const store = useMenuStore()
+    store.setButtonList([
+      ...store.buttonList,
+      ...['TmsStation:Add', 'TmsCustomer:Add', 'TmsCustomerAddress:Add', 'TmsCargo:Add'].map(
+        (name) => ({
+          id: `test-${name}`,
+          name,
+          type: 'button',
+          path: '',
+          component: '',
+          meta: { title: '新增' }
+        })
+      )
+    ])
+  })
+  await expect(drawer.getByRole('button', { name: '一键建档 5 项' })).toBeEnabled()
   await expect(drawer.getByRole('button', { name: '填入当前订单' })).toBeEnabled()
 
   const overflow = await page.evaluate(() => ({
@@ -179,6 +199,10 @@ test('AI 智能填单可核对运输配置并在窄屏正常展示', async ({ pa
   await drawer.locator('.el-drawer__body').evaluate((element) => element.scrollTo({ top: 0 }))
   await expect(drawer.getByText('已识别原始资料', { exact: true })).toBeVisible()
   await page.screenshot({ path: '.artifacts/ai-order-redesign-mobile.png', fullPage: true })
+
+  await drawer.getByRole('button', { name: '一键建档 5 项' }).click()
+  await page.getByRole('button', { name: '确认创建' }).click()
+  await expect.poll(() => ordinaryCreateTaskCount).toBe(5)
 
   expect(pageErrors).toEqual([])
 })

@@ -44,7 +44,7 @@
 
     <div class="ai-order-master-data__hint">
       <ArtSvgIcon icon="ri:shield-check-line" />
-      <span>仅写入所选租户中有权创建的档案；整批失败会全部回滚，订单仍需手动保存。</span>
+      <span>仅写入当前有效租户中有权创建的档案；整批失败会全部回滚，订单仍需手动保存。</span>
     </div>
   </ArtSectionCard>
 </template>
