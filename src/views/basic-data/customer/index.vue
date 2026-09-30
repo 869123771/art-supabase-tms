@@ -58,13 +58,28 @@
     </div>
 
     <CustomerDialog ref="dialogRef" @success="handleSaveSuccess" />
+    <ArtDialog ref="deleteInspectionRef" :show-footer="false">
+      <div class="customer-delete-blocker-message-box">
+        <ArtAsyncState
+          v-if="deleteInspectionError"
+          :error="deleteInspectionError"
+          error-title="关联信息加载失败"
+          @retry="showCustomerDeleteBlockersIfNeeded(deleteInspectionCustomers)"
+        />
+        <component :is="deleteInspectionContent" v-else-if="deleteInspectionContent" />
+      </div>
+    </ArtDialog>
   </div>
 </template>
 
 <script setup lang="tsx">
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
-  import { ElButton, ElMessage, ElMessageBox, ElScrollbar, ElTag } from 'element-plus'
+  import { ElButton, ElMessage, ElScrollbar, ElTag } from 'element-plus'
+  import type { VNode } from 'vue'
+  import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
+  import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
     ArtTableQueryExpose,
@@ -148,6 +163,11 @@
   const { effectiveTenantId } = storeToRefs(useTenantScopeStore())
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<CustomerDialogExpose>()
+  const deleteInspectionRef = ref<ArtDialogExpose>()
+  const deleteInspectionContent = shallowRef<() => VNode>()
+  const deleteInspectionError = ref('')
+  const deleteInspectionCustomers = shallowRef<Customer[]>([])
+  let deleteInspectionSequence = 0
   const customerFieldAccess = ref<Api.Tms.BasicData.CustomerFieldAccessMap>({})
   const groupState = reactive({
     rows: [] as MasterGroup[],
@@ -723,7 +743,7 @@
   ): Promise<void> => {
     const customerIds = customers.map((item) => String(item.id)).filter(Boolean)
     if (!customerIds.length || !candidates.length) return
-    ElMessageBox.close()
+    await deleteInspectionRef.value?.handleClose(true)
     await nextTick()
     try {
       await confirmAction(
@@ -763,7 +783,7 @@
     customers: Customer[]
   ): void => {
     const customer = customers.find((candidate) => String(candidate.id) === record.customerId)
-    ElMessageBox.close()
+    void deleteInspectionRef.value?.handleClose(true)
     void router.push({
       name: item.routeName,
       query: {
@@ -777,11 +797,11 @@
     })
   }
 
-  const showCustomerDeleteBlockers = async (
+  const showCustomerDeleteBlockers = (
     dependencies: CustomerDeleteDependencyDetail[],
     cleanupCandidates: CustomerDeleteSafeCleanupCandidate[],
     customers: Customer[]
-  ): Promise<void> => {
+  ): void => {
     const blockerItems = getCustomerDeleteBlockerItems(dependencies, customers)
     const cleanupCandidateKeys = new Set(
       cleanupCandidates.map((candidate) =>
@@ -792,110 +812,128 @@
       customers.length === 1
         ? `客户“${customers[0].customerName}”`
         : `选中的 ${customers.length} 个客户`
-    try {
-      await confirmAction(
-        <div class="customer-delete-blockers">
-          <div class="customer-delete-blockers__lead">
-            <p>{customerLabel}仍被以下业务资料引用。点击具体记录可直接打开并精确过滤。</p>
-            {cleanupCandidates.length ? (
-              <ElButton
-                type="danger"
-                plain
-                onClick={() => void handleSafeCleanup(customers, cleanupCandidates)}
-              >
-                <i class="ri:delete-bin-5-line" aria-hidden="true" />
-                一键清理可删除项（{cleanupCandidates.length}）
-              </ElButton>
-            ) : null}
-          </div>
-          <ElScrollbar maxHeight="430px">
-            <div class="customer-delete-blockers__list">
-              {blockerItems.map((item, index) => (
-                <div key={item.dependencyCode} class="customer-delete-blockers__item">
-                  <span class="customer-delete-blockers__index">{index + 1}</span>
-                  <div class="customer-delete-blockers__content">
-                    <div class="customer-delete-blockers__title">
-                      <strong>{item.label}</strong>
-                      <ElTag type="warning" effect="light" size="small">
-                        {item.count} {item.unit}
-                      </ElTag>
-                    </div>
-                    <p>{item.action}</p>
-                    {customers.length > 1 && item.affectedCustomerNames.length ? (
-                      <small>涉及：{formatAffectedCustomers(item.affectedCustomerNames)}</small>
-                    ) : null}
-                    <div class="customer-delete-blockers__records">
-                      {item.records.map((record) => (
-                        <div key={record.recordId} class="customer-delete-blockers__record">
-                          <div class="customer-delete-blockers__record-copy">
-                            <strong>{record.recordNo || '未编号记录'}</strong>
-                            <span>
-                              {record.recordSummary ? `${record.recordSummary} · ` : ''}
-                              {formatDependencyStatus(record.recordStatus) || '待处理'}
-                              {record.recordAmount !== null && record.recordAmount !== undefined
-                                ? ` · ${formatDependencyAmount(record.recordAmount)}`
-                                : ''}
-                            </span>
-                          </div>
-                          <div class="customer-delete-blockers__record-actions">
-                            <ElTag
-                              type={
-                                isSafeCleanupRecord(record, cleanupCandidateKeys)
-                                  ? 'success'
-                                  : 'info'
-                              }
-                              effect="light"
-                              size="small"
-                            >
-                              {isSafeCleanupRecord(record, cleanupCandidateKeys)
-                                ? '可一键清理'
-                                : '需保留/处理'}
-                            </ElTag>
-                            <ElButton
-                              link
-                              type="primary"
-                              onClick={() => openCustomerDeleteDependency(item, record, customers)}
-                            >
-                              {item.actionLabel}
-                              <i class="ri:arrow-right-s-line" aria-hidden="true" />
-                            </ElButton>
-                          </div>
+    deleteInspectionContent.value = () => (
+      <div class="customer-delete-blockers">
+        <div class="customer-delete-blockers__lead">
+          <p>{customerLabel}仍被以下业务资料引用。点击具体记录可直接打开并精确过滤。</p>
+          {cleanupCandidates.length ? (
+            <ElButton
+              type="danger"
+              plain
+              onClick={() => void handleSafeCleanup(customers, cleanupCandidates)}
+            >
+              <i class="ri:delete-bin-5-line" aria-hidden="true" />
+              一键清理可删除项（{cleanupCandidates.length}）
+            </ElButton>
+          ) : null}
+        </div>
+        <ElScrollbar maxHeight="430px">
+          <div class="customer-delete-blockers__list">
+            {blockerItems.map((item, index) => (
+              <div key={item.dependencyCode} class="customer-delete-blockers__item">
+                <span class="customer-delete-blockers__index">{index + 1}</span>
+                <div class="customer-delete-blockers__content">
+                  <div class="customer-delete-blockers__title">
+                    <strong>{item.label}</strong>
+                    <ElTag type="warning" effect="light" size="small">
+                      {item.count} {item.unit}
+                    </ElTag>
+                  </div>
+                  <p>{item.action}</p>
+                  {customers.length > 1 && item.affectedCustomerNames.length ? (
+                    <small>涉及：{formatAffectedCustomers(item.affectedCustomerNames)}</small>
+                  ) : null}
+                  <div class="customer-delete-blockers__records">
+                    {item.records.map((record) => (
+                      <div key={record.recordId} class="customer-delete-blockers__record">
+                        <div class="customer-delete-blockers__record-copy">
+                          <strong>{record.recordNo || '未编号记录'}</strong>
+                          <span>
+                            {record.recordSummary ? `${record.recordSummary} · ` : ''}
+                            {formatDependencyStatus(record.recordStatus) || '待处理'}
+                            {record.recordAmount !== null && record.recordAmount !== undefined
+                              ? ` · ${formatDependencyAmount(record.recordAmount)}`
+                              : ''}
+                          </span>
                         </div>
-                      ))}
-                    </div>
+                        <div class="customer-delete-blockers__record-actions">
+                          <ElTag
+                            type={
+                              isSafeCleanupRecord(record, cleanupCandidateKeys) ? 'success' : 'info'
+                            }
+                            effect="light"
+                            size="small"
+                          >
+                            {isSafeCleanupRecord(record, cleanupCandidateKeys)
+                              ? '可一键清理'
+                              : '需保留/处理'}
+                          </ElTag>
+                          <ElButton
+                            link
+                            type="primary"
+                            onClick={() => openCustomerDeleteDependency(item, record, customers)}
+                          >
+                            {item.actionLabel}
+                            <i class="ri:arrow-right-s-line" aria-hidden="true" />
+                          </ElButton>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          </ElScrollbar>
-          <div class="customer-delete-blockers__tip">
-            <i class="ri:information-line" aria-hidden="true" />
-            <span>处理页会作为顶部任务标签打开。完成后点击“返回客户管理”，再重新删除该客户。</span>
+              </div>
+            ))}
           </div>
-        </div>,
-        {
-          title: '暂时无法删除客户',
-          type: undefined,
-          confirmButtonText: '我知道了',
-          showCancelButton: false,
-          closeOnClickModal: false,
-          customClass: 'customer-delete-blocker-message-box'
-        }
-      )
-    } catch {
-      // 关闭说明弹窗无需继续处理。
-    }
+        </ElScrollbar>
+        <div class="customer-delete-blockers__tip">
+          <i class="ri:information-line" aria-hidden="true" />
+          <span>处理页会作为顶部任务标签打开。完成后点击“返回客户管理”，再重新删除该客户。</span>
+        </div>
+      </div>
+    )
   }
 
   const showCustomerDeleteBlockersIfNeeded = async (customers: Customer[]): Promise<boolean> => {
-    const customerIds = customers.map((item) => String(item.id)).filter(Boolean)
-    const [dependencies, cleanupCandidates] = await Promise.all([
-      fetchCustomerDeleteDependencyDetails(customerIds),
-      fetchCustomerDeleteSafeCleanupCandidates(customerIds)
-    ])
-    if (!dependencies.length) return false
-    await showCustomerDeleteBlockers(dependencies, cleanupCandidates, customers)
-    return true
+    const sequence = ++deleteInspectionSequence
+    deleteInspectionCustomers.value = customers
+    deleteInspectionError.value = ''
+    deleteInspectionContent.value = undefined
+    await deleteInspectionRef.value?.handleOpen(
+      {},
+      {
+        title: '暂时无法删除客户',
+        size: 'md',
+        loading: true,
+        loadingText: '正在检查关联资料…',
+        showCancelButton: false,
+        showConfirmButton: false,
+        dialogProps: { closeOnClickModal: false }
+      }
+    )
+    try {
+      const customerIds = customers.map((item) => String(item.id)).filter(Boolean)
+      const [dependencies, cleanupCandidates] = await Promise.all([
+        fetchCustomerDeleteDependencyDetails(customerIds),
+        fetchCustomerDeleteSafeCleanupCandidates(customerIds)
+      ])
+      if (sequence !== deleteInspectionSequence || !deleteInspectionRef.value?.visible.value)
+        return true
+      if (!dependencies.length) {
+        await deleteInspectionRef.value?.handleClose(true)
+        return false
+      }
+      showCustomerDeleteBlockers(dependencies, cleanupCandidates, customers)
+      return true
+    } catch (error) {
+      if (sequence === deleteInspectionSequence)
+        deleteInspectionError.value = getFriendlySupabaseErrorMessage(
+          error,
+          '暂时无法检查客户关联资料，请重试'
+        )
+      return true
+    } finally {
+      if (sequence === deleteInspectionSequence) deleteInspectionRef.value?.setLoading(false)
+    }
   }
 
   const isFeedbackCancel = (error: unknown): boolean => error === 'cancel' || error === 'close'
@@ -1011,7 +1049,7 @@
 
 <style lang="scss">
   .customer-delete-blocker-message-box {
-    width: min(720px, calc(100vw - 32px));
+    width: 100%;
 
     .customer-delete-blockers {
       &__lead {

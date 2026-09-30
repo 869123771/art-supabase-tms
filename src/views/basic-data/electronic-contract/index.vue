@@ -273,11 +273,21 @@
     () => route.query.contractId,
     async (value) => {
       if (!value || typeof value !== 'string') return
-      const result = await fetchElectronicContractDetail(value)
-      if (!result.data) return
-      detail.value = result.data
-      await detailDialogRef.value?.handleOpen(result.data, {
-        title: `电子合同 · ${result.data.contractNo}`
+      detail.value = undefined
+      await nextTick()
+      await detailDialogRef.value?.handleOpen(undefined, {
+        title: '电子合同',
+        loading: true,
+        onOpen: async (_data, api) => {
+          try {
+            const result = await fetchElectronicContractDetail(value)
+            if (!result.data) throw new Error('电子合同已不存在或无权查看')
+            detail.value = result.data
+            api.setOptions({ title: `电子合同 · ${result.data.contractNo}` })
+          } finally {
+            api.setLoading(false)
+          }
+        }
       })
     },
     { immediate: true }

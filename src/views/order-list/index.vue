@@ -477,8 +477,19 @@
   watch(
     () => route.query.recordId,
     (recordId) => {
-      table.searchQuery.recordId = typeof recordId === 'string' ? recordId : ''
-      void tableQueryRef.value?.getData()
+      Object.assign(table.searchQuery, {
+        recordId: typeof recordId === 'string' ? recordId : '',
+        cargoKeyword: '',
+        shippingKeyword: '',
+        receivingKeyword: '',
+        orderStatus: '',
+        paymentMethod: '',
+        originStationId: '',
+        destinationStationId: '',
+        transferStationId: '',
+        createTimeRange: []
+      })
+      void tableQueryRef.value?.refreshCreate()
     }
   )
 

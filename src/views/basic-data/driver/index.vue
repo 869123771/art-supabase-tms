@@ -141,9 +141,17 @@
       ) {
         return
       }
-      Object.assign(tableState.searchQuery, { carrierId, recordId, keyword: '' })
+      Object.assign(tableState.searchQuery, {
+        carrierId,
+        recordId,
+        driverType: undefined,
+        gender: '',
+        enabled: undefined,
+        createTimeRange: [],
+        keyword: ''
+      })
       await nextTick()
-      await tableQueryRef.value?.getData()
+      await tableQueryRef.value?.refreshCreate()
     },
     { flush: 'post' }
   )

@@ -341,7 +341,7 @@
       }
     })
   }
-  defineExpose({ handleOpen, loadData })
+  defineExpose({ handleOpen, loadData, handleClose: () => drawerRef.value?.handleClose() })
 </script>
 
 <style scoped lang="scss">

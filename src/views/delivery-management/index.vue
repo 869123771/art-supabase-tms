@@ -107,7 +107,10 @@
   const { getDictMap } = storeToRefs(useUserStore())
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const receiptArchiveDialogRef = ref<DeliveryReceiptArchiveDialogExpose>()
-  const exceptionDrawerRef = ref<{ handleOpen: (recordId?: string) => Promise<void> }>()
+  const exceptionDrawerRef = ref<{
+    handleOpen: (recordId?: string) => Promise<void>
+    handleClose: () => Promise<boolean | undefined>
+  }>()
   const statusCountRequestId = ref(0)
   const fieldAccess = ref<Api.Tms.Order.OrderFieldAccessMap>({})
   const paymentMethodOptions = computed(() => getDictMap.value.tmsOrderPaymentMethod ?? [])
@@ -209,7 +212,10 @@
   }
 
   const openMasterDeleteWorkOrder = (): void => {
-    if (route.query.fromMasterDelete !== '1') return
+    if (route.query.fromMasterDelete !== '1') {
+      void exceptionDrawerRef.value?.handleClose()
+      return
+    }
     const recordId = typeof route.query.recordId === 'string' ? route.query.recordId : ''
     if (recordId) void nextTick().then(() => exceptionDrawerRef.value?.handleOpen(recordId))
   }

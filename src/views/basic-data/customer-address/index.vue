@@ -387,11 +387,14 @@
   }
 
   const syncMasterDeleteReturn = (forceRefresh = false): void => {
-    if (route.query.resumeMasterDelete !== '1') return
-    const recordId = typeof route.query.recordId === 'string' ? route.query.recordId : ''
+    const recordId =
+      route.query.resumeMasterDelete === '1' && typeof route.query.recordId === 'string'
+        ? route.query.recordId
+        : ''
     const changed = tableState.searchQuery.recordId !== recordId
-    Object.assign(tableState.searchQuery, { recordId, keyword: '' })
-    if (changed || forceRefresh) void nextTick().then(() => tableQueryRef.value?.getData())
+    tableState.searchQuery.recordId = recordId
+    if (recordId) tableState.searchQuery.keyword = ''
+    if (changed || forceRefresh) void nextTick().then(() => tableQueryRef.value?.refreshCreate())
   }
 
   watch(

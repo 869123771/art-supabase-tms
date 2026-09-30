@@ -264,19 +264,26 @@
     addPart()
     if (minimumParts.value === 2) addPart()
     deliveryAddresses.value = []
-    if (row.receivingCustomerId) {
-      const result = await fetchCustomerAddressOptions({
-        customerId: row.receivingCustomerId,
-        addressType: 'receiving'
-      })
-      deliveryAddresses.value = result.data ?? []
-    }
     await dialogRef.value?.handleOpen(row, {
       title: `${minimumParts.value === 1 ? '继续拆单配载' : '拆单配载'} · ${row.orderNo}`,
       subtitle: '按货物行分配件数、重量或体积，为每个批次安排独立车辆与送达地址。',
       size: 'xl',
       contentMaxHeight: '78vh',
       confirmText: '生成调度执行单',
+      loading: true,
+      onOpen: async (_data, api) => {
+        try {
+          if (row.receivingCustomerId) {
+            const result = await fetchCustomerAddressOptions({
+              customerId: row.receivingCustomerId,
+              addressType: 'receiving'
+            })
+            deliveryAddresses.value = result.data ?? []
+          }
+        } finally {
+          api.setLoading(false)
+        }
+      },
       onConfirm: handleSubmit
     })
   }

@@ -503,7 +503,6 @@
 
   const handleOpen = async (data: CustomerDialogOpenData): Promise<void> => {
     await resetForm()
-    await tenantScopeStore.loadTenantOptions()
     groups.value = data.groups
     const row = data.row
     const isEdit = Boolean(row?.id)
@@ -530,6 +529,7 @@
       onOpen: async (_openData, api) => {
         try {
           await Promise.all([
+            tenantScopeStore.loadTenantOptions(),
             customerNumber.loadRule(),
             formRef.value?.reloadOptions('parentUnitId')
           ])

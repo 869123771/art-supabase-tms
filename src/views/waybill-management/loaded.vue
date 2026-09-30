@@ -142,7 +142,10 @@
         route.query.fromMasterDelete === '1' && typeof route.query.recordId === 'string'
           ? route.query.recordId
           : '',
-      cargoKeyword: typeof route.query.recordNo === 'string' ? route.query.recordNo : ''
+      cargoKeyword:
+        route.query.fromMasterDelete !== '1' && typeof route.query.recordNo === 'string'
+          ? route.query.recordNo
+          : ''
     },
     statusCounts: {},
     statusTotal: 0,
@@ -243,18 +246,20 @@
   }
 
   function syncMasterDeleteRoute(forceRefresh = false): void {
-    if (route.query.fromMasterDelete !== '1') {
-      if (forceRefresh) void tableQueryRef.value?.getData()
-      return
-    }
-    const recordId = typeof route.query.recordId === 'string' ? route.query.recordId : ''
+    const recordId =
+      route.query.fromMasterDelete === '1' && typeof route.query.recordId === 'string'
+        ? route.query.recordId
+        : ''
     const changed = table.searchQuery.recordId !== recordId
-    Object.assign(table.searchQuery, {
-      recordId,
-      cargoKeyword: '',
-      waybillStatus: WAYBILL_STATUS_ALL
-    })
-    if (changed || forceRefresh) void nextTick().then(() => tableQueryRef.value?.getData())
+    table.searchQuery.recordId = recordId
+    if (recordId || changed) {
+      Object.assign(table.searchQuery, createInitialWaybillSearch(), {
+        recordId,
+        cargoKeyword:
+          !recordId && typeof route.query.recordNo === 'string' ? route.query.recordNo : ''
+      })
+    }
+    if (changed || forceRefresh) void nextTick().then(() => tableQueryRef.value?.refreshCreate())
   }
 
   watch(

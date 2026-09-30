@@ -691,16 +691,26 @@
   }
 
   const syncMasterDeleteRoute = (forceRefresh = false): void => {
-    if (route.query.fromMasterDelete !== '1' && route.query.fromCustomerDelete !== '1') return
+    const active = route.query.fromMasterDelete === '1' || route.query.fromCustomerDelete === '1'
     const carrierId = typeof route.query.carrierId === 'string' ? route.query.carrierId : ''
     const customerId = typeof route.query.customerId === 'string' ? route.query.customerId : ''
-    const recordId = typeof route.query.recordId === 'string' ? route.query.recordId : ''
+    const recordId = active && typeof route.query.recordId === 'string' ? route.query.recordId : ''
     const changed =
       table.searchQuery.carrierId !== carrierId ||
       table.searchQuery.customerId !== customerId ||
       table.searchQuery.recordId !== recordId
-    Object.assign(table.searchQuery, { carrierId, customerId, recordId, keyword: '' })
-    if (changed || forceRefresh) void nextTick().then(() => tableQueryRef.value?.getData())
+    Object.assign(table.searchQuery, { carrierId, customerId, recordId })
+    if (active || changed) {
+      Object.assign(table.searchQuery, {
+        contractStatus: undefined,
+        businessContractType: undefined,
+        contractCategory: undefined,
+        billingMethod: '',
+        createTimeRange: [],
+        keyword: ''
+      })
+    }
+    if (changed || forceRefresh) void nextTick().then(() => tableQueryRef.value?.refreshCreate())
   }
 
   watch(

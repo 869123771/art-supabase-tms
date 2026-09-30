@@ -497,13 +497,23 @@
   }
 
   function syncMasterDeleteRoute(forceRefresh = false): void {
-    if (route.query.fromMasterDelete !== '1') return
     const carrierId = typeof route.query.carrierId === 'string' ? route.query.carrierId : ''
-    const recordId = typeof route.query.recordId === 'string' ? route.query.recordId : ''
+    const recordId =
+      route.query.fromMasterDelete === '1' && typeof route.query.recordId === 'string'
+        ? route.query.recordId
+        : ''
     const changed =
       table.searchQuery.carrierId !== carrierId || table.searchQuery.recordId !== recordId
-    Object.assign(table.searchQuery, { carrierId, recordId, keyword: '' })
-    if (changed || forceRefresh) void nextTick().then(() => tableQueryRef.value?.getData())
+    Object.assign(table.searchQuery, { carrierId, recordId })
+    if (recordId || changed) {
+      Object.assign(table.searchQuery, {
+        originRegionPath: [],
+        destinationRegionPath: [],
+        createTimeRange: [],
+        keyword: ''
+      })
+    }
+    if (changed || forceRefresh) void nextTick().then(() => tableQueryRef.value?.refreshCreate())
   }
 
   watch(

@@ -840,12 +840,21 @@
   async function openAgreement(): Promise<void> {
     const id = form.selectedIndividual?.agreementId
     if (!id) return
-    const result = await fetchDispatchAgreement(id)
-    if (!result.data) return
-    agreementDetail.value = result.data
-    await agreementDialogRef.value?.handleOpen(result.data, {
-      title: `运输协议 · ${result.data.agreementNo}`,
-      contentMaxHeight: '76vh'
+    agreementDetail.value = null
+    await agreementDialogRef.value?.handleOpen(undefined, {
+      title: '运输协议',
+      contentMaxHeight: '76vh',
+      loading: true,
+      onOpen: async (_data, api) => {
+        try {
+          const result = await fetchDispatchAgreement(id)
+          if (!result.data) throw new Error('运输协议已不存在或无权查看')
+          agreementDetail.value = result.data
+          api.setOptions({ title: `运输协议 · ${result.data.agreementNo}` })
+        } finally {
+          api.setLoading(false)
+        }
+      }
     })
   }
 
