@@ -872,7 +872,7 @@
         confirmButtonText: '删除',
         cancelButtonText: '取消',
         type: 'warning',
-        confirmButtonClass: 'el-button--danger'
+        confirmButtonType: 'danger'
       })
       form.data.attachments = (form.data.attachments ?? []).filter(
         (item) => item.url !== row.url || item.name !== row.name

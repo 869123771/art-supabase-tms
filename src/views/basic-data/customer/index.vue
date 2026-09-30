@@ -630,7 +630,7 @@
           confirmButtonText: '删除',
           cancelButtonText: '取消',
           type: 'warning',
-          confirmButtonClass: 'el-button--danger'
+          confirmButtonType: 'danger'
         }
       )
       await executeCustomerDelete([row], false)
@@ -753,7 +753,7 @@
           type: 'warning',
           confirmButtonText: `确认清理 ${candidates.length} 项`,
           cancelButtonText: '取消',
-          confirmButtonClass: 'el-button--danger',
+          confirmButtonType: 'danger',
           closeOnClickModal: false
         }
       )

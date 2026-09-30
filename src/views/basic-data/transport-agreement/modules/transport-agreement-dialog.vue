@@ -20,6 +20,7 @@
       <template #contentHtml>
         <ArtTiptapEditor
           v-model="form.contentHtml"
+          :resource-tenant-id="form.tenantId"
           height="280px"
           placeholder="请输入运输责任、费用及履约约定…"
         />
@@ -27,6 +28,8 @@
       <template #idCardImages>
         <ArtUploadImage
           v-model="form.idCardImages"
+          :resource-tenant-id="form.tenantId"
+          :readonly="!form.tenantId"
           title="身份证"
           :size="104"
           :limit="3"
@@ -36,6 +39,8 @@
       <template #registrationImages>
         <ArtUploadImage
           v-model="form.registrationImages"
+          :resource-tenant-id="form.tenantId"
+          :readonly="!form.tenantId"
           title="行驶证"
           :size="104"
           :limit="3"
@@ -43,10 +48,24 @@
         />
       </template>
       <template #driverLicenseImage>
-        <ArtUploadImage v-model="form.driverLicenseImage" title="驾驶证" :size="104" :limit="1" />
+        <ArtUploadImage
+          v-model="form.driverLicenseImage"
+          :resource-tenant-id="form.tenantId"
+          :readonly="!form.tenantId"
+          title="驾驶证"
+          :size="104"
+          :limit="1"
+        />
       </template>
       <template #roadPermitImage>
-        <ArtUploadImage v-model="form.roadPermitImage" title="道路运输证" :size="104" :limit="1" />
+        <ArtUploadImage
+          v-model="form.roadPermitImage"
+          :resource-tenant-id="form.tenantId"
+          :readonly="!form.tenantId"
+          title="道路运输证"
+          :size="104"
+          :limit="1"
+        />
       </template>
     </ArtForm>
   </ArtDialog>

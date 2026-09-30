@@ -20,12 +20,20 @@
       <template #contentHtml>
         <ArtTiptapEditor
           v-model="form.contentHtml"
+          :resource-tenant-id="form.tenantId"
           height="280px"
           placeholder="请输入合同正文与约定条款…"
         />
       </template>
       <template #attachments>
-        <ArtUploadFile v-model="form.attachments" title="选择或拖入合同附件" :limit="10" multiple />
+        <ArtUploadFile
+          v-model="form.attachments"
+          title="选择或拖入合同附件"
+          :resource-tenant-id="form.tenantId"
+          :disabled="!form.tenantId"
+          :limit="10"
+          multiple
+        />
       </template>
     </ArtForm>
   </ArtDialog>

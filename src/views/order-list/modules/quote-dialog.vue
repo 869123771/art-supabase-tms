@@ -154,9 +154,6 @@
         <p class="mb-3 mt-1 text-sm text-[var(--art-gray-600)]">
           可附报价清单或说明文件，最多 6 个，单个不超过 20 MB。
         </p>
-        <p v-if="!canUploadToOrderTenant" class="mb-3 text-sm text-[var(--el-color-warning)]">
-          本地上传需切换到订单所属租户；当前可选择该租户已有附件。
-        </p>
         <ArtUploadFile
           ref="attachmentRef"
           v-model="form.attachmentUrls"
@@ -164,7 +161,6 @@
           :limit="6"
           :file-size="20 * 1024 * 1024"
           :resource-tenant-id="order.tenantId || ''"
-          :upload-request="uploadQuoteAttachment"
           accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,image/*"
         />
       </section>
@@ -208,7 +204,6 @@
   import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
   import { formatWithDayjs } from '@/utils/time'
   import { useUserStore } from '@/store/modules/user'
-  import { uploadAttachment } from '@/api/common'
   import { fetchOrderQuote, saveOrderQuote } from '@tms/api'
 
   defineOptions({ name: 'TmsOrderQuoteDialog' })
@@ -236,9 +231,6 @@
   let loadRequestId = 0
 
   const expenseOptions = computed(() => getDictMap.value.tmsOrderQuoteExpenseItem ?? [])
-  const canUploadToOrderTenant = computed(
-    () => Boolean(order.value?.tenantId) && userStore.getUserInfo.tenantId === order.value?.tenantId
-  )
   const totalAmount = computed(() =>
     round(
       moneyValue(form.value.transportFee) +
@@ -303,15 +295,6 @@
 
   function formatCurrencyAmount(value: number): string {
     return value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  }
-
-  async function uploadQuoteAttachment(
-    file: File
-  ): Promise<Api.DataCenter.Resources.ResourceListItem[]> {
-    if (!canUploadToOrderTenant.value) {
-      throw new Error('本地上传需切换到订单所属租户')
-    }
-    return await uploadAttachment(file)
   }
 
   function expenseLabel(code: string): string {

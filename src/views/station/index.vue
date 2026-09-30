@@ -346,7 +346,7 @@
         confirmButtonText: '删除',
         cancelButtonText: '取消',
         type: 'warning',
-        confirmButtonClass: 'el-button--danger'
+        confirmButtonType: 'danger'
       })
       await deleteStation(row.id)
       await tableQueryRef.value?.refreshRemove()
