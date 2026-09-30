@@ -316,7 +316,10 @@ test('平台超级管理员选定业务租户后可一键建档并重新匹配',
   expect(submittedTaskCount).toBe(0)
 
   await drawer.getByRole('button', { name: '当前租户范围：全部租户' }).click()
-  await page.getByText('AI 验收业务租户', { exact: true }).click()
+  await page
+    .locator('.el-dropdown-menu:visible')
+    .getByText('AI 验收业务租户', { exact: true })
+    .click()
   await expect(page.getByRole('button', { name: '当前租户范围：AI 验收业务租户' })).toBeVisible()
   const createButton = drawer.getByRole('button', { name: '一键建档 5 项' })
   await expect(createButton).toBeEnabled()

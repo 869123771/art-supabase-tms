@@ -816,8 +816,8 @@
 
     @media (width <= 640px) {
       &__tenant-target {
-        align-items: flex-start;
         flex-direction: column;
+        align-items: flex-start;
 
         :deep(.tenant-scope-switcher) {
           justify-content: space-between;
