@@ -644,7 +644,7 @@
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import ArtAddressPicker from '@/components/core/forms/art-address-picker/index.vue'
-  import { fetchRegionOptions } from '@/api/common'
+  import { fetchRegionOptions } from '@/api/region-options'
   import { useAmapDrivingEstimate } from '@/hooks/core/useAmapDrivingEstimate'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import { useAmapGeocoder } from '@/hooks/core/useAmapGeocoder'

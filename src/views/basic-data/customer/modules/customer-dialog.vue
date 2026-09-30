@@ -45,7 +45,7 @@
   import { useTenantScopeFormPolicy } from '@/hooks/core/useTenantScopeFormPolicy'
   import { addCustomer, editCustomer, fetchCustomerOptions } from '@tms/api'
   import type { MasterGroup } from '@/api/master-groups'
-  import { fetchRegionOptions } from '@/api/common'
+  import { fetchRegionOptions } from '@/api/region-options'
   import { useUserStore } from '@/store/modules/user'
   import { useTenantScopeStore } from '@/store/modules/tenantScope'
   import { canEditField, canViewField } from '@/utils/field-permission'

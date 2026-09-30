@@ -1,5 +1,5 @@
 import TreeUtils from '@/utils/tree'
-import type { RegionOption } from '@/api/common'
+import type { RegionOption } from '@/api/region-options'
 
 export interface RecognizedAddress {
   contactName?: string

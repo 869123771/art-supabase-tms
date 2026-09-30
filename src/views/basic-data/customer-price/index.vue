@@ -54,7 +54,7 @@
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import { ElButton } from 'element-plus'
   import { ColumnOption } from '@/types'
-  import { fetchRegionOptions } from '@/api/common'
+  import { fetchRegionOptions } from '@/api/region-options'
   import {
     deleteCustomerPrice,
     deleteCustomerPriceBatch,

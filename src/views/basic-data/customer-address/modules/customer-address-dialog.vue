@@ -94,7 +94,7 @@
   import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
   import ArtTooltip from '@/components/core/feedback/art-tooltip/index.vue'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
-  import { fetchRegionOptions } from '@/api/common'
+  import { fetchRegionOptions } from '@/api/region-options'
   import { addCustomerAddress, editCustomerAddress } from '@tms/api'
   import { useTenantScopeStore } from '@/store/modules/tenantScope'
   import { useTenantScopeFormPolicy } from '@/hooks/core/useTenantScopeFormPolicy'

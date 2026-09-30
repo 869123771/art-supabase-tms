@@ -240,7 +240,7 @@
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
   import type { ColumnOption } from '@/types'
   import { formatNameCodeOption } from '@/utils/form'
-  import { fetchRegionOptions } from '@/api/common'
+  import { fetchRegionOptions } from '@/api/region-options'
   import {
     addCarrierPrice,
     editCarrierPrice,

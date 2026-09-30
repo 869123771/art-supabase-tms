@@ -20,6 +20,7 @@
       <template #attachments>
         <ArtUploadFile
           v-model="form.attachments"
+          :resource-tenant-id="form.tenantId || ''"
           title="选择或拖入附件"
           :limit="10"
           :file-size="5 * 1024 * 1024"

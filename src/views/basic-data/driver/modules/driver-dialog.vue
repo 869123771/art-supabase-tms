@@ -40,6 +40,7 @@
       <template #idCardFrontUrl>
         <ArtUploadImage
           v-model="form.idCardFrontUrl"
+          :resource-tenant-id="form.tenantId || ''"
           title="身份证正面"
           :size="104"
           :limit="1"
@@ -49,6 +50,7 @@
       <template #idCardBackUrl>
         <ArtUploadImage
           v-model="form.idCardBackUrl"
+          :resource-tenant-id="form.tenantId || ''"
           title="身份证反面"
           :size="104"
           :limit="1"
@@ -58,6 +60,7 @@
       <template #driverLicenseFrontUrl>
         <ArtUploadImage
           v-model="form.driverLicenseFrontUrl"
+          :resource-tenant-id="form.tenantId || ''"
           title="驾驶证正面"
           :size="104"
           :limit="1"
@@ -67,6 +70,7 @@
       <template #driverLicenseBackUrl>
         <ArtUploadImage
           v-model="form.driverLicenseBackUrl"
+          :resource-tenant-id="form.tenantId || ''"
           title="驾驶证反面"
           :size="104"
           :limit="1"

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import type { RegionOption } from '@/api/common'
+import type { RegionOption } from '@/api/region-options'
 import { recognizeAddressText } from '../../src/views/basic-data/customer-address/modules/recognize-address'
 
 const regions: RegionOption[] = [

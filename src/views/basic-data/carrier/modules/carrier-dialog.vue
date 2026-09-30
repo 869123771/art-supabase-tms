@@ -46,7 +46,7 @@
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
   import { addCarrier, editCarrier, fetchCarrierOptions } from '@tms/api'
-  import { fetchRegionOptions } from '@/api/common'
+  import { fetchRegionOptions } from '@/api/region-options'
   import { useUserStore } from '@/store/modules/user'
   import { canEditField, canViewField, getFieldAccess } from '@/utils/field-permission'
 
