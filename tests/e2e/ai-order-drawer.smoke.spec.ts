@@ -311,11 +311,11 @@ test('平台超级管理员选定业务租户后可一键建档并重新匹配',
   await drawer.getByRole('textbox').first().fill('上海到杭州电子配件运输委托')
   await drawer.getByRole('button', { name: '开始智能识别' }).click()
   await expect(drawer.getByText('待建档的前置资料')).toBeVisible({ timeout: 30_000 })
-  await expect(drawer.getByText('请先在页头选择目标租户', { exact: false }).first()).toBeVisible()
+  await expect(drawer.getByText('请先选择目标租户', { exact: false }).first()).toBeVisible()
   await expect(drawer.getByRole('button', { name: /一键建档/ })).toBeDisabled()
   expect(submittedTaskCount).toBe(0)
 
-  await page.getByRole('button', { name: '当前租户范围：全部租户' }).click()
+  await drawer.getByRole('button', { name: '当前租户范围：全部租户' }).click()
   await page.getByText('AI 验收业务租户', { exact: true }).click()
   await expect(page.getByRole('button', { name: '当前租户范围：AI 验收业务租户' })).toBeVisible()
   const createButton = drawer.getByRole('button', { name: '一键建档 5 项' })

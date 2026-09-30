@@ -21,6 +21,14 @@
         </div>
       </section>
 
+      <div v-if="!effectiveTenantId" class="ai-order-drawer__tenant-target art-card-xs">
+        <div>
+          <strong>选择建档租户</strong>
+          <p>一键建档需要明确目标租户；选择后会按该租户重新匹配已有档案。</p>
+        </div>
+        <PlatformTenantScopeSwitcher />
+      </div>
+
       <div v-if="!state.analysis" class="ai-order-drawer__start-grid">
         <AiOrderSourcePanel
           v-model="form.data"
@@ -184,6 +192,7 @@
   import { ElMessage } from 'element-plus'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
+  import PlatformTenantScopeSwitcher from '@/components/business/platform-tenant-scope-switcher/index.vue'
   import { analyzeOrderByAi, generateAiOrderExample } from '@tms/api'
   import { useAuth } from '@/hooks/core/useAuth'
   import { useTenantScopeStore } from '@/store/modules/tenantScope'
@@ -261,7 +270,7 @@
         (permission) => !hasAuth(permission)
       )
       const reason = !effectiveTenantId.value
-        ? '请先在页头选择目标租户'
+        ? '请先选择目标租户'
         : missingPermissions.length
           ? `缺少${missingPermissions.map((permission) => masterDataPermissionLabels[permission]).join('、')}权限`
           : undefined
@@ -273,7 +282,7 @@
     })
   })
   const createMasterDataHint = computed(() => {
-    if (!effectiveTenantId.value) return '请先在页头选择目标租户'
+    if (!effectiveTenantId.value) return '请先选择目标租户'
     if (!state.selectedMasterDataKeys.length) return '请先勾选资料完整且有新增权限的项目'
     return `创建所选的 ${state.selectedMasterDataKeys.length} 项基础资料`
   })
@@ -570,6 +579,32 @@
       background: var(--default-box-color);
     }
 
+    &__tenant-target {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+
+      > div {
+        min-width: 0;
+      }
+
+      strong {
+        color: var(--el-text-color-primary);
+      }
+
+      p {
+        margin: 4px 0 0;
+        line-height: 1.45;
+        color: var(--el-text-color-secondary);
+      }
+
+      :deep(.tenant-scope-switcher) {
+        margin-right: 0;
+      }
+    }
+
     &__hero-icon {
       display: grid;
       place-items: center;
@@ -780,6 +815,22 @@
     }
 
     @media (width <= 640px) {
+      &__tenant-target {
+        align-items: flex-start;
+        flex-direction: column;
+
+        :deep(.tenant-scope-switcher) {
+          justify-content: space-between;
+          width: 100%;
+          max-width: none;
+        }
+
+        :deep(.tenant-scope-switcher > span),
+        :deep(.tenant-scope-switcher__arrow) {
+          display: block;
+        }
+      }
+
       &__hero {
         grid-template-columns: 1fr;
         padding: 16px;
