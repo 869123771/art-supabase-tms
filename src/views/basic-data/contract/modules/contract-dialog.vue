@@ -100,6 +100,7 @@
     submitContractForApproval
   } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'
+  import { useTenantScopeStore } from '@/store/modules/tenantScope'
   import { downloadAttachment, getFileExtension, viewAttachment } from '@/utils/file'
   import { canEditField, canViewField, getFieldAccess } from '@/utils/field-permission'
   import { usesCarrierParty } from './contract-business-type'
@@ -140,6 +141,7 @@
 
   const emit = defineEmits<Emits>()
   const { getDictMap } = storeToRefs(useUserStore())
+  const tenantScopeStore = useTenantScopeStore()
   const dialogRef = ref<ArtDialogExpose<Contract | undefined>>()
   const formRef = ref<FormExpose>()
   const transportDetailsRef = ref<InstanceType<typeof ContractTransportDetails>>()
@@ -773,6 +775,10 @@
   }
 
   const handleSubmit = async (): Promise<boolean> => {
+    if (!form.data.id && form.data.tenantId !== tenantScopeStore.effectiveTenantId) {
+      ElMessage.warning('租户范围已变化，请重新选择目标租户后新增合同')
+      return false
+    }
     try {
       await formRef.value?.validate()
     } catch {
@@ -804,7 +810,12 @@
   }
 
   const handleOpen = async (row?: Contract): Promise<void> => {
+    if (!row?.id && !tenantScopeStore.effectiveTenantId) {
+      ElMessage.warning('请先在页头选择目标租户，再新增合同')
+      return
+    }
     await resetForm()
+    if (!row?.id) form.data.tenantId = tenantScopeStore.effectiveTenantId ?? undefined
     await dialogRef.value?.handleOpen(row, {
       title: row?.id ? '编辑合同' : '新增合同',
       subtitle: '维护合同相对方、履约条款、运输明细和附件',
