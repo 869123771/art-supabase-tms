@@ -112,7 +112,7 @@
   })
 
   const form = reactive<CarrierForm>(createInitialForm())
-  const carrierNumber = useDocumentNumberRule('master.carrier')
+  const carrierNumber = useDocumentNumberRule('master.carrier', () => form.tenantId)
 
   const canViewCarrierField = (field: Api.Tms.BasicData.CarrierFieldKey): boolean =>
     canViewField(form.fieldAccess, field)

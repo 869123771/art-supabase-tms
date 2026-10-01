@@ -148,7 +148,7 @@
   })
 
   const form = reactive<CustomerForm>(createInitialForm())
-  const customerNumber = useDocumentNumberRule('master.customer')
+  const customerNumber = useDocumentNumberRule('master.customer', () => form.tenantId)
 
   const canViewCustomerField = (field: Api.Tms.BasicData.CustomerFieldKey): boolean =>
     canViewField(form.fieldAccess, field)
