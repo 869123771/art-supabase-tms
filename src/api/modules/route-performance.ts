@@ -12,9 +12,8 @@ interface RoutePerformanceSource {
 }
 
 export async function fetchRoutePerformance(days = 90): Promise<Api.Tms.RoutePerformance.Overview> {
-  const result = await responseHandle<RoutePerformanceSource>(
-    () => supabase.rpc('tms_get_route_performance_secure', { p_days: days }),
-    { showErrorMessage: true }
+  const result = await responseHandle<RoutePerformanceSource>(() =>
+    supabase.rpc('tms_get_route_performance_secure', { p_days: days })
   )
   if (result.error) throw result.error
 

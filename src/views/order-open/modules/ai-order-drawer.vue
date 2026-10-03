@@ -36,6 +36,7 @@
           :generating-example="state.generatingExample"
           :error-message="state.errorMessage"
           :notice-message="state.noticeMessage"
+          :resource-tenant-id="matchTenantId || ''"
           @analyze="handleAnalyze"
           @generate-example="handleGenerateExample"
         />
@@ -89,6 +90,7 @@
           :generating-example="state.generatingExample"
           :error-message="state.errorMessage"
           :notice-message="state.noticeMessage"
+          :resource-tenant-id="matchTenantId || ''"
           @analyze="handleAnalyze"
           @generate-example="handleGenerateExample"
         />
@@ -194,8 +196,10 @@
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import { analyzeOrderByAi, generateAiOrderExample } from '@tms/api'
   import { useAuth } from '@/hooks/core/useAuth'
-  import { useTenantScopeStore } from '@/store/modules/tenantScope'
+  import { useTenantScopeStore } from '@/store/modules/tenant-scope'
+  import { useUserStore } from '@/store/modules/user'
   import { getBuiltInOrderExample } from './ai-order-examples'
+  import { MAX_AI_ORDER_MASTER_DATA_TASKS } from './ai-order-master-data-selection'
   import AiOrderMasterDataPanel from './ai-order-master-data-panel.vue'
   import AiOrderReferencePanel from './ai-order-reference-panel.vue'
   import AiOrderResultPanel from './ai-order-result-panel.vue'
@@ -239,7 +243,11 @@
 
   const drawerRef = ref<ArtDrawerExpose<AiOrderDrawerOpenData>>()
   const { hasAuth } = useAuth()
-  const { effectiveTenantId } = storeToRefs(useTenantScopeStore())
+  const { effectiveTenantId, isAllTenants } = storeToRefs(useTenantScopeStore())
+  const userStore = useUserStore()
+  const matchTenantId = computed(
+    () => effectiveTenantId.value || userStore.getUserInfo.tenantId || null
+  )
   const { resolveReferences } = useAiOrderReferenceMatcher()
   const { buildTasks, createTasks } = useAiOrderMasterData()
 
@@ -388,7 +396,8 @@
     state.matchingReferences = true
     state.referenceError = false
     try {
-      const matches = await resolveReferences(order)
+      if (!matchTenantId.value) throw new Error('当前账号未绑定有效租户')
+      const matches = await resolveReferences(order, matchTenantId.value, isAllTenants.value)
       if (version === requestVersion) state.references = matches
     } catch {
       if (version === requestVersion) state.referenceError = true
@@ -459,6 +468,10 @@
       (task) => task.ready && keys.includes(task.key)
     )
     if (!selectedTasks.length) return
+    if (selectedTasks.length > MAX_AI_ORDER_MASTER_DATA_TASKS) {
+      ElMessage.warning(`单次最多创建 ${MAX_AI_ORDER_MASTER_DATA_TASKS} 项基础资料`)
+      return
+    }
 
     try {
       await confirmAction(

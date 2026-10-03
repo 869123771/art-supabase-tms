@@ -47,6 +47,7 @@
             !detail.roadPermitImage
           "
           title="暂无证件附件"
+          description="补充证件材料后，可在此查看。"
           :visual-size="72"
           size="compact"
         />
@@ -61,7 +62,13 @@
               multiple
               readonly
             />
-            <ArtEmptyState v-else title="未上传身份证" :visual-size="56" size="compact" />
+            <ArtEmptyState
+              v-else
+              title="未上传身份证"
+              description="请在协议档案中补充。"
+              :visual-size="56"
+              size="compact"
+            />
           </div>
           <div>
             <div class="mb-2 text-sm font-medium">行驶证</div>
@@ -73,7 +80,13 @@
               multiple
               readonly
             />
-            <ArtEmptyState v-else title="未上传行驶证" :visual-size="56" size="compact" />
+            <ArtEmptyState
+              v-else
+              title="未上传行驶证"
+              description="请在协议档案中补充。"
+              :visual-size="56"
+              size="compact"
+            />
           </div>
           <div>
             <div class="mb-2 text-sm font-medium">驾驶证</div>
@@ -84,7 +97,13 @@
               :limit="1"
               readonly
             />
-            <ArtEmptyState v-else title="未上传驾驶证" :visual-size="56" size="compact" />
+            <ArtEmptyState
+              v-else
+              title="未上传驾驶证"
+              description="请在协议档案中补充。"
+              :visual-size="56"
+              size="compact"
+            />
           </div>
           <div>
             <div class="mb-2 text-sm font-medium">道路运输证</div>
@@ -95,7 +114,13 @@
               :limit="1"
               readonly
             />
-            <ArtEmptyState v-else title="未上传道路运输证" :visual-size="56" size="compact" />
+            <ArtEmptyState
+              v-else
+              title="未上传道路运输证"
+              description="请在协议档案中补充。"
+              :visual-size="56"
+              size="compact"
+            />
           </div>
         </div>
         <ArtSectionTitle class="mt-5">签署信息</ArtSectionTitle>
@@ -124,7 +149,7 @@
     ArtTableQueryHeaderAction
   } from '@/components/core/tables/art-table-query/index.vue'
   import type { ColumnOption } from '@/types'
-  import { pageInfoHandler } from '@/utils/table/tableUtils'
+  import { pageInfoHandler } from '@/utils/table/table-utils'
   import { formatWithDayjs } from '@/utils/time'
   import {
     deleteTmsBasicRecords,

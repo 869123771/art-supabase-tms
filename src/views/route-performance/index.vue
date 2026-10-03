@@ -49,6 +49,7 @@
         <ArtEmptyState
           v-else-if="!overview?.records.length"
           title="当前周期暂无可分析的线路数据"
+          description="调整统计周期，或等待线路产生新的运单数据。"
           :visual-size="96"
         />
         <ol v-else class="route-performance-page__list">
@@ -97,7 +98,6 @@
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
-  import { ElMessage } from 'element-plus'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
@@ -162,7 +162,6 @@
       overview.value = await fetchRoutePerformance(periodDays.value)
     } catch (error) {
       errorMessage.value = getFriendlySupabaseErrorMessage(error, '线路效能加载失败')
-      ElMessage.error(errorMessage.value)
     } finally {
       loading.value = false
     }

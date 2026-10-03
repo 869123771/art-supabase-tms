@@ -51,6 +51,7 @@
         <ArtAsyncState
           :empty="orders.length === 0"
           empty-text="暂无在途车辆"
+          empty-description="车辆发车后，可在此查看实时位置与状态。"
           :empty-image-size="72"
           :min-height="460"
         >

@@ -41,7 +41,14 @@
 
     <div class="receipt-ocr__body">
       <div class="receipt-ocr__upload">
-        <ArtUploadImage v-model="imageUrls" title="上传回单" :size="88" :limit="3" multiple />
+        <ArtUploadImage
+          v-model="imageUrls"
+          title="上传回单"
+          :size="88"
+          :limit="3"
+          :resource-tenant-id="order.tenantId || ''"
+          multiple
+        />
         <div>
           <strong>{{
             imageUrls.length ? `已上传 ${imageUrls.length} 张` : '上传 1–3 张回单'
@@ -157,6 +164,7 @@
   interface OrderContext {
     id: string
     orderNo: string
+    tenantId?: string
     receiverName?: string | null
     plannedArrivalTime?: string | null
     cargoQuantityTotal?: number | null

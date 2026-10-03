@@ -2,6 +2,7 @@ import { trim } from 'lodash-es'
 import {
   fetchCargoList,
   fetchCustomerAddressList,
+  fetchCustomerOptions,
   fetchCustomerSelectorList,
   fetchStationOptions
 } from '@tms/api'
@@ -13,14 +14,27 @@ import type {
 } from './ai-order-types'
 
 type StationOption = Api.Tms.Order.StationOption
-type CustomerItem = Api.Tms.Order.CustomerSelectorItem
+type CustomerItem = Pick<Api.Tms.Order.CustomerSelectorItem, 'id' | 'customerName'>
 type CustomerAddress = Api.Tms.BasicData.CustomerAddress
 type Cargo = Api.Tms.BasicData.Cargo
 
 export function useAiOrderReferenceMatcher() {
   async function resolveReferences(
-    draft: Api.Tms.Order.AiOrderDraft
+    draft: Api.Tms.Order.AiOrderDraft,
+    targetTenantId: string,
+    isAllTenants: boolean
   ): Promise<AiOrderReferenceMatches> {
+    const customerLookups = new Map<string, Promise<CustomerItem[]>>()
+    const cargoLookups = new Map<string, Promise<Cargo[]>>()
+    const scopedCustomerOptions = isAllTenants
+      ? fetchCustomerOptions({ tenantId: targetTenantId }).then(({ data, error }) => {
+          if (error) throw error
+          if ((data?.length ?? 0) >= 1000) {
+            throw new Error('当前租户客户档案较多，请回填后手动选择客户')
+          }
+          return data ?? []
+        })
+      : null
     const [
       originStations,
       destinationStations,
@@ -29,13 +43,15 @@ export function useAiOrderReferenceMatcher() {
       receivingCustomers,
       cargoItems
     ] = await Promise.all([
-      fetchStationMatches(draft.originStationName, 'shipping'),
-      fetchStationMatches(draft.destinationStationName, 'arrival'),
-      fetchStationMatches(draft.transferStationName, 'transfer'),
-      fetchCustomerMatches(draft.shippingCustomerName),
-      fetchCustomerMatches(draft.receivingCustomerName),
+      fetchStationMatches(draft.originStationName, 'shipping', targetTenantId),
+      fetchStationMatches(draft.destinationStationName, 'arrival', targetTenantId),
+      fetchStationMatches(draft.transferStationName, 'transfer', targetTenantId),
+      fetchCustomerMatches(draft.shippingCustomerName, customerLookups, scopedCustomerOptions),
+      fetchCustomerMatches(draft.receivingCustomerName, customerLookups, scopedCustomerOptions),
       Promise.all(
-        (draft.cargoItems ?? []).map((item, index) => fetchCargoMatch(item.cargoName, index))
+        (draft.cargoItems ?? []).map((item, index) =>
+          fetchCargoMatch(item.cargoName, index, cargoLookups, targetTenantId)
+        )
       )
     ])
 
@@ -80,23 +96,38 @@ export function useAiOrderReferenceMatcher() {
 
   async function fetchStationMatches(
     name: string | null | undefined,
-    stationType: string
+    stationType: string,
+    tenantId: string
   ): Promise<StationOption[]> {
     if (!trim(String(name ?? ''))) return []
-    const { data, error } = await fetchStationOptions({ keyword: String(name), stationType })
+    const { data, error } = await fetchStationOptions({
+      keyword: String(name),
+      stationType,
+      tenantId
+    })
     if (error) throw error
     return data ?? []
   }
 
-  async function fetchCustomerMatches(name?: string | null): Promise<CustomerItem[]> {
-    if (!trim(String(name ?? ''))) return []
-    const { data, error } = await fetchCustomerSelectorList({
-      keyword: String(name),
-      from: 0,
-      to: 9
-    })
-    if (error) throw error
-    return data ?? []
+  async function fetchCustomerMatches(
+    name: string | null | undefined,
+    lookups: Map<string, Promise<CustomerItem[]>>,
+    scopedOptions: Promise<CustomerItem[]> | null
+  ): Promise<CustomerItem[]> {
+    const source = trim(String(name ?? ''))
+    if (!source) return []
+    if (scopedOptions) return await scopedOptions
+    let lookup = lookups.get(source)
+    if (!lookup) {
+      lookup = fetchCustomerSelectorList({ keyword: source, from: 0, to: 9 }).then(
+        ({ data, error }) => {
+          if (error) throw error
+          return data ?? []
+        }
+      )
+      lookups.set(source, lookup)
+    }
+    return await lookup
   }
 
   async function fetchAddressMatch(
@@ -133,16 +164,26 @@ export function useAiOrderReferenceMatcher() {
 
   async function fetchCargoMatch(
     name: string | null | undefined,
-    index: number
+    index: number,
+    lookups: Map<string, Promise<Cargo[]>>,
+    tenantId: string
   ): Promise<AiCargoReferenceMatch> {
     const source = trim(String(name ?? ''))
     if (!source) return { index, status: 'empty' }
 
-    const { data, error } = await fetchCargoList({ keyword: source, from: 0, to: 19 })
-    if (error) throw error
+    let lookup = lookups.get(source)
+    if (!lookup) {
+      lookup = fetchCargoList({ keyword: source, tenantId, from: 0, to: 19 }).then(
+        ({ data, error }) => {
+          if (error) throw error
+          return data ?? []
+        }
+      )
+      lookups.set(source, lookup)
+    }
     return {
       index,
-      ...createMatch(source, data ?? [], (item: Cargo) => item.cargoName)
+      ...createMatch(source, await lookup, (item: Cargo) => item.cargoName)
     }
   }
 
@@ -171,7 +212,9 @@ export function useAiOrderReferenceMatcher() {
     )
     const fuzzy = candidates.filter((item) => {
       const label = normalizeMatchText(labelOf(item))
-      return label.includes(normalizedSource) || normalizedSource.includes(label)
+      return (
+        Boolean(label) && (label.includes(normalizedSource) || normalizedSource.includes(label))
+      )
     })
     return exact.length === 1 ? exact[0] : fuzzy.length === 1 ? fuzzy[0] : undefined
   }

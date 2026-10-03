@@ -1,6 +1,8 @@
 import { useSupabase } from '@/hooks'
-import { useTenantScopeStore } from '@/store/modules/tenantScope'
+import { useTenantScopeStore } from '@/store/modules/tenant-scope'
+import { useUserStore } from '@/store/modules/user'
 import { normalizeNullableText } from '@/utils/form/normalize'
+import { resolveTenantWriteTargetId } from '@/utils/tenant-scope-context'
 
 export interface TmsRecordAudit {
   id: string
@@ -178,13 +180,13 @@ function readTenantId(requested?: string): string | null {
 }
 
 function writeTenantId(requested?: string): string {
-  const effective = useTenantScopeStore().effectiveTenantId
-  if (effective && requested && effective !== requested) {
-    throw new Error('当前租户已切换，请重新选择所属租户后保存')
-  }
-  const tenantId = requested || effective
-  if (!tenantId) throw new Error('请先选择记录所属租户')
-  return tenantId
+  const userStore = useUserStore()
+  return resolveTenantWriteTargetId({
+    explicitTenantId: requested,
+    effectiveTenantId: useTenantScopeStore().effectiveTenantId,
+    actorTenantId: userStore.getUserInfo.tenantId,
+    canWriteToOtherTenant: userStore.isPlatformSuper
+  })
 }
 
 const pageFrom = (params: ListPage): number => Math.max(params.from ?? 0, 0)

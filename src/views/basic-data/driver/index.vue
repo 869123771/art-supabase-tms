@@ -52,7 +52,7 @@
   } from '@/components/core/tables/art-table-query/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import { ColumnOption, DialogType } from '@/types'
-  import { pageInfoHandler } from '@/utils/table/tableUtils'
+  import { pageInfoHandler } from '@/utils/table/table-utils'
   import { formatWithDayjs } from '@/utils/time'
   import { useUserStore } from '@/store/modules/user'
   import { RouterLink } from 'vue-router'

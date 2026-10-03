@@ -43,7 +43,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { ElMessage, ElTag } from 'element-plus'
   import { RouterLink } from 'vue-router'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
@@ -58,7 +58,7 @@
   } from '@/components/core/forms/art-button-more/index.vue'
   import { ColumnOption, DialogType } from '@/types'
   import { formatNameCodeOption } from '@/utils/form'
-  import { pageInfoHandler } from '@/utils/table/tableUtils'
+  import { pageInfoHandler } from '@/utils/table/table-utils'
   import { formatWithDayjs } from '@/utils/time'
   import { canViewField, formatSensitiveNumber } from '@/utils/field-permission'
   import { useUserStore } from '@/store/modules/user'
@@ -436,8 +436,11 @@
       importApi: async (rows) => {
         await importContracts(rows as Contract[])
       },
-      onImportError: () => {
-        ElMessage.error('导入文件解析失败')
+      onImportSuccess: () => {
+        ElMessage.success('导入成功')
+      },
+      onImportError: (error) => {
+        notifyFriendlyError(error, '合同导入失败，请检查文件内容和目标租户')
       }
     },
     {

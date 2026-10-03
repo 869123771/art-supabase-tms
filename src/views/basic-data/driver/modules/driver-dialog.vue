@@ -82,6 +82,8 @@
 </template>
 
 <script setup lang="ts">
+  import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import type { FormRules } from 'element-plus'
   import { omit } from 'lodash-es'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -105,7 +107,7 @@
   } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'
   import { canEditField, canViewField, getFieldAccess } from '@/utils/field-permission'
-  import { pageInfoHandler } from '@/utils/table/tableUtils'
+  import { pageInfoHandler } from '@/utils/table/table-utils'
 
   defineOptions({ name: 'TmsDriverDialog' })
 
@@ -571,8 +573,9 @@
 
   const handleSubmit = async (): Promise<boolean> => {
     try {
-      await formRef.value?.validate()
-    } catch {
+      if (!(await validateArtFormForSubmit(formRef.value))) return false
+    } catch (error) {
+      notifyFriendlyError(error, '表单校验未完成，请稍后重试', 'warning')
       return false
     }
 
@@ -583,7 +586,8 @@
       else await addDriver(payload)
       emit('success', type)
       return true
-    } catch {
+    } catch (error) {
+      notifyFriendlyError(error, '司机档案保存失败，请检查填写内容后重试')
       return false
     }
   }

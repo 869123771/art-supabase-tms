@@ -138,6 +138,7 @@ export {
   deleteStationBatch,
   editStation,
   exportStationList,
+  fetchStationDeleteDependencies,
   fetchStationList,
   fetchStationOptions,
   importStations,

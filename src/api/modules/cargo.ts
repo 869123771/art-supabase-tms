@@ -71,7 +71,8 @@ const applyCargoFilters = <TQuery extends SupabaseQueryLike>(
   query: TQuery,
   params: CargoSearchParams
 ): TQuery => {
-  const { materialGroupIds, enabled, keyword, createTimeRange, recordId } = params
+  const { tenantId, materialGroupIds, enabled, keyword, createTimeRange, recordId } = params
+  if (tenantId) query = query.eq('tenant_id', tenantId)
   if (recordId) query = query.eq('id', recordId)
   if (materialGroupIds?.length) query = query.in('material_group_id', materialGroupIds)
   const enabledValue = normalizeBooleanFilter(enabled)
@@ -156,7 +157,6 @@ export async function importCargoes(rows: Cargo[], tenantId: string) {
     })
   })
   return await responseHandle(() => supabase.from('mdm_cargo').insert(payloads), {
-    showMessage: true,
     breakReturn: true
   })
 }

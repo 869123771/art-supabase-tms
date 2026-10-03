@@ -11,7 +11,7 @@ import ArtButtonMore, {
 } from '@/components/core/forms/art-button-more/index.vue'
 import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
 import { ColumnOption } from '@/types'
-import { pageInfoHandler } from '@/utils/table/tableUtils'
+import { pageInfoHandler } from '@/utils/table/table-utils'
 import { formatWithDayjs } from '@/utils/time'
 import { formatCompactNumberValue } from '@/utils/ui/format'
 import { canViewField, formatSensitiveNumber, mergeFieldAccessMaps } from '@/utils/field-permission'

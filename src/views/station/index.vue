@@ -32,11 +32,12 @@
     />
 
     <StationDialog ref="dialogRef" @success="handleSaveSuccess" />
+    <MasterDataDeleteGuard ref="deleteGuardRef" />
   </div>
 </template>
 
 <script setup lang="tsx">
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useAuth } from '@/hooks/core/useAuth'
   import { ElMessage, ElSwitch } from 'element-plus'
   import { trim, uniq } from 'lodash-es'
@@ -49,12 +50,16 @@
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import { ColumnOption, DialogType } from '@/types'
-  import { pageInfoHandler } from '@/utils/table/tableUtils'
+  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { useUserStore } from '@/store/modules/user'
+  import { useTenantScopeStore } from '@/store/modules/tenant-scope'
+  import { useTenantScopeFormPolicy } from '@/hooks/core/useTenantScopeFormPolicy'
   import {
     deleteStation,
     deleteStationBatch,
     exportStationList,
+    fetchStationDeleteDependencies,
     fetchStationList,
     importStations,
     updateStationEnabled
@@ -62,6 +67,10 @@
   import StationDialog from './modules/station-dialog.vue'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
+  import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
+  import MasterDataDeleteGuard, {
+    type MasterDataDeleteGuardOpenOptions
+  } from '@/components/business/master-data-delete-guard/index.vue'
 
   defineOptions({ name: 'TmsStation' })
 
@@ -77,9 +86,22 @@
     handleOpen: (row?: Station) => Promise<void>
   }
 
+  interface MasterDataDeleteGuardExpose {
+    inspect: (options: MasterDataDeleteGuardOpenOptions) => Promise<boolean>
+  }
+
   const { getDictMap } = storeToRefs(useUserStore())
+  const { isAllTenants, tenantOptions } = storeToRefs(useTenantScopeStore())
+  const { defaultWriteTenantId } = useTenantScopeFormPolicy()
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<StationDialogExpose>()
+  const deleteGuardRef = ref<MasterDataDeleteGuardExpose>()
+  const tenantLabelById = computed(
+    () =>
+      new Map(
+        tenantOptions.value.map((tenant) => [tenant.id, tenant.tenantName || tenant.tenantCode])
+      )
+  )
 
   const tableState = reactive<{ searchQuery: SearchParams }>({
     searchQuery: {
@@ -136,6 +158,19 @@
     { key: 'enabled', title: '状态' },
     { key: 'remark', title: '备注' }
   ]
+  const stationExportColumns = computed<ArtTableQueryExcelColumn[]>(() =>
+    isAllTenants.value
+      ? [
+          {
+            key: 'tenantId',
+            title: '所属租户',
+            formatter: (_value, row) =>
+              tenantLabelById.value.get((row as Station).tenantId || '') || '租户不可用'
+          },
+          ...stationExcelColumns
+        ]
+      : stationExcelColumns
+  )
 
   const searchItems = computed<SearchFormItem[]>(() => [
     {
@@ -171,6 +206,17 @@
 
   const columnsFactory = (): ColumnOption<Station>[] => [
     { type: 'selection', width: 50, fixed: 'left', reserveSelection: true },
+    ...(isAllTenants.value
+      ? [
+          {
+            prop: 'tenantId',
+            label: '所属租户',
+            minWidth: 150,
+            formatter: (row: Station) =>
+              tenantLabelById.value.get(row.tenantId || '') || '租户不可用'
+          } as ColumnOption<Station>
+        ]
+      : []),
     { prop: 'stationCode', label: '编号', width: 140 },
     {
       prop: 'stationName',
@@ -233,7 +279,7 @@
       width: 120,
       fixed: 'right',
       formatter: (row) => (
-        <div>
+        <BusinessTableRowActions>
           <ArtButtonTable
             type="edit"
             permission="TmsStation:Edit"
@@ -244,7 +290,7 @@
             permission="TmsStation:Delete"
             onClick={() => handleDelete(row)}
           />
-        </div>
+        </BusinessTableRowActions>
       )
     }
   ]
@@ -258,10 +304,20 @@
       importTransformer: (rows) =>
         rows.map((row) => normalizeImportRow(row as Record<string, unknown>)),
       importApi: async (rows) => {
-        await importStations(rows as StationSavePayload[])
+        const targetTenantId = defaultWriteTenantId.value
+        if (!targetTenantId) throw new Error('无法确定导入目标租户，请刷新后重试')
+        await importStations(
+          (rows as StationSavePayload[]).map((row) => ({
+            ...row,
+            tenantId: targetTenantId
+          }))
+        )
       },
-      onImportError: () => {
-        ElMessage.error('导入文件解析失败')
+      onImportSuccess: () => {
+        ElMessage.success('导入成功')
+      },
+      onImportError: (error) => {
+        notifyFriendlyError(error, '站点导入失败，请检查文件内容和目标租户')
       }
     },
     {
@@ -269,7 +325,7 @@
       type: 'export',
       exportFilename: 'TMS站点资料',
       exportSheetName: '站点管理',
-      exportColumns: stationExcelColumns,
+      exportColumns: stationExportColumns.value,
       exportApi: ({ selectedIds, searchParams, maxRows }) =>
         exportStationList({
           ...(searchParams as SearchParams),
@@ -280,11 +336,30 @@
     {
       permission: 'TmsStation:Delete',
       type: 'delete',
-      content: ({ selectedCount }: { selectedCount: number }) =>
-        `确定删除选中的 ${selectedCount} 条站点资料吗？删除后无法恢复。`,
+      confirm: false,
       onClick: async ({ selectedRows }) => {
-        await deleteStationBatch(selectedRows.map((row) => String(row.id)).filter(Boolean))
-        await tableQueryRef.value?.refreshRemove()
+        const rows = selectedRows as Station[]
+        if (await inspectDeleteDependencies(rows)) return
+        try {
+          await confirmAction(
+            `确定删除选中的 ${rows.length} 条站点资料吗？删除后无法恢复。`,
+            '删除确认',
+            {
+              confirmButtonText: '删除',
+              cancelButtonText: '取消',
+              type: 'warning',
+              confirmButtonType: 'danger'
+            }
+          )
+        } catch {
+          return
+        }
+        try {
+          await deleteStationBatch(rows.map((row) => String(row.id)).filter(Boolean))
+          await tableQueryRef.value?.refreshRemove()
+        } catch (error) {
+          await handleDeleteFailure(error, rows)
+        }
       }
     }
   ])
@@ -339,8 +414,48 @@
     }
   }
 
+  const inspectDeleteDependencies = async (rows: Station[]): Promise<boolean> => {
+    const resources = rows
+      .filter((row) => row.id)
+      .map((row) => ({ id: String(row.id), label: row.stationName }))
+    if (!resources.length) return true
+    if (!deleteGuardRef.value) {
+      ElMessage.error('关联校验尚未就绪，请刷新页面后重试删除')
+      return true
+    }
+    const statusLabels = new Map(
+      (getDictMap.value.tmsOrderStatus ?? []).map((item) => [item.value, item.label || item.name])
+    )
+    return deleteGuardRef.value.inspect({
+      resourceLabel: '站点',
+      resources,
+      navigationResource: { type: 'station', queryKey: 'stationId' },
+      dependencyMeta: {
+        station_order: {
+          label: '关联订单',
+          unit: '单',
+          description: '订单仍引用该站点。请保留或停用站点，确需删除时先处理订单关联。',
+          actionLabel: '查看订单',
+          routeName: 'TmsOrderList',
+          order: 10
+        }
+      },
+      fetchDependencies: async (ids) =>
+        (await fetchStationDeleteDependencies(ids)).map((record) => ({
+          ...record,
+          recordStatus: statusLabels.get(record.recordStatus ?? '') || record.recordStatus
+        }))
+    })
+  }
+
+  const handleDeleteFailure = async (error: unknown, rows: Station[]): Promise<void> => {
+    if (await inspectDeleteDependencies(rows)) return
+    ElMessage.error(getFriendlySupabaseErrorMessage(error, '站点删除失败，请稍后重试'))
+  }
+
   const handleDelete = async (row: Station): Promise<void> => {
     if (!row.id) return
+    if (await inspectDeleteDependencies([row])) return
     try {
       await confirmAction(`确定删除站点“${row.stationName}”吗？删除后无法恢复。`, '删除确认', {
         confirmButtonText: '删除',
@@ -348,10 +463,14 @@
         type: 'warning',
         confirmButtonType: 'danger'
       })
+    } catch {
+      return
+    }
+    try {
       await deleteStation(row.id)
       await tableQueryRef.value?.refreshRemove()
-    } catch {
-      // 用户取消删除时不需要提示。
+    } catch (error) {
+      await handleDeleteFailure(error, [row])
     }
   }
 </script>

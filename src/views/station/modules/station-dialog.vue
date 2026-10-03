@@ -15,15 +15,20 @@
 </template>
 
 <script setup lang="ts">
+  import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import type { FormRules } from 'element-plus'
-  import { omit, toNumber, trim, uniq } from 'lodash-es'
+  import { cloneDeep, omit, toNumber, trim, uniq } from 'lodash-es'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
+  import { useTenantScopeFormPolicy } from '@/hooks/core/useTenantScopeFormPolicy'
   import { addStation, editStation } from '@tms/api'
+  import { useTenantScopeStore } from '@/store/modules/tenant-scope'
   import { useUserStore } from '@/store/modules/user'
+  import { normalizeNullableText } from '@/utils/form/normalize'
 
   defineOptions({ name: 'TmsStationDialog' })
 
@@ -47,12 +52,20 @@
   }>()
 
   const { getDictMap } = storeToRefs(useUserStore())
+  const { tenantOptions } = storeToRefs(useTenantScopeStore())
+  const { defaultWriteTenantId, shouldExposeTenantField } = useTenantScopeFormPolicy()
   const dialogRef = ref<ArtDialogExpose<Station | undefined>>()
   const formRef = ref<DialogExposeForm>()
-  const stationNumber = useDocumentNumberRule('master.station')
+  const tenantChoices = computed(() =>
+    tenantOptions.value.map((tenant) => ({
+      label: `${tenant.tenantName || tenant.tenantCode}（${tenant.tenantCode}）`,
+      value: tenant.id
+    }))
+  )
 
   const createInitialForm = (): StationForm => ({
     id: undefined,
+    tenantId: defaultWriteTenantId.value || undefined,
     stationCode: '',
     stationName: '',
     stationTypes: ['shipping'],
@@ -68,6 +81,7 @@
     data: createInitialForm(),
     stationTypeOptions: computed(() => getDictMap.value.tmsStationType ?? []),
     rules: {
+      tenantId: [{ required: true, message: '请选择所属租户', trigger: 'change' }],
       stationTypes: [{ required: true, message: '请至少选择一个站点类型', trigger: 'change' }],
       stationName: [
         { required: true, message: '请输入站点名称', trigger: 'blur' },
@@ -90,6 +104,22 @@
     },
     items: computed<FormItem[]>(() => [
       { label: '基础信息', key: 'baseSection', type: 'divider', span: 24 },
+      ...(shouldExposeTenantField.value
+        ? [
+            {
+              label: '所属租户',
+              key: 'tenantId',
+              type: 'select' as const,
+              props: {
+                options: tenantChoices.value,
+                filterable: true,
+                disabled: Boolean(form.data.id),
+                style: { width: '100%' },
+                placeholder: '请选择站点所属租户'
+              }
+            }
+          ]
+        : []),
       {
         label: '站点编码',
         key: 'stationCode',
@@ -186,6 +216,7 @@
       }
     ])
   })
+  const stationNumber = useDocumentNumberRule('master.station', () => form.data.tenantId)
 
   const replaceForm = (nextForm: StationForm): void => {
     Object.assign(form.data, createInitialForm(), nextForm)
@@ -197,11 +228,8 @@
     formRef.value?.clearValidate()
   }
 
-  const nullableText = (value?: string | null): string | null => trim(String(value ?? '')) || null
-
   const normalizePayload = (): StationForm => {
-    const payload = omit(structuredClone(toRaw(form.data)), [
-      'tenantId',
+    const payload = omit(cloneDeep(toRaw(form.data)), [
       'stationType',
       'stationRoles',
       'createBy',
@@ -215,18 +243,19 @@
       stationCode: trim(String(payload.stationCode || '')),
       stationName: trim(String(payload.stationName || '')),
       stationTypes: uniq(payload.stationTypes.map((item) => trim(String(item))).filter(Boolean)),
-      regionCode: nullableText(payload.regionCode),
-      managerName: nullableText(payload.managerName),
-      contactPhone: nullableText(payload.contactPhone),
+      regionCode: normalizeNullableText(payload.regionCode),
+      managerName: normalizeNullableText(payload.managerName),
+      contactPhone: normalizeNullableText(payload.contactPhone),
       sort: toNumber(payload.sort ?? 0),
-      remark: nullableText(payload.remark)
+      remark: normalizeNullableText(payload.remark)
     }
   }
 
   const handleSubmit = async (): Promise<boolean> => {
     try {
-      await formRef.value?.validate()
-    } catch {
+      if (!(await validateArtFormForSubmit(formRef.value))) return false
+    } catch (error) {
+      notifyFriendlyError(error, '表单校验未完成，请稍后重试', 'warning')
       return false
     }
 
@@ -237,7 +266,8 @@
       else await addStation(payload)
       emit('success', type)
       return true
-    } catch {
+    } catch (error) {
+      notifyFriendlyError(error, '站点保存失败，请检查填写内容后重试')
       return false
     }
   }
@@ -251,7 +281,7 @@
         : [row.stationType]
       replaceForm({
         ...createInitialForm(),
-        ...omit(structuredClone(toRaw(row)), ['stationType', 'stationRoles']),
+        ...omit(cloneDeep(toRaw(row)), ['stationType', 'stationRoles']),
         stationTypes
       })
     }

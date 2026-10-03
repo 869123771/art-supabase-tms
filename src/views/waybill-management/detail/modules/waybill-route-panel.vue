@@ -30,6 +30,8 @@
           :loading="map.loading"
           :error="map.error"
           :empty="!locationPoints.length"
+          empty-text="暂无运单轨迹"
+          empty-description="运单上报定位节点后，可在地图中查看运输路线。"
           @retry="initializeMap"
         >
           <div ref="mapRef" class="waybill-route__map" aria-label="运单节点道路轨迹地图" />

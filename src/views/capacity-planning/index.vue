@@ -56,6 +56,7 @@
           <ArtEmptyState
             v-if="!overview.daily.length"
             title="当前周期暂无运输需求"
+            description="调整统计周期，或等待新订单进入计划。"
             size="compact"
             :visual-size="72"
           />
@@ -112,6 +113,7 @@
           <ArtEmptyState
             v-if="!overview.backlog.length"
             title="当前没有未配车任务"
+            description="新的待调度订单出现后，会在此显示。"
             size="compact"
             :visual-size="72"
           />
@@ -155,7 +157,6 @@
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
-  import { ElMessage } from 'element-plus'
   import BusinessRecordLink from '@/components/business/business-record-link/index.vue'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
@@ -277,7 +278,6 @@
         error,
         '运力容量数据加载失败，请稍后重试'
       )
-      ElMessage.error(errorMessage.value)
     } finally {
       loading.value = false
     }

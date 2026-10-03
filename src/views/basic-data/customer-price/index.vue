@@ -62,7 +62,7 @@
     fetchCustomerPriceList
   } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'
-  import { pageInfoHandler } from '@/utils/table/tableUtils'
+  import { pageInfoHandler } from '@/utils/table/table-utils'
   import { formatWithDayjs } from '@/utils/time'
   import { formatCompactNumberValue } from '@/utils/ui/format'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'

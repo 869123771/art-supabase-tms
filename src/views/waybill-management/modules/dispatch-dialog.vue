@@ -318,10 +318,11 @@
 </template>
 
 <script setup lang="ts">
+  import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import DOMPurify from 'dompurify'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
-  import { useTenantScopeStore } from '@/store/modules/tenantScope'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { useTenantScopeStore } from '@/store/modules/tenant-scope'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import type { FormRules } from 'element-plus'
   import { trim } from 'lodash-es'
@@ -677,7 +678,7 @@
 
   async function handleSubmit(): Promise<boolean> {
     try {
-      await formRef.value?.validate()
+      if (!(await validateArtFormForSubmit(formRef.value))) return false
       if (
         form.data.dispatchMode === 'individual_driver' &&
         form.selectedIndividual?.agreementStatus !== 'signed'
@@ -695,7 +696,8 @@
       }
       emit('success')
       return true
-    } catch {
+    } catch (error) {
+      notifyFriendlyError(error, '运单调度失败，请检查承运资源和网络后重试')
       return false
     }
   }

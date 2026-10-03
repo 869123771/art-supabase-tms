@@ -1,5 +1,6 @@
 import { trim } from 'lodash-es'
 import { createAiOrderMasterData } from '@tms/api'
+import { MAX_AI_ORDER_MASTER_DATA_TASKS } from './ai-order-master-data-selection'
 import type { AiOrderMasterDataTask, AiOrderReferenceMatches } from './ai-order-types'
 
 type Draft = Api.Tms.Order.AiOrderDraft
@@ -132,6 +133,10 @@ export function useAiOrderMasterData() {
           }
         }
       })
+    }
+
+    if (tasks.length > MAX_AI_ORDER_MASTER_DATA_TASKS) {
+      throw new Error(`单次最多创建 ${MAX_AI_ORDER_MASTER_DATA_TASKS} 项基础资料`)
     }
 
     const { data } = await createAiOrderMasterData(tasks)

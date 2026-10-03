@@ -42,7 +42,13 @@
           multiple
           readonly
         />
-        <ArtEmptyState v-else title="暂无附件" :visual-size="72" size="compact" />
+        <ArtEmptyState
+          v-else
+          title="暂无附件"
+          description="补充案例附件后，可在此预览。"
+          :visual-size="72"
+          size="compact"
+        />
       </template>
     </ArtDialog>
   </div>
@@ -68,7 +74,7 @@
   } from '@/components/core/tables/art-table-query/index.vue'
   import { useUserStore } from '@/store/modules/user'
   import type { ColumnOption } from '@/types'
-  import { pageInfoHandler } from '@/utils/table/tableUtils'
+  import { pageInfoHandler } from '@/utils/table/table-utils'
   import { formatWithDayjs } from '@/utils/time'
   import {
     deleteTmsBasicRecords,

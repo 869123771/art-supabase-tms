@@ -1,5 +1,7 @@
 import { buildOrIlikeFilter } from '@/utils/supabase/search'
+import { fetchAllRangePages } from '@/utils/supabase/pagination'
 import { useSupabase } from '@/hooks'
+import type { MasterDataDeleteDependencyDetail } from '@/api/master-data-delete'
 import {
   applyCreateTimeRange,
   normalizeBooleanFilter,
@@ -92,6 +94,7 @@ export async function fetchStationOptions(
     .order('station_code', { ascending: true })
     .limit(1000)
 
+  if (params.tenantId) query = query.eq('tenant_id', params.tenantId)
   if (params.stationType) query = query.eq('stationRoleFilter.role_type', params.stationType)
   if (params.keyword) {
     query = query.or(
@@ -105,6 +108,21 @@ export async function fetchStationOptions(
       showErrorMessage: true
     }
   )
+}
+
+export async function fetchStationDeleteDependencies(
+  ids: string[]
+): Promise<MasterDataDeleteDependencyDetail[]> {
+  const { data, error } = await fetchAllRangePages<MasterDataDeleteDependencyDetail>(
+    ({ from, to }) =>
+      responseHandle<MasterDataDeleteDependencyDetail[]>(
+        () =>
+          supabase.rpc('get_tms_station_delete_dependency_details', { p_ids: ids }).range(from, to),
+        { showErrorMessage: false }
+      )
+  )
+  if (error || !data) throw new Error('站点关联订单检查失败，请重试', { cause: error })
+  return data
 }
 
 const createSaveRpcParams = (params: StationSavePayload) => {
@@ -138,19 +156,23 @@ export async function updateStationEnabled(id: string, enabled: boolean) {
 
 export async function deleteStation(id: string) {
   return await responseHandle(() => supabase.from('mdm_station').delete().eq('id', id), {
-    showMessage: true
+    showMessage: true,
+    showErrorMessage: false,
+    breakReturn: true
   })
 }
 
 export async function deleteStationBatch(ids: string[]) {
   return await responseHandle(() => supabase.from('mdm_station').delete().in('id', ids), {
-    showMessage: true
+    showMessage: true,
+    showErrorMessage: false,
+    breakReturn: true
   })
 }
 
 export async function importStations(rows: StationSavePayload[]) {
   return await responseHandle(
     () => supabase.rpc('import_tms_stations', { p_rows: keysToSnakeDeep(rows) }),
-    { showMessage: true, breakReturn: true }
+    { breakReturn: true }
   )
 }

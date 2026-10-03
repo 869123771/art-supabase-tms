@@ -579,6 +579,7 @@ declare global {
         type CargoSearchParams = Partial<
           Pick<Cargo, 'enabled'> &
             Api.Common.CommonSearchParams & {
+              tenantId?: string
               materialGroupIds?: string[]
               keyword?: string
               createTimeRange?: string[]
@@ -1882,13 +1883,7 @@ declare global {
 
         type StationSavePayload = Omit<
           StationRecord,
-          | 'tenantId'
-          | 'stationType'
-          | 'stationRoles'
-          | 'createBy'
-          | 'createTime'
-          | 'updateBy'
-          | 'updateTime'
+          'stationType' | 'stationRoles' | 'createBy' | 'createTime' | 'updateBy' | 'updateTime'
         > & {
           stationTypes: Array<StationType | string>
         }
@@ -1903,6 +1898,7 @@ declare global {
 
         type StationOptionSearchParams = Partial<
           Pick<StationRecord, 'stationType'> & {
+            tenantId?: string
             keyword?: string
           }
         >

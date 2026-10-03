@@ -1,5 +1,5 @@
 import { useSupabase } from '@/hooks'
-import { pageInfoHandler } from '@/utils/table/tableUtils'
+import { pageInfoHandler } from '@/utils/table/table-utils'
 import { fetchDispatchWorkbench } from '@tms/api/modules/dispatch-execution'
 
 export type AppointmentKind = 'pickup' | 'delivery'

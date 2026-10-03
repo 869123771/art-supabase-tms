@@ -22,6 +22,8 @@
 </template>
 
 <script setup lang="ts">
+  import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import dayjs from 'dayjs'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -106,8 +108,9 @@
 
   const handleSubmit = async (): Promise<boolean> => {
     try {
-      await formRef.value?.validate()
-    } catch {
+      if (!(await validateArtFormForSubmit(formRef.value))) return false
+    } catch (error) {
+      notifyFriendlyError(error, '表单校验未完成，请稍后重试', 'warning')
       return false
     }
     try {
@@ -122,7 +125,8 @@
       })
       emit('success')
       return true
-    } catch {
+    } catch (error) {
+      notifyFriendlyError(error, '司机黑名单保存失败，请检查填写内容后重试')
       return false
     }
   }

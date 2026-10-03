@@ -48,6 +48,8 @@
 </template>
 
 <script setup lang="ts">
+  import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import dayjs from 'dayjs'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import type { FormRules } from 'element-plus'
@@ -125,6 +127,7 @@
   const orderContext = computed(() => ({
     id: String(form.data.id ?? ''),
     orderNo: form.data.orderNo || '',
+    tenantId: currentRow.value?.tenantId,
     receiverName: currentRow.value?.receivingContactName,
     plannedArrivalTime: currentRow.value?.plannedArrivalTime,
     cargoQuantityTotal: currentRow.value?.cargoQuantityTotal
@@ -166,19 +169,26 @@
     }
 
     try {
-      await formRef.value?.validate()
-    } catch {
+      if (!(await validateArtFormForSubmit(formRef.value))) return false
+    } catch (error) {
+      notifyFriendlyError(error, '表单校验未完成，请稍后重试', 'warning')
       return false
     }
 
     try {
       await archiveDeliveryReceipt(normalizePayload())
-      await recordOcrReview()
-      emit('success')
-      return true
-    } catch {
+    } catch (error) {
+      notifyFriendlyError(error, '回单签收归档失败，请检查附件和网络后重试')
       return false
     }
+
+    try {
+      await recordOcrReview()
+    } catch (error) {
+      notifyFriendlyError(error, '回单已归档，但 AI 质量记录失败；请稍后重试', 'warning')
+    }
+    emit('success')
+    return true
   }
 
   async function resetForm(): Promise<void> {

@@ -72,6 +72,8 @@
 </template>
 
 <script setup lang="ts">
+  import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { normalizeNullableText } from '@/utils/form/normalize'
   import type { FormRules } from 'element-plus'
   import { cloneDeep, omit } from 'lodash-es'
@@ -469,8 +471,9 @@
 
   const handleSubmit = async (): Promise<boolean> => {
     try {
-      await formRef.value?.validate()
-    } catch {
+      if (!(await validateArtFormForSubmit(formRef.value))) return false
+    } catch (error) {
+      notifyFriendlyError(error, '表单校验未完成，请稍后重试', 'warning')
       return false
     }
 
@@ -481,7 +484,8 @@
       else await addFavoriteRoute(payload)
       emit('success', type)
       return true
-    } catch {
+    } catch (error) {
+      notifyFriendlyError(error, '常用线路保存失败，请检查线路信息后重试')
       return false
     }
   }

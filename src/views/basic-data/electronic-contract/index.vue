@@ -49,7 +49,13 @@
           multiple
           readonly
         />
-        <ArtEmptyState v-else title="暂无附件" :visual-size="72" size="compact" />
+        <ArtEmptyState
+          v-else
+          title="暂无附件"
+          description="上传合同附件后，可在此预览。"
+          :visual-size="72"
+          size="compact"
+        />
       </template>
     </ArtDialog>
   </div>
@@ -78,7 +84,7 @@
   import { useUserStore } from '@/store/modules/user'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import type { ColumnOption } from '@/types'
-  import { pageInfoHandler } from '@/utils/table/tableUtils'
+  import { pageInfoHandler } from '@/utils/table/table-utils'
   import { formatWithDayjs } from '@/utils/time'
   import {
     copyElectronicContract,

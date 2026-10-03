@@ -256,6 +256,7 @@
             ref="configRef"
             v-model="form.data.orderConfig"
             :can-edit-attachments="canEditOrderField('proofAttachments')"
+            :resource-tenant-id="form.data.tenantId || defaultWriteTenantId || ''"
           />
         </ArtSectionCard>
       </div>
@@ -666,6 +667,7 @@
   } from '@tms/api'
   import { fetchDocumentNumberRulesByKeys } from '@/api/document-number'
   import { useUserStore } from '@/store/modules/user'
+  import { useTenantScopeFormPolicy } from '@/hooks/core/useTenantScopeFormPolicy'
   import { clearFormRefsValidation, validateFormRefs } from '@/utils/form/validation'
   import { formatCompactNumberValue } from '@/utils/ui/format'
   import {
@@ -824,6 +826,7 @@
   const route = useRoute()
   const router = useRouter()
   const userStore = useUserStore()
+  const { defaultWriteTenantId } = useTenantScopeFormPolicy()
   const { brandName, websiteConfig } = useWebsiteConfig()
   const { hasAuth, hasAnyAuth } = useAuth()
   const { geocodeAddress } = useAmapGeocoder()

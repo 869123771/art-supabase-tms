@@ -416,7 +416,7 @@
   import { useUserStore } from '@/store/modules/user'
   import { clearFormRefsValidation, validateFormRefs } from '@/utils/form/validation'
   import { formatCompactNumberValue } from '@/utils/ui/format'
-  import { pageInfoHandler } from '@/utils/table/tableUtils'
+  import { pageInfoHandler } from '@/utils/table/table-utils'
   import PriceCargoSection from '../modules/price-cargo-section.vue'
   import {
     calculateCargoSummary,

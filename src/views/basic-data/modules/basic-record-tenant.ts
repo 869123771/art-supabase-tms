@@ -1,9 +1,11 @@
 import type { FormItem } from '@/components/core/forms/art-form/index.vue'
 import { fetchGetTenantList } from '@/api/system-manage'
-import { useTenantScopeStore } from '@/store/modules/tenantScope'
+import { useTenantScopeStore } from '@/store/modules/tenant-scope'
+import { useTenantScopeFormPolicy } from '@/hooks/core/useTenantScopeFormPolicy'
 
 export function useBasicRecordTenant() {
   const scope = useTenantScopeStore()
+  const { defaultWriteTenantId } = useTenantScopeFormPolicy()
   const needsTenantChoice = computed(() => scope.isAllTenants)
   const tenantField = computed<FormItem[]>(() =>
     needsTenantChoice.value
@@ -25,6 +27,6 @@ export function useBasicRecordTenant() {
   return {
     needsTenantChoice,
     tenantField,
-    selectedTenantId: computed(() => scope.effectiveTenantId ?? '')
+    selectedTenantId: computed(() => defaultWriteTenantId.value ?? '')
   }
 }

@@ -161,6 +161,7 @@
           multiple
           :limit="6"
           :file-size="2 * 1024 * 1024"
+          :resource-tenant-id="resourceTenantId"
           accept=".jpg,.jpeg,.png,.gif,.bmp,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar"
           :readonly="!canEditAttachments"
         />
@@ -181,7 +182,7 @@
   import VehicleTypeArt from './vehicle-type-art.vue'
 
   const config = defineModel<Api.Tms.Order.OrderConfig>({ required: true })
-  defineProps<{ canEditAttachments: boolean }>()
+  defineProps<{ canEditAttachments: boolean; resourceTenantId: string }>()
   const { getDictMap } = storeToRefs(useUserStore())
   const vehicleFormRef = ref<InstanceType<typeof ArtForm>>()
   const settingsFormRef = ref<InstanceType<typeof ArtForm>>()

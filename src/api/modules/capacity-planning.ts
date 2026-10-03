@@ -7,9 +7,8 @@ type CapacityPlanningSource = Partial<Api.Tms.CapacityPlanning.Overview>
 export async function fetchCapacityPlanning(
   days: Api.Tms.CapacityPlanning.PeriodDays = 14
 ): Promise<Api.Tms.CapacityPlanning.Overview> {
-  const result = await responseHandle<CapacityPlanningSource>(
-    () => supabase.rpc('tms_get_capacity_planning_secure', { p_days: days }),
-    { showErrorMessage: true }
+  const result = await responseHandle<CapacityPlanningSource>(() =>
+    supabase.rpc('tms_get_capacity_planning_secure', { p_days: days })
   )
   if (result.error) throw result.error
 

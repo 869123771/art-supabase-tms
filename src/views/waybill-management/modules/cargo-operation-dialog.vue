@@ -128,6 +128,7 @@
 </template>
 
 <script setup lang="ts">
+  import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { normalizeNullableText } from '@/utils/form/normalize'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ComputedRef } from 'vue'
@@ -136,7 +137,7 @@
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
-  import { useTenantScopeStore } from '@/store/modules/tenantScope'
+  import { useTenantScopeStore } from '@/store/modules/tenant-scope'
   import {
     checkInWaybillCargoOperation,
     completeWaybillCargoOperation,
@@ -144,7 +145,7 @@
   } from '@tms/api'
   import { formatWithDayjs } from '@/utils/time'
   import { useAmapSdk, type AmapBrowserNamespace } from '@/hooks/core/useAmapSdk'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import type { WaybillRecord } from './waybill-shared'
 
   defineOptions({ name: 'TmsWaybillCargoOperationDialog' })
@@ -399,7 +400,7 @@
       }
     } catch (error) {
       if (isMessageBoxCancelled(error)) return
-      if (error instanceof Error && error.message) ElMessage.error(error.message)
+      notifyFriendlyError(error, '到场签到失败，请检查定位和网络后重试')
     } finally {
       state.locating = false
     }
@@ -408,8 +409,9 @@
   async function handleSubmit(): Promise<boolean> {
     if (!currentRow.value?.driverWaybillId || !context.value?.operation) return false
     try {
-      await formRef.value?.validate()
-    } catch {
+      if (!(await validateArtFormForSubmit(formRef.value))) return false
+    } catch (error) {
+      notifyFriendlyError(error, '表单校验未完成，请稍后重试', 'warning')
       return false
     }
     try {
@@ -423,7 +425,8 @@
       })
       emit('success')
       return true
-    } catch {
+    } catch (error) {
+      notifyFriendlyError(error, '货物作业提交失败，请检查称重数据和网络后重试')
       return false
     }
   }

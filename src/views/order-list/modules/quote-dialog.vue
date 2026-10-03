@@ -192,6 +192,8 @@
 </template>
 
 <script setup lang="ts">
+  import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { round, toNumber } from 'lodash-es'
   import { ElMessage } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -399,8 +401,13 @@
       return false
     }
     try {
-      await Promise.all([feeFormRef.value?.validate(), paymentFormRef.value?.validate()])
-    } catch {
+      const [feesValid, paymentValid] = await Promise.all([
+        validateArtFormForSubmit(feeFormRef.value),
+        validateArtFormForSubmit(paymentFormRef.value)
+      ])
+      if (!feesValid || !paymentValid) return false
+    } catch (error) {
+      notifyFriendlyError(error, '表单校验未完成，请稍后重试', 'warning')
       return false
     }
     if (!validateAmounts()) return false
@@ -413,7 +420,8 @@
       ElMessage.success(submitMode.value === 'submit' ? '报价已提交到系统' : '报价已保存')
       emit('success')
       return true
-    } catch {
+    } catch (error) {
+      notifyFriendlyError(error, '报价保存失败，请检查费用、附件和网络后重试')
       return false
     }
   }

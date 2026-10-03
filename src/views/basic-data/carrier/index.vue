@@ -52,7 +52,7 @@
     type ButtonMoreItem
   } from '@/components/core/forms/art-button-more/index.vue'
   import { ColumnOption, DialogType } from '@/types'
-  import { pageInfoHandler } from '@/utils/table/tableUtils'
+  import { pageInfoHandler } from '@/utils/table/table-utils'
   import { formatWithDayjs } from '@/utils/time'
   import { navigateToApplication } from '@/utils/application-navigation'
   import { canViewField, mergeFieldAccessMaps } from '@/utils/field-permission'
@@ -300,6 +300,9 @@
       importColumns: carrierImportColumns,
       importApi: async (rows) => {
         await importCarriers(rows as Carrier[])
+      },
+      onImportSuccess: () => {
+        ElMessage.success('导入成功')
       },
       onImportError: () => {
         ElMessage.error('导入文件解析失败')

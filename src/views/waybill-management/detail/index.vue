@@ -6,6 +6,7 @@
     :error="detail.error"
     :empty="detail.loaded && !detail.data"
     empty-text="暂无运单详情"
+    empty-description="请返回运单列表重新选择，或刷新后重试。"
     @retry="loadDetail"
   >
     <ArtPageHeader

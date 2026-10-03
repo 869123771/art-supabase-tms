@@ -8,6 +8,9 @@
         </div>
         <div class="ai-order-master-data__counts">
           <ElTag type="success" effect="plain">可建档 {{ readyCount }} 项</ElTag>
+          <ElTag v-if="readyCount > MAX_AI_ORDER_MASTER_DATA_TASKS" type="info" effect="plain">
+            单次最多 {{ MAX_AI_ORDER_MASTER_DATA_TASKS }} 项
+          </ElTag>
           <ElTag v-if="blockedCount" type="danger" effect="plain">
             暂不可创建 {{ blockedCount }} 项
           </ElTag>
@@ -24,7 +27,12 @@
         v-for="task in tasks"
         :key="task.key"
         :value="task.key"
-        :disabled="!task.ready || creating"
+        :disabled="
+          !task.ready ||
+          creating ||
+          (selectedKeys.length >= MAX_AI_ORDER_MASTER_DATA_TASKS &&
+            !selectedKeys.includes(task.key))
+        "
         border
       >
         <span class="ai-order-master-data__item">
@@ -44,7 +52,7 @@
 
     <div class="ai-order-master-data__hint">
       <ArtSvgIcon icon="ri:shield-check-line" />
-      <span>仅写入当前有效租户中有权创建的档案；整批失败会全部回滚，订单仍需手动保存。</span>
+      <span>{{ batchHint }}</span>
     </div>
   </ArtSectionCard>
 </template>
@@ -52,6 +60,10 @@
 <script setup lang="ts">
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
+  import {
+    MAX_AI_ORDER_MASTER_DATA_TASKS,
+    reconcileAiOrderMasterDataSelection
+  } from './ai-order-master-data-selection'
   import type { AiOrderMasterDataTask } from './ai-order-types'
 
   defineOptions({ name: 'TmsAiOrderMasterDataPanel' })
@@ -74,19 +86,34 @@
   }
   const readyCount = computed(() => props.tasks.filter((task) => task.ready).length)
   const blockedCount = computed(() => props.tasks.length - readyCount.value)
+  const batchHint = `单批最多 ${MAX_AI_ORDER_MASTER_DATA_TASKS} 项；按目标租户和新增权限建档。失败时整批回滚，订单仍需手动保存。`
+  let manuallySelected = false
 
   watch(
     () => props.tasks,
     (nextTasks) => {
-      const available = new Set(nextTasks.filter((task) => task.ready).map((task) => task.key))
-      const retained = props.selectedKeys.filter((key) => available.has(key))
-      emit('update:selectedKeys', retained.length ? retained : [...available])
+      if (!nextTasks.length) manuallySelected = false
+      const nextKeys = reconcileAiOrderMasterDataSelection(
+        nextTasks,
+        props.selectedKeys,
+        manuallySelected
+      )
+      if (
+        nextKeys.length !== props.selectedKeys.length ||
+        nextKeys.some((key, index) => key !== props.selectedKeys[index])
+      ) {
+        emit('update:selectedKeys', nextKeys)
+      }
     },
     { immediate: true, deep: true }
   )
 
   function handleSelectedKeysChange(keys: Array<string | number>): void {
-    emit('update:selectedKeys', keys.map(String))
+    manuallySelected = true
+    emit(
+      'update:selectedKeys',
+      reconcileAiOrderMasterDataSelection(props.tasks, keys.map(String), true)
+    )
   }
 </script>
 

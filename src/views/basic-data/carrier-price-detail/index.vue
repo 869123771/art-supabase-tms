@@ -6,6 +6,7 @@
     :error="page.error"
     :empty="!detail.data"
     empty-text="暂无承运商价格详情"
+    empty-description="请返回承运商价格列表重新选择，或刷新后重试。"
     @retry="loadPage"
   >
     <ArtPageHeader

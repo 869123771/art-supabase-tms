@@ -3,6 +3,8 @@ import { useSupabase } from '@/hooks'
 import { withRequestOptions } from '@/api/providers/supabase/query'
 import type { ApiRequestOptions } from '@/types/api/request'
 import { startWorkflow } from '@/api/workflow'
+import { useTenantScopeStore } from '@/store/modules/tenant-scope'
+import { useUserStore } from '@/store/modules/user'
 
 type Contract = Api.Tms.BasicData.Contract
 type ContractSearchParams = Api.Tms.BasicData.ContractSearchParams
@@ -24,6 +26,18 @@ interface ImportContractResult {
 }
 
 const { supabase, keysToSnakeDeep, responseHandle } = useSupabase()
+
+const assertContractCreateTenantSupported = (requestedTenantId?: string): void => {
+  const homeTenantId = useUserStore().getUserInfo.tenantId
+  const selectedTenantId = useTenantScopeStore().effectiveTenantId
+  if (!homeTenantId) throw new Error('无法确定账号所属租户，请刷新后重试')
+  if (requestedTenantId && requestedTenantId !== homeTenantId) {
+    throw new Error('当前合同服务暂不支持跨租户新增或导入，请切换至所属租户后重试')
+  }
+  if (selectedTenantId && selectedTenantId !== homeTenantId) {
+    throw new Error('当前合同服务暂不支持跨租户新增或导入，请切换至所属租户后重试')
+  }
+}
 
 const CONTRACT_PAYLOAD_KEYS = [
   'contractNo',
@@ -193,6 +207,7 @@ export async function fetchContractDetail(id: string) {
 }
 
 export async function addContract(params: Contract) {
+  assertContractCreateTenantSupported(params.tenantId)
   const result = await responseHandle<string>(
     () =>
       supabase.rpc('tms_create_contract_secure', {
@@ -239,9 +254,11 @@ export async function deleteContractBatch(ids: string[]) {
 }
 
 export async function importContracts(rows: Contract[]) {
+  assertContractCreateTenantSupported()
+  rows.forEach((row) => assertContractCreateTenantSupported(row.tenantId))
   const payload = rows.map((row) => keysToSnakeDeep(toContractPayload(row)))
   return await responseHandle<ImportContractResult>(
     () => supabase.rpc('tms_import_contracts_secure', { p_rows: payload }),
-    { showMessage: true, breakReturn: true }
+    { breakReturn: true }
   )
 }

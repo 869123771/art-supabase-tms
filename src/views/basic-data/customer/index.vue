@@ -93,13 +93,13 @@
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import { ColumnOption, DialogType } from '@/types'
   import { mapExcelRowsToRecords } from '@/utils/file'
-  import { pageInfoHandler } from '@/utils/table/tableUtils'
+  import { pageInfoHandler } from '@/utils/table/table-utils'
   import { formatWithDayjs } from '@/utils/time'
   import { canViewField, type FieldAccessLevel } from '@/utils/field-permission'
   import TreeUtils from '@/utils/tree'
   import { fetchMasterGroups, type MasterGroup } from '@/api/master-groups'
   import { useUserStore } from '@/store/modules/user'
-  import { useTenantScopeStore } from '@/store/modules/tenantScope'
+  import { useTenantScopeStore } from '@/store/modules/tenant-scope'
   import { financeRouteNames } from '@/router/business-paths'
   import {
     cleanupCustomerDeleteSafeDependencies,

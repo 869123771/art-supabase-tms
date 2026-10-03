@@ -72,6 +72,8 @@
 </template>
 
 <script setup lang="ts">
+  import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
@@ -318,7 +320,7 @@
 
   const handleSubmit = async (): Promise<boolean> => {
     try {
-      await formRef.value?.validate()
+      if (!(await validateArtFormForSubmit(formRef.value))) return false
       if (form.endsOn && form.startsOn && form.endsOn < form.startsOn) {
         ElMessage.warning('协议结束时间不能早于开始时间')
         return false
@@ -348,7 +350,8 @@
       else await addTransportAgreement(payload)
       emit('success', editingId.value ? 'edit' : 'add')
       return true
-    } catch {
+    } catch (error) {
+      notifyFriendlyError(error, '运输协议保存失败，请检查签约信息后重试')
       return false
     }
   }

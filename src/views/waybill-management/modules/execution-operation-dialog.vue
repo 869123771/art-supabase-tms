@@ -133,6 +133,8 @@
 </template>
 
 <script setup lang="ts">
+  import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { normalizeNullableText } from '@/utils/form/normalize'
   import dayjs from 'dayjs'
   import type { ComputedRef } from 'vue'
@@ -142,7 +144,7 @@
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
-  import { useTenantScopeStore } from '@/store/modules/tenantScope'
+  import { useTenantScopeStore } from '@/store/modules/tenant-scope'
   import {
     completeWaybillExecution,
     fetchWaybillExecutionContext,
@@ -389,8 +391,9 @@
 
   async function handleSubmit(): Promise<boolean> {
     try {
-      await formRef.value?.validate()
-    } catch {
+      if (!(await validateArtFormForSubmit(formRef.value))) return false
+    } catch (error) {
+      notifyFriendlyError(error, '表单校验未完成，请稍后重试', 'warning')
       return false
     }
     const waybillId = currentRow.value?.driverWaybillId
@@ -416,59 +419,64 @@
       }
     }
 
-    if (action.value === 'departure') {
-      await recordWaybillDeparture({
-        waybillId,
-        departureTime: occurredAtIso,
-        odometerKm: Number(form.data.odometerKm),
-        photoUrls: [...form.data.photoUrls],
-        remark: normalizeNullableText(form.data.remark)
-      })
-    } else if (action.value === 'signature') {
-      if (!receiptAllocations.value.length) {
-        ElMessage.warning('没有可签收的原始运输单明细')
-        return false
-      }
-      for (const item of receiptAllocations.value) {
-        if (
-          item.signedQuantity < 0 ||
-          item.exceptionQuantity < 0 ||
-          item.signedQuantity + item.exceptionQuantity <= 0 ||
-          item.signedQuantity + item.exceptionQuantity > item.quantity + 0.000001
-        ) {
-          ElMessage.warning(`${item.orderNo} 的签收与异常件数超出配载货量`)
+    try {
+      if (action.value === 'departure') {
+        await recordWaybillDeparture({
+          waybillId,
+          departureTime: occurredAtIso,
+          odometerKm: Number(form.data.odometerKm),
+          photoUrls: [...form.data.photoUrls],
+          remark: normalizeNullableText(form.data.remark)
+        })
+      } else if (action.value === 'signature') {
+        if (!receiptAllocations.value.length) {
+          ElMessage.warning('没有可签收的原始运输单明细')
           return false
         }
-        if (item.exceptionQuantity > 0 && !item.exceptionNote.trim()) {
-          ElMessage.warning(`请填写 ${item.orderNo} 的异常说明`)
-          return false
+        for (const item of receiptAllocations.value) {
+          if (
+            item.signedQuantity < 0 ||
+            item.exceptionQuantity < 0 ||
+            item.signedQuantity + item.exceptionQuantity <= 0 ||
+            item.signedQuantity + item.exceptionQuantity > item.quantity + 0.000001
+          ) {
+            ElMessage.warning(`${item.orderNo} 的签收与异常件数超出配载货量`)
+            return false
+          }
+          if (item.exceptionQuantity > 0 && !item.exceptionNote.trim()) {
+            ElMessage.warning(`请填写 ${item.orderNo} 的异常说明`)
+            return false
+          }
         }
+        await signExecutionAllocations({
+          waybillId,
+          signedAt: occurredAtIso,
+          signerName: form.data.signerName.trim(),
+          receiptUrls: [...form.data.receiptUrls],
+          signatureUrls: [...form.data.signatureUrls],
+          remark: normalizeNullableText(form.data.remark),
+          allocations: receiptAllocations.value.map((item) => ({
+            allocationId: item.allocationId,
+            signedQuantity: item.signedQuantity,
+            exceptionQuantity: item.exceptionQuantity,
+            exceptionNote: normalizeNullableText(item.exceptionNote)
+          }))
+        })
+      } else {
+        await completeWaybillExecution({
+          waybillId,
+          returnTime: occurredAtIso,
+          returnOdometerKm: Number(form.data.odometerKm),
+          photoUrls: [...form.data.photoUrls],
+          remark: normalizeNullableText(form.data.remark)
+        })
       }
-      await signExecutionAllocations({
-        waybillId,
-        signedAt: occurredAtIso,
-        signerName: form.data.signerName.trim(),
-        receiptUrls: [...form.data.receiptUrls],
-        signatureUrls: [...form.data.signatureUrls],
-        remark: normalizeNullableText(form.data.remark),
-        allocations: receiptAllocations.value.map((item) => ({
-          allocationId: item.allocationId,
-          signedQuantity: item.signedQuantity,
-          exceptionQuantity: item.exceptionQuantity,
-          exceptionNote: normalizeNullableText(item.exceptionNote)
-        }))
-      })
-    } else {
-      await completeWaybillExecution({
-        waybillId,
-        returnTime: occurredAtIso,
-        returnOdometerKm: Number(form.data.odometerKm),
-        photoUrls: [...form.data.photoUrls],
-        remark: normalizeNullableText(form.data.remark)
-      })
+      emit('success')
+      return true
+    } catch (error) {
+      notifyFriendlyError(error, '运输执行操作失败，请检查业务状态和网络后重试')
+      return false
     }
-    emit('success')
-    return true
   }
 
   async function resetForm(): Promise<void> {

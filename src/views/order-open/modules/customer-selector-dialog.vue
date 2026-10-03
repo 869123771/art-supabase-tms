@@ -32,7 +32,7 @@
     DataSelectRecord
   } from '@/components/core/forms/art-data-select/types'
   import { fetchCustomerSelectorList } from '@tms/api'
-  import { pageInfoHandler } from '@/utils/table/tableUtils'
+  import { pageInfoHandler } from '@/utils/table/table-utils'
 
   defineOptions({ name: 'TmsOrderCustomerSelectorDialog' })
 

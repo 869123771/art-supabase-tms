@@ -82,6 +82,8 @@
 </template>
 
 <script setup lang="ts">
+  import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
 
   import type { FormRules } from 'element-plus'
@@ -96,7 +98,7 @@
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import { fetchRegionOptions } from '@/api/region-options'
   import { addCustomerAddress, editCustomerAddress } from '@tms/api'
-  import { useTenantScopeStore } from '@/store/modules/tenantScope'
+  import { useTenantScopeStore } from '@/store/modules/tenant-scope'
   import { useTenantScopeFormPolicy } from '@/hooks/core/useTenantScopeFormPolicy'
   import { canEditField, canViewField } from '@/utils/field-permission'
   import { recognizeAddressText } from './recognize-address'
@@ -125,8 +127,8 @@
     (event: 'success', type: 'add' | 'edit'): void
   }>()
 
-  const { effectiveTenantId, tenantOptions } = storeToRefs(useTenantScopeStore())
-  const { shouldExposeTenantField } = useTenantScopeFormPolicy()
+  const { tenantOptions } = storeToRefs(useTenantScopeStore())
+  const { defaultWriteTenantId, shouldExposeTenantField } = useTenantScopeFormPolicy()
   const dialogRef = ref<ArtDialogExpose<CustomerAddress | undefined>>()
   const formRef = ref<DialogFormExpose>()
   const customerContext = reactive<CustomerContext>({})
@@ -147,7 +149,7 @@
 
   const createInitialForm = (): CustomerAddressForm => ({
     id: undefined,
-    tenantId: effectiveTenantId.value || undefined,
+    tenantId: defaultWriteTenantId.value || undefined,
     customerId: null,
     addressType: 'shipping',
     partyName: '',
@@ -488,8 +490,9 @@
 
   const handleSubmit = async (): Promise<boolean> => {
     try {
-      await formRef.value?.validate()
-    } catch {
+      if (!(await validateArtFormForSubmit(formRef.value))) return false
+    } catch (error) {
+      notifyFriendlyError(error, '表单校验未完成，请稍后重试', 'warning')
       return false
     }
 
@@ -500,7 +503,8 @@
       else await addCustomerAddress(payload)
       emit('success', type)
       return true
-    } catch {
+    } catch (error) {
+      notifyFriendlyError(error, '客户地址保存失败，请检查地址和网络后重试')
       return false
     }
   }

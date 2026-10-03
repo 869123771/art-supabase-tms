@@ -20,6 +20,7 @@
         class="detail-state"
         :empty="!order"
         empty-text="暂无车辆详情"
+        empty-description="请从在途车辆列表重新选择，或刷新后重试。"
         :empty-image-size="86"
         :min-height="0"
         full-height

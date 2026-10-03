@@ -6,6 +6,7 @@
     :error="page.error"
     :empty="!detail.data"
     empty-text="暂无合同详情"
+    empty-description="请返回合同列表重新选择，或刷新后重试。"
     @retry="loadPage"
   >
     <ArtPageHeader

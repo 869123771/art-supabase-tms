@@ -61,7 +61,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { ElMessage } from 'element-plus'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
@@ -71,10 +71,11 @@
   } from '@/components/core/tables/art-table-query/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import { ColumnOption, DialogType } from '@/types'
-  import { pageInfoHandler } from '@/utils/table/tableUtils'
+  import { pageInfoHandler } from '@/utils/table/table-utils'
   import { formatWithDayjs } from '@/utils/time'
   import { useUserStore } from '@/store/modules/user'
-  import { useTenantScopeStore } from '@/store/modules/tenantScope'
+  import { useTenantScopeStore } from '@/store/modules/tenant-scope'
+  import { useTenantScopeFormPolicy } from '@/hooks/core/useTenantScopeFormPolicy'
   import TreeUtils from '@/utils/tree'
   import { fetchMasterGroups, type MasterGroup } from '@/api/master-groups'
   import {
@@ -114,6 +115,7 @@
 
   const { getDictMap } = storeToRefs(useUserStore())
   const { effectiveTenantId } = storeToRefs(useTenantScopeStore())
+  const { defaultWriteTenantId } = useTenantScopeFormPolicy()
   const route = useRoute()
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<CargoDialogExpose>()
@@ -334,11 +336,15 @@
       importTransformer: (rows) =>
         rows.map((row) => normalizeImportRow(row as Record<string, unknown>)),
       importApi: async (rows) => {
-        if (!effectiveTenantId.value) throw new Error('请先在顶部选择导入目标租户')
-        await importCargoes(rows as Cargo[], effectiveTenantId.value)
+        const targetTenantId = defaultWriteTenantId.value
+        if (!targetTenantId) throw new Error('无法确定导入目标租户，请刷新后重试')
+        await importCargoes(rows as Cargo[], targetTenantId)
       },
-      onImportError: () => {
-        ElMessage.error('导入文件解析失败')
+      onImportSuccess: () => {
+        ElMessage.success('导入成功')
+      },
+      onImportError: (error) => {
+        notifyFriendlyError(error, '货物导入失败，请检查文件内容和目标租户')
       }
     },
     {

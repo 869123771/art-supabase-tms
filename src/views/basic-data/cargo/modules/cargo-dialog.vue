@@ -15,12 +15,14 @@
 </template>
 
 <script setup lang="ts">
+  import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import type { FormRules } from 'element-plus'
   import TreeUtils from '@/utils/tree'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
-  import { useTenantScopeStore } from '@/store/modules/tenantScope'
+  import { useTenantScopeStore } from '@/store/modules/tenant-scope'
   import { useTenantScopeFormPolicy } from '@/hooks/core/useTenantScopeFormPolicy'
   import type { MasterGroup } from '@/api/master-groups'
   import {
@@ -48,8 +50,8 @@
   }
 
   const emit = defineEmits<{ (event: 'success', type: 'add' | 'edit'): void }>()
-  const { effectiveTenantId, tenantOptions } = storeToRefs(useTenantScopeStore())
-  const { shouldExposeTenantField } = useTenantScopeFormPolicy()
+  const { tenantOptions } = storeToRefs(useTenantScopeStore())
+  const { defaultWriteTenantId, shouldExposeTenantField } = useTenantScopeFormPolicy()
   const dialogRef = ref<ArtDialogExpose<CargoDialogOpenData>>()
   const formRef = ref<DialogExposeForm>()
   const materials = ref<CargoMaterialOption[]>([])
@@ -58,7 +60,7 @@
 
   const initialForm = (): CargoForm => ({
     id: undefined,
-    tenantId: effectiveTenantId.value || undefined,
+    tenantId: defaultWriteTenantId.value || undefined,
     materialId: null,
     materialGroupId: null,
     cargoCode: '',
@@ -247,8 +249,9 @@
   })
   const handleSubmit = async (): Promise<boolean> => {
     try {
-      await formRef.value?.validate()
-    } catch {
+      if (!(await validateArtFormForSubmit(formRef.value))) return false
+    } catch (error) {
+      notifyFriendlyError(error, '表单校验未完成，请稍后重试', 'warning')
       return false
     }
     try {
@@ -257,7 +260,8 @@
       else await addCargo(payload())
       emit('success', type)
       return true
-    } catch {
+    } catch (error) {
+      notifyFriendlyError(error, '货物档案保存失败，请检查填写内容后重试')
       return false
     }
   }
@@ -268,7 +272,7 @@
       ...initialForm(),
       ...(data.row ? structuredClone(toRaw(data.row)) : {}),
       tenantId:
-        data.row?.tenantId || selectedGroup?.tenantId || effectiveTenantId.value || undefined,
+        data.row?.tenantId || selectedGroup?.tenantId || defaultWriteTenantId.value || undefined,
       id: data.copy ? undefined : data.row?.id,
       materialId: data.copy ? null : data.row?.materialId || null,
       materialGroupId: data.row?.materialGroupId || data.initialGroupId || null

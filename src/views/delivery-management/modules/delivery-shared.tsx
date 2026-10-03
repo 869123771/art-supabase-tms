@@ -10,7 +10,7 @@ import ArtButtonMore, {
   type ButtonMoreItem
 } from '@/components/core/forms/art-button-more/index.vue'
 import type { ColumnOption } from '@/types'
-import { pageInfoHandler } from '@/utils/table/tableUtils'
+import { pageInfoHandler } from '@/utils/table/table-utils'
 import { exportDeliveryList, fetchDeliveryList } from '@tms/api'
 import { canEditField, canViewField, formatSensitiveNumber } from '@/utils/field-permission'
 import { formatCompactNumberValue } from '@/utils/ui/format'

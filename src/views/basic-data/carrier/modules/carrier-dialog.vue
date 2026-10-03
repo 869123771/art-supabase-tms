@@ -18,6 +18,7 @@
           title="营业执照"
           :size="104"
           :limit="1"
+          :resource-tenant-id="form.tenantId || ''"
           :readonly="!canEditCarrierField('attachments')"
         />
       </template>
@@ -37,6 +38,8 @@
 </template>
 
 <script setup lang="ts">
+  import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import type { FormRules } from 'element-plus'
   import { omit } from 'lodash-es'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -443,8 +446,9 @@
 
   const handleSubmit = async (): Promise<boolean> => {
     try {
-      await formRef.value?.validate()
-    } catch {
+      if (!(await validateArtFormForSubmit(formRef.value))) return false
+    } catch (error) {
+      notifyFriendlyError(error, '表单校验未完成，请稍后重试', 'warning')
       return false
     }
 
@@ -455,7 +459,8 @@
       else await addCarrier(payload)
       emit('success', type)
       return true
-    } catch {
+    } catch (error) {
+      notifyFriendlyError(error, '承运商保存失败，请检查填写内容后重试')
       return false
     }
   }

@@ -15,6 +15,8 @@
 </template>
 
 <script setup lang="ts">
+  import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import type { FormRules } from 'element-plus'
   import { toNumber } from 'lodash-es'
@@ -93,8 +95,9 @@
 
   async function handleSubmit(): Promise<boolean> {
     try {
-      await formRef.value?.validate()
-    } catch {
+      if (!(await validateArtFormForSubmit(formRef.value))) return false
+    } catch (error) {
+      notifyFriendlyError(error, '表单校验未完成，请稍后重试', 'warning')
       return false
     }
 
@@ -102,7 +105,8 @@
       await editOrderFreight(normalizePayload())
       emit('success')
       return true
-    } catch {
+    } catch (error) {
+      notifyFriendlyError(error, '运费保存失败，请检查金额后重试')
       return false
     }
   }

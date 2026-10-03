@@ -220,6 +220,6 @@ export async function importCarriers(rows: Carrier[]) {
       supabase.rpc('tms_import_carriers_secure', {
         p_rows: rows.map((row) => keysToSnakeDeep(pickPayload(row, CARRIER_PAYLOAD_KEYS)))
       }),
-    { showMessage: true, breakReturn: true }
+    { breakReturn: true }
   )
 }

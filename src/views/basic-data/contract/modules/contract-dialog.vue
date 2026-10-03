@@ -34,6 +34,7 @@
             <div class="contract-dialog__section-actions" aria-label="合同附件操作">
               <ArtUploadFile
                 title="上传附件"
+                :resource-tenant-id="form.data.tenantId || ''"
                 :disabled="!canEditSensitiveField('attachments')"
                 :show-file-list="false"
                 :show-tip="false"
@@ -74,8 +75,9 @@
 </template>
 
 <script setup lang="tsx">
+  import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import { cloneDeep, omit } from 'lodash-es'
   import type { FormRules } from 'element-plus'
@@ -85,6 +87,7 @@
   import ArtUploadFile from '@/components/core/forms/art-upload-file/index.vue'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import { useDocumentNumberRule } from '@/hooks/core/useDocumentNumberRule'
+  import { useTenantScopeFormPolicy } from '@/hooks/core/useTenantScopeFormPolicy'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
@@ -100,7 +103,6 @@
     submitContractForApproval
   } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'
-  import { useTenantScopeStore } from '@/store/modules/tenantScope'
   import { downloadAttachment, getFileExtension, viewAttachment } from '@/utils/file'
   import { canEditField, canViewField, getFieldAccess } from '@/utils/field-permission'
   import { usesCarrierParty } from './contract-business-type'
@@ -140,8 +142,9 @@
   }
 
   const emit = defineEmits<Emits>()
-  const { getDictMap } = storeToRefs(useUserStore())
-  const tenantScopeStore = useTenantScopeStore()
+  const userStore = useUserStore()
+  const { getDictMap } = storeToRefs(userStore)
+  const { defaultWriteTenantId } = useTenantScopeFormPolicy()
   const dialogRef = ref<ArtDialogExpose<Contract | undefined>>()
   const formRef = ref<FormExpose>()
   const transportDetailsRef = ref<InstanceType<typeof ContractTransportDetails>>()
@@ -616,10 +619,15 @@
       formatter: (row) => (
         <div class="flex items-center">
           <ArtIconButton icon="ri:eye-line" label="查看附件" onClick={() => viewAttachment(row)} />
-          <ArtIconButton icon="ri:download-2-line" onClick={() => downloadAttachment(row)} />
+          <ArtIconButton
+            icon="ri:download-2-line"
+            label="下载附件"
+            onClick={() => downloadAttachment(row)}
+          />
           {canEditSensitiveField('attachments') ? (
             <ArtIconButton
               icon="ri:delete-bin-5-line"
+              label="移除附件"
               tone="danger"
               onClick={() => void removeAttachment(row)}
             />
@@ -775,13 +783,14 @@
   }
 
   const handleSubmit = async (): Promise<boolean> => {
-    if (!form.data.id && form.data.tenantId !== tenantScopeStore.effectiveTenantId) {
+    if (!form.data.id && form.data.tenantId !== defaultWriteTenantId.value) {
       ElMessage.warning('租户范围已变化，请重新选择目标租户后新增合同')
       return false
     }
     try {
-      await formRef.value?.validate()
-    } catch {
+      if (!(await validateArtFormForSubmit(formRef.value))) return false
+    } catch (error) {
+      notifyFriendlyError(error, '表单校验未完成，请稍后重试', 'warning')
       return false
     }
     if (!(await validateTransportDetails())) return false
@@ -799,7 +808,8 @@
       if (submitMode.value === 'submit') await submitContractForApproval(payload)
       emit('success', type)
       return true
-    } catch {
+    } catch (error) {
+      notifyFriendlyError(error, '合同保存或提审失败，请检查状态和网络后重试')
       return false
     }
   }
@@ -810,12 +820,17 @@
   }
 
   const handleOpen = async (row?: Contract): Promise<void> => {
-    if (!row?.id && !tenantScopeStore.effectiveTenantId) {
-      ElMessage.warning('请先在页头选择目标租户，再新增合同')
+    const targetTenantId = defaultWriteTenantId.value
+    if (!row?.id && !targetTenantId) {
+      ElMessage.warning('无法确定新增合同的目标租户，请刷新后重试')
+      return
+    }
+    if (!row?.id && targetTenantId !== userStore.getUserInfo.tenantId) {
+      ElMessage.warning('当前合同服务暂不支持跨租户新增，请切换至所属租户后重试')
       return
     }
     await resetForm()
-    if (!row?.id) form.data.tenantId = tenantScopeStore.effectiveTenantId ?? undefined
+    if (!row?.id) form.data.tenantId = targetTenantId ?? undefined
     await dialogRef.value?.handleOpen(row, {
       title: row?.id ? '编辑合同' : '新增合同',
       subtitle: '维护合同相对方、履约条款、运输明细和附件',

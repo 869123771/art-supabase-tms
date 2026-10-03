@@ -31,6 +31,7 @@
       <ArtEmptyState
         v-if="!candidates.length"
         title="暂无可选的调度子单"
+        description="请先创建符合当前条件的调度子单。"
         size="compact"
         :visual-size="64"
       />

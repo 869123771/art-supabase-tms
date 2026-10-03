@@ -34,6 +34,8 @@
 </template>
 
 <script setup lang="ts">
+  import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
 
   import type { FormRules } from 'element-plus'
@@ -47,7 +49,7 @@
   import type { MasterGroup } from '@/api/master-groups'
   import { fetchRegionOptions } from '@/api/region-options'
   import { useUserStore } from '@/store/modules/user'
-  import { useTenantScopeStore } from '@/store/modules/tenantScope'
+  import { useTenantScopeStore } from '@/store/modules/tenant-scope'
   import { canEditField, canViewField } from '@/utils/field-permission'
   import TreeUtils from '@/utils/tree'
 
@@ -74,8 +76,8 @@
 
   const { getDictMap } = storeToRefs(useUserStore())
   const tenantScopeStore = useTenantScopeStore()
-  const { effectiveTenantId, tenantOptions } = storeToRefs(tenantScopeStore)
-  const { shouldExposeTenantField } = useTenantScopeFormPolicy()
+  const { tenantOptions } = storeToRefs(tenantScopeStore)
+  const { defaultWriteTenantId, shouldExposeTenantField } = useTenantScopeFormPolicy()
   const dialogRef = ref<ArtDialogExpose<CustomerDialogOpenData>>()
   const formRef = ref<DialogExposeForm>()
   const groups = ref<MasterGroup[]>([])
@@ -105,7 +107,7 @@
 
   const createInitialForm = (): CustomerForm => ({
     id: undefined,
-    tenantId: effectiveTenantId.value || undefined,
+    tenantId: defaultWriteTenantId.value || undefined,
     parentUnitId: null,
     groupId: null,
     customerCode: '',
@@ -484,8 +486,9 @@
 
   const handleSubmit = async (): Promise<boolean> => {
     try {
-      await formRef.value?.validate()
-    } catch {
+      if (!(await validateArtFormForSubmit(formRef.value))) return false
+    } catch (error) {
+      notifyFriendlyError(error, '表单校验未完成，请稍后重试', 'warning')
       return false
     }
 
@@ -496,7 +499,8 @@
       else await addCustomer(payload)
       emit('success', type)
       return true
-    } catch {
+    } catch (error) {
+      notifyFriendlyError(error, '客户档案保存失败，请检查填写内容后重试')
       return false
     }
   }

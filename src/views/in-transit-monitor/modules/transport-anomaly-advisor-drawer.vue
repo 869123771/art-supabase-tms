@@ -99,6 +99,7 @@
             <ArtAsyncState
               :empty="!state.data.assessment.signals.length"
               empty-text="当前未识别到明确异常"
+              empty-description="继续关注运输进度，新的异常信号会显示在此。"
               min-height="160px"
             >
               <div class="transport-advisor__signals">

@@ -36,7 +36,14 @@
 
       <div class="ai-order-source__upload">
         <span class="ai-order-source__field-label">订单图片</span>
-        <ArtUploadImage v-model="model.imageUrls" title="上传订单" :size="88" :limit="4" multiple />
+        <ArtUploadImage
+          v-model="model.imageUrls"
+          title="上传订单"
+          :size="88"
+          :limit="4"
+          :resource-tenant-id="resourceTenantId"
+          multiple
+        />
         <small>最多 4 张，建议上传清晰完整的委托单</small>
       </div>
     </div>
@@ -94,12 +101,14 @@
     analyzing = false,
     generatingExample = false,
     errorMessage = '',
-    noticeMessage = ''
+    noticeMessage = '',
+    resourceTenantId
   } = defineProps<{
     analyzing?: boolean
     generatingExample?: boolean
     errorMessage?: string
     noticeMessage?: string
+    resourceTenantId: string
   }>()
   const emit = defineEmits<{ analyze: []; 'generate-example': [] }>()
 

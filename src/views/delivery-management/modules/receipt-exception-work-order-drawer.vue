@@ -103,6 +103,7 @@
           :error="state.error"
           :empty="!state.rows.length"
           empty-text="暂无签收异常工单"
+          empty-description="出现签收异常后，可在此查看关联工单。"
           :min-height="280"
           @retry="loadData"
         >
