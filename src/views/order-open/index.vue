@@ -624,6 +624,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { getScrollBehavior } from '@/utils/ui/scroll'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import { useDateFormat, useNow } from '@vueuse/core'
@@ -2174,7 +2175,7 @@
     const valid = step.value === 0 ? await validateContactStep() : await validateConfigStep()
     if (!valid) return
     step.value = Math.min(step.value + 1, 2)
-    pageRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    pageRef.value?.scrollIntoView({ behavior: getScrollBehavior(), block: 'start' })
   }
 
   function navigateStep(index: number): void {

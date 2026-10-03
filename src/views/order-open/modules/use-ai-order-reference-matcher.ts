@@ -1,4 +1,5 @@
 import { trim } from 'lodash-es'
+import { mapWithConcurrency } from '@/utils/async'
 import {
   fetchCargoList,
   fetchCustomerAddressList,
@@ -26,15 +27,19 @@ export function useAiOrderReferenceMatcher() {
   ): Promise<AiOrderReferenceMatches> {
     const customerLookups = new Map<string, Promise<CustomerItem[]>>()
     const cargoLookups = new Map<string, Promise<Cargo[]>>()
-    const scopedCustomerOptions = isAllTenants
-      ? fetchCustomerOptions({ tenantId: targetTenantId }).then(({ data, error }) => {
-          if (error) throw error
-          if ((data?.length ?? 0) >= 1000) {
-            throw new Error('当前租户客户档案较多，请回填后手动选择客户')
-          }
-          return data ?? []
-        })
-      : null
+    const needsCustomerMatch = Boolean(
+      trim(draft.shippingCustomerName ?? '') || trim(draft.receivingCustomerName ?? '')
+    )
+    const scopedCustomerOptions =
+      isAllTenants && needsCustomerMatch
+        ? fetchCustomerOptions({ tenantId: targetTenantId }).then(({ data, error }) => {
+            if (error) throw error
+            if ((data?.length ?? 0) >= 1000) {
+              throw new Error('当前租户客户档案较多，请回填后手动选择客户')
+            }
+            return data ?? []
+          })
+        : null
     const [
       originStations,
       destinationStations,
@@ -48,10 +53,8 @@ export function useAiOrderReferenceMatcher() {
       fetchStationMatches(draft.transferStationName, 'transfer', targetTenantId),
       fetchCustomerMatches(draft.shippingCustomerName, customerLookups, scopedCustomerOptions),
       fetchCustomerMatches(draft.receivingCustomerName, customerLookups, scopedCustomerOptions),
-      Promise.all(
-        (draft.cargoItems ?? []).map((item, index) =>
-          fetchCargoMatch(item.cargoName, index, cargoLookups, targetTenantId)
-        )
+      mapWithConcurrency(draft.cargoItems ?? [], 3, (item, index) =>
+        fetchCargoMatch(item.cargoName, index, cargoLookups, targetTenantId)
       )
     ])
 

@@ -63,7 +63,7 @@
     fetchCustomerOptions,
     fetchFavoriteRouteList
   } from '@tms/api'
-  import { fetchGetTenantList } from '@/api/system-manage'
+  import { fetchTenantList } from '@/api/system-manage'
   import FavoriteRouteDialog from './modules/favorite-route-dialog.vue'
 
   defineOptions({ name: 'TmsFavoriteRoute' })
@@ -319,7 +319,7 @@
 
   const loadTenantOptions = async (): Promise<void> => {
     if (!isPlatformSuper.value) return
-    const { data } = await fetchGetTenantList({ from: 0, to: 999 })
+    const { data } = await fetchTenantList({ from: 0, to: 999 })
     tenantOptions.value = (data ?? [])
       .filter((tenant) => tenant.id)
       .map((tenant) => ({

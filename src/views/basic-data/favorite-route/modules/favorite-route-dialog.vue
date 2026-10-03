@@ -91,7 +91,7 @@
     fetchCustomerAddressOptions,
     fetchCustomerOptions
   } from '@tms/api'
-  import { fetchGetTenantList } from '@/api/system-manage'
+  import { fetchTenantList } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
   import FavoriteRouteAddressOption from './favorite-route-address-option.vue'
 
@@ -215,7 +215,7 @@
     return result
   }
 
-  const fetchTenantOptions = () => fetchGetTenantList({ from: 0, to: 999 })
+  const fetchTenantOptions = () => fetchTenantList({ from: 0, to: 999 })
 
   const formItems = computed<FormItem[]>(() => [
     { label: '线路信息', key: 'baseSection', type: 'divider', span: 24 },
