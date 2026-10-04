@@ -439,7 +439,7 @@
     {
       prop: 'operation',
       label: '操作',
-      width: 138,
+      width: 160,
       fixed: 'right',
       formatter: (row) => (
         <div class="flex">
