@@ -1,5 +1,6 @@
+import { toDateStartTimestamp, toDateEndTimestamp } from '@/utils/time/date-boundary'
 import { normalizeNullableText } from '@/utils/form/normalize'
-import { normalizeSupabaseFunctionError } from '@/utils/supabase'
+import { buildSupabaseRpcRange, normalizeSupabaseFunctionError } from '@/utils/supabase'
 import { useSupabase } from '@/hooks'
 import { normalizeBooleanFilter, withRequestOptions } from '@/api/providers/supabase/query'
 import type { ApiRequestOptions } from '@/types/api/request'
@@ -73,18 +74,17 @@ const toCarrierListRpcParams = (
   const from = purpose === 'export' ? 0 : Math.max(params.from ?? 0, 0)
   const requestedTo = purpose === 'export' ? Math.max((params.maxRows ?? 10000) - 1, 0) : params.to
   return {
-    p_from: from,
-    p_to: Math.max(requestedTo ?? 9, from),
+    ...buildSupabaseRpcRange(from, requestedTo ?? 9),
     p_record_id: params.recordId || null,
     p_carrier_type: params.carrierType || null,
     p_enabled: normalizeBooleanFilter(params.enabled) ?? null,
     p_signed_contract: normalizeBooleanFilter(params.signedContract) ?? null,
     p_keyword: normalizeNullableText(String(params.keyword ?? '')),
     p_create_time_from: params.createTimeRange?.[0]
-      ? `${params.createTimeRange[0]}T00:00:00`
+      ? toDateStartTimestamp(params.createTimeRange[0])
       : null,
     p_create_time_to: params.createTimeRange?.[1]
-      ? `${params.createTimeRange[1]}T23:59:59.999`
+      ? toDateEndTimestamp(params.createTimeRange[1])
       : null,
     p_ids: params.ids?.length ? params.ids : null,
     p_purpose: purpose

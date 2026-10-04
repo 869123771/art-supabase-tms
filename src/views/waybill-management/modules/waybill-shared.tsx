@@ -765,7 +765,7 @@ function getMoreActions(context: WaybillListContext, row: WaybillRecord): Button
     actions.push({
       key: 'signature-operation',
       label: row.driverWaybillSignedAt ? '复核签收' : '签收',
-      icon: 'ri:signature-line',
+      icon: 'ri:quill-pen-line',
       auth: 'TmsWaybill:Sign'
     })
   }

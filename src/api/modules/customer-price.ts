@@ -1,3 +1,5 @@
+import { buildSupabaseRpcRange } from '@/utils/supabase'
+import { toDateStartTimestamp, toDateEndTimestamp } from '@/utils/time/date-boundary'
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { pick, pickBy } from 'lodash-es'
 import { useSupabase } from '@/hooks'
@@ -66,8 +68,7 @@ const toListRpcParams = (
   const from = purpose === 'export' ? 0 : Math.max(params.from ?? 0, 0)
   const requestedTo = purpose === 'export' ? Math.max((params.maxRows ?? 10000) - 1, 0) : params.to
   return {
-    p_from: from,
-    p_to: Math.max(requestedTo ?? 9, from),
+    ...buildSupabaseRpcRange(from, requestedTo ?? 9),
     p_customer_id: params.customerId || null,
     p_record_id: params.recordId || null,
     p_origin_region: params.originRegion || null,
@@ -77,10 +78,10 @@ const toListRpcParams = (
     p_billing_method: params.billingMethod || null,
     p_keyword: normalizeNullableText(String(params.keyword ?? '')),
     p_create_time_from: params.createTimeRange?.[0]
-      ? `${params.createTimeRange[0]}T00:00:00`
+      ? toDateStartTimestamp(params.createTimeRange[0])
       : null,
     p_create_time_to: params.createTimeRange?.[1]
-      ? `${params.createTimeRange[1]}T23:59:59.999`
+      ? toDateEndTimestamp(params.createTimeRange[1])
       : null,
     p_ids: params.ids?.length ? params.ids : null,
     p_purpose: purpose

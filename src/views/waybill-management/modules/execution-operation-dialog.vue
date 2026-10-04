@@ -219,7 +219,7 @@
       title: '签收',
       eyebrow: 'DELIVERY SIGNATURE',
       tag: '独立签收节点',
-      icon: 'ri:signature-line',
+      icon: 'ri:quill-pen-line',
       description: '上传回单与签字确认照片，PC 和手机端实时同步。',
       alert: '签收后运单进入“已签收”，仍需确认收车时间和里程后才会完成。'
     },

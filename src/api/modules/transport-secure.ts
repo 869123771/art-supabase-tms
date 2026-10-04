@@ -1,3 +1,5 @@
+import { buildSupabaseRpcRange } from '@/utils/supabase'
+import { toDateStartTimestamp, toDateEndTimestamp } from '@/utils/time/date-boundary'
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 import { withRequestOptions } from '@/api/providers/supabase/query'
@@ -37,9 +39,6 @@ interface SecureTransportPayload<TRecord, TAccess> {
 
 const { supabase, responseHandle } = useSupabase()
 
-const startOfDay = (value?: string): string | null => (value ? `${value}T00:00:00` : null)
-const endOfDay = (value?: string): string | null => (value ? `${value}T23:59:59.999` : null)
-
 const normalizeStatus = (value?: string): string | null =>
   value && value !== '__all__' ? value : null
 
@@ -67,12 +66,12 @@ const createOrderRpcParams = (params: TransportOrderParams, scope: TransportOrde
     p_shipping_keyword: normalizeNullableText(String(params.shippingKeyword ?? '')),
     p_receiving_keyword: normalizeNullableText(String(params.receivingKeyword ?? '')),
     p_vehicle_keyword: normalizeNullableText(String(params.vehicleKeyword ?? '')),
-    p_create_time_from: startOfDay(params.createTimeRange?.[0]),
-    p_create_time_to: endOfDay(params.createTimeRange?.[1]),
-    p_planned_time_from: startOfDay(params.plannedTimeRange?.[0]),
-    p_planned_time_to: endOfDay(params.plannedTimeRange?.[1]),
-    p_signed_time_from: startOfDay(params.signedTimeRange?.[0]),
-    p_signed_time_to: endOfDay(params.signedTimeRange?.[1]),
+    p_create_time_from: toDateStartTimestamp(params.createTimeRange?.[0]),
+    p_create_time_to: toDateEndTimestamp(params.createTimeRange?.[1]),
+    p_planned_time_from: toDateStartTimestamp(params.plannedTimeRange?.[0]),
+    p_planned_time_to: toDateEndTimestamp(params.plannedTimeRange?.[1]),
+    p_signed_time_from: toDateStartTimestamp(params.signedTimeRange?.[0]),
+    p_signed_time_to: toDateEndTimestamp(params.signedTimeRange?.[1]),
     p_count_only: params.countOnly === true
   }
 }
@@ -113,8 +112,7 @@ export async function fetchSecureInTransitWaybills(params: {
   >(() =>
     supabase.rpc('tms_list_waybills_secure', {
       p_scope: 'in_transit',
-      p_from: Math.max(params.from ?? 0, 0),
-      p_to: Math.max(params.to ?? 199, params.from ?? 0),
+      ...buildSupabaseRpcRange(params.from ?? 0, params.to ?? 199),
       p_statuses: params.statuses?.length ? params.statuses : null,
       p_keyword: normalizeNullableText(String(params.keyword ?? ''))
     })

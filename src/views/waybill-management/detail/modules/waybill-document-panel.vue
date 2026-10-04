@@ -58,7 +58,7 @@
             >
               <template #error>
                 <div class="waybill-document-panel__image-error">
-                  <ArtSvgIcon icon="ri:image-off-line" aria-hidden="true" />
+                  <ArtSvgIcon icon="ri:image-line" aria-hidden="true" />
                   <span>图片加载失败</span>
                 </div>
               </template>

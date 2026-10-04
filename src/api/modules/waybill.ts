@@ -8,7 +8,7 @@ import {
   submitDispatchPlan
 } from '@tms/api/modules/dispatch-execution'
 import { isPlainObject } from 'lodash-es'
-import { normalizeSupabaseFunctionError } from '@/utils/supabase'
+import { buildSupabaseRpcRange, normalizeSupabaseFunctionError } from '@/utils/supabase'
 
 type WaybillRecord = Api.Tms.Waybill.WaybillRecord
 type WaybillSearchParams = Api.Tms.Waybill.WaybillSearchParams
@@ -416,8 +416,7 @@ export async function fetchDispatchVehicleOptions(params: DispatchVehicleSearchP
   const result = await responseHandle<{ records: DispatchVehicleOption[]; total: number }>(
     () =>
       supabase.rpc('vms_list_dispatch_vehicle_options_secure', {
-        p_from: Math.max(from, 0),
-        p_to: Math.max(to, from),
+        ...buildSupabaseRpcRange(from, to),
         p_keyword: normalizeNullableText(String(keyword ?? ''))
       }),
     { showErrorMessage: true }

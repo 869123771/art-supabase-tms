@@ -1,3 +1,4 @@
+import { toDateStartTimestamp, toDateEndTimestamp } from '@/utils/time/date-boundary'
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 
@@ -12,9 +13,6 @@ interface TransportEventPage {
   overview?: Api.Tms.TransportEvent.Overview
 }
 
-const startOfDay = (value: string): string => `${value}T00:00:00`
-const endOfDay = (value: string): string => `${value}T23:59:59.999`
-
 export async function fetchTransportEventList(params: SearchParams = {}) {
   const from = Math.max(params.from ?? 0, 0)
   const to = Math.max(params.to ?? from + 19, from)
@@ -25,8 +23,12 @@ export async function fetchTransportEventList(params: SearchParams = {}) {
         p_to: to,
         p_event_type: params.eventType || null,
         p_keyword: normalizeNullableText(params.keyword),
-        p_event_start: params.eventTimeRange?.[0] ? startOfDay(params.eventTimeRange[0]) : null,
-        p_event_end: params.eventTimeRange?.[1] ? endOfDay(params.eventTimeRange[1]) : null
+        p_event_start: params.eventTimeRange?.[0]
+          ? toDateStartTimestamp(params.eventTimeRange[0])
+          : null,
+        p_event_end: params.eventTimeRange?.[1]
+          ? toDateEndTimestamp(params.eventTimeRange[1])
+          : null
       }),
     { showErrorMessage: true }
   )

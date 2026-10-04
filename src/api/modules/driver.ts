@@ -1,3 +1,5 @@
+import { buildSupabaseRpcRange } from '@/utils/supabase'
+import { toDateStartTimestamp, toDateEndTimestamp } from '@/utils/time/date-boundary'
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 import { normalizeBooleanFilter, withRequestOptions } from '@/api/providers/supabase/query'
@@ -68,8 +70,7 @@ export async function fetchDriverEmployeeOptions(
     () =>
       withRequestOptions(
         supabase.rpc('tms_list_driver_employee_options_secure', {
-          p_from: from,
-          p_to: Math.max(params.to ?? from + 9, from),
+          ...buildSupabaseRpcRange(from, params.to ?? from + 9),
           p_keyword: normalizeNullableText(String(params.keyword ?? ''))
         }),
         options
@@ -99,8 +100,7 @@ const toDriverListRpcParams = (
   const from = purpose === 'export' ? 0 : Math.max(params.from ?? 0, 0)
   const requestedTo = purpose === 'export' ? Math.max((params.maxRows ?? 10000) - 1, 0) : params.to
   return {
-    p_from: from,
-    p_to: Math.max(requestedTo ?? 9, from),
+    ...buildSupabaseRpcRange(from, requestedTo ?? 9),
     p_record_id: params.recordId || null,
     p_carrier_id: params.carrierId || null,
     p_driver_type: params.driverType || null,
@@ -108,10 +108,10 @@ const toDriverListRpcParams = (
     p_enabled: normalizeBooleanFilter(params.enabled) ?? null,
     p_keyword: normalizeNullableText(String(params.keyword ?? '')),
     p_create_time_from: params.createTimeRange?.[0]
-      ? `${params.createTimeRange[0]}T00:00:00`
+      ? toDateStartTimestamp(params.createTimeRange[0])
       : null,
     p_create_time_to: params.createTimeRange?.[1]
-      ? `${params.createTimeRange[1]}T23:59:59.999`
+      ? toDateEndTimestamp(params.createTimeRange[1])
       : null,
     p_ids: params.ids?.length ? params.ids : null,
     p_purpose: purpose

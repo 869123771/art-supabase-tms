@@ -7,7 +7,7 @@
       eyebrow="DELIVERY CONTROL"
       title="配送回单中心"
       description="集中复核签收回单与异常工单；运输完成统一由回场记录驱动，避免回单归档误结束运单。"
-      icon="ri:package-check-line"
+      icon="ri:checkbox-circle-line"
       :tags="[
         { label: '回单可追溯', type: 'success' },
         { label: '回场独立闭环', type: 'primary' },
@@ -171,7 +171,7 @@
       label: '已签收',
       value: table.statusCounts.signed ?? 0,
       description: '已签收，等待回单复核或车辆回场',
-      icon: 'ri:signature-line',
+      icon: 'ri:quill-pen-line',
       tone: 'warning'
     },
     {

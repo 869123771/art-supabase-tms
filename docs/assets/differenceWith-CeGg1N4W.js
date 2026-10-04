@@ -1,1 +1,0 @@
-import{o as e}from"./art-icon-button-S5QuOXCr.js";import{d as t}from"./style-B4yE0t5M.js";import{d as n,u as r}from"./art-table-BRps6_I1.js";import{n as i}from"./form-B-IgOe5C.js";var a=n(function(n,a){var o=e(a);return r(o)&&(o=void 0),r(n)?i(n,t(a,1,r,!0),void 0,o):[]});export{a as t};

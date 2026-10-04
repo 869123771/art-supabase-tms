@@ -1,3 +1,4 @@
+import { buildSupabaseRpcRange } from '@/utils/supabase'
 import { useSupabase } from '@/hooks'
 import { normalizeNullableText } from '@/utils/form/normalize'
 
@@ -78,8 +79,7 @@ export async function fetchDispatchCandidates<T extends object>(params: Dispatch
         p_kind: params.kind,
         p_tenant_id: params.tenantId,
         p_keyword: normalizeNullableText(params.keyword ?? ''),
-        p_from: from,
-        p_to: Math.max(params.to ?? from + 9, from)
+        ...buildSupabaseRpcRange(from, params.to ?? from + 9)
       }),
     { showErrorMessage: false }
   )
