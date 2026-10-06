@@ -93,7 +93,7 @@
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import { ColumnOption, DialogType } from '@/types'
   import { mapExcelRowsToRecords } from '@/utils/file'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatWithDayjs } from '@/utils/time'
   import { canViewField, type FieldAccessLevel } from '@/utils/field-permission'
   import TreeUtils from '@/utils/tree'
@@ -537,7 +537,7 @@
   }
 
   const fetchTableData = async (params: TableParams) => {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchCustomerList({
       ...params,
       groupIds: selectedGroupIds.value,

@@ -2,7 +2,8 @@
   <ArtDialog ref="dialogRef" size="xl">
     <ArtForm
       ref="formRef"
-      v-model="form"
+      :model-value="form"
+      @update:model-value="replaceReactiveModel(form, $event)"
       :items="formItems"
       :rules="formRules"
       :span="8"
@@ -82,6 +83,7 @@
 </template>
 
 <script setup lang="ts">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import type { FormRules } from 'element-plus'
@@ -107,7 +109,7 @@
   } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'
   import { canEditField, canViewField, getFieldAccess } from '@/utils/field-permission'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
 
   defineOptions({ name: 'TmsDriverDialog' })
 
@@ -467,7 +469,7 @@
   }
 
   const fetchEmployeeSelectorData = async (params: DataSelectFetchParams) => {
-    const { from, to } = pageInfoHandler({ current: params.page, size: params.pageSize })
+    const { from, to } = buildSupabasePageRange({ current: params.page, size: params.pageSize })
     const { data, total } = await fetchDriverEmployeeOptions({
       keyword: params.keyword,
       from,

@@ -61,7 +61,7 @@
   } from '@/components/business/business-workspace-header/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import { useAuth } from '@/hooks/core/useAuth'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatWithDayjs } from '@/utils/time'
   import { fetchTransportEventList, fetchTransportEventOverview } from '@tms/api'
 
@@ -232,7 +232,7 @@
   }
 
   function fetchTableData(params: TableParams) {
-    const { from, to } = pageInfoHandler(params)
+    const { from, to } = buildSupabasePageRange(params)
     return fetchTransportEventList({ ...params, from, to })
   }
 

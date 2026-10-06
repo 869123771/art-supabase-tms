@@ -62,7 +62,7 @@
     fetchCustomerPriceList
   } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatWithDayjs } from '@/utils/time'
   import { formatCompactNumberValue } from '@/utils/ui/format'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
@@ -375,7 +375,7 @@
   ])
 
   const fetchTableData = async (params: TableParams) => {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchCustomerPriceList({
       ...normalizeSearchParams(params),
       from,

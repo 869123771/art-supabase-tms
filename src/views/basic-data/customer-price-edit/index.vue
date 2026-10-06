@@ -416,7 +416,7 @@
   import { useUserStore } from '@/store/modules/user'
   import { clearFormRefsValidation, validateFormRefs } from '@/utils/form/validation'
   import { formatCompactNumberValue } from '@/utils/ui/format'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import PriceCargoSection from '../modules/price-cargo-section.vue'
   import {
     calculateCargoSummary,
@@ -1224,7 +1224,7 @@
   }
 
   async function fetchAddressSelectorData(params: DataSelectFetchParams) {
-    const { from, to } = pageInfoHandler({ current: params.page, size: params.pageSize })
+    const { from, to } = buildSupabasePageRange({ current: params.page, size: params.pageSize })
     const { data, total } = await fetchCustomerAddressList({
       customerId: addressSelector.mode === 'shipping' ? form.data.customerId : undefined,
       addressType: addressSelector.mode,
@@ -1393,7 +1393,7 @@
   }
 
   async function fetchCargoSelectorData(params: DataSelectFetchParams) {
-    const { from, to } = pageInfoHandler({ current: params.page, size: params.pageSize })
+    const { from, to } = buildSupabasePageRange({ current: params.page, size: params.pageSize })
     const { data, total } = await fetchCargoList({
       keyword: String(params.keyword ?? '').trim(),
       enabled: true,

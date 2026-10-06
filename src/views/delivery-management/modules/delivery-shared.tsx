@@ -10,7 +10,7 @@ import ArtButtonMore, {
   type ButtonMoreItem
 } from '@/components/core/forms/art-button-more/index.vue'
 import type { ColumnOption } from '@/types'
-import { pageInfoHandler } from '@/utils/table/table-utils'
+import { buildSupabasePageRange } from '@/utils/supabase/pagination'
 import { exportDeliveryList, fetchDeliveryList } from '@tms/api'
 import { canEditField, canViewField, formatSensitiveNumber } from '@/utils/field-permission'
 import { formatCompactNumberValue } from '@/utils/ui/format'
@@ -132,7 +132,7 @@ export const createDeliverySearchItems = (
   })
 
 export function fetchDeliveryTableData(params: TableParams, mode: DeliveryMode) {
-  const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+  const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
   return fetchDeliveryList({
     ...params,
     orderStatuses: getModeStatuses(mode, params.deliveryStatus),

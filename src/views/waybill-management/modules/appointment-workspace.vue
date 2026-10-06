@@ -17,7 +17,8 @@
 
     <ArtTableQuery
       ref="tableQueryRef"
-      v-model="searchQuery"
+      :model-value="searchQuery"
+      @update:model-value="replaceReactiveModel(searchQuery, $event)"
       :search-items="searchItems"
       :api-fn="fetchTableData"
       :columns-factory="columnsFactory"
@@ -38,6 +39,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import { ElLink, ElMessage } from 'element-plus'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {

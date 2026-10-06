@@ -14,7 +14,8 @@
     </BusinessWorkspaceHeader>
     <ArtTableQuery
       ref="tableRef"
-      v-model="search"
+      :model-value="search"
+      @update:model-value="replaceReactiveModel(search, $event)"
       :search-items="searchItems"
       :api-fn="fetchTable"
       :columns-factory="columnsFactory"
@@ -131,6 +132,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import DOMPurify from 'dompurify'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
@@ -149,7 +151,7 @@
     ArtTableQueryHeaderAction
   } from '@/components/core/tables/art-table-query/index.vue'
   import type { ColumnOption } from '@/types'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatWithDayjs } from '@/utils/time'
   import {
     deleteTmsBasicRecords,
@@ -345,7 +347,7 @@
     }
   ])
   const fetchTable = (params: TransportAgreementSearch & { current: number; size: number }) => {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     return fetchTransportAgreementList({ ...params, from, to })
   }
   const showDetail = async (row: TransportAgreementRecord): Promise<void> => {

@@ -1,12 +1,13 @@
 <template>
   <ArtDialog ref="dialogRef" size="xl" :show-fullscreen-button="true">
-    <div
-      v-if="loadError"
-      class="flex min-h-52 flex-col items-center justify-center gap-3 text-center"
-    >
-      <p class="text-sm text-[var(--art-gray-700)]">报价信息加载失败，请重试。</p>
-      <ElButton type="primary" plain :loading="reloadLoading" @click="loadQuote">重新加载</ElButton>
-    </div>
+    <ArtAsyncState
+      v-if="loadError || reloadLoading"
+      :error="loadError ? '报价信息加载失败，请重试' : null"
+      :loading="reloadLoading"
+      error-title="报价信息加载失败"
+      error-description="请重新加载后核对最新报价信息。"
+      @retry="loadQuote"
+    />
     <div v-else-if="order" class="space-y-5 pb-2">
       <section class="rounded-[var(--custom-radius)] bg-[var(--art-gray-100)] p-4">
         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -194,7 +195,7 @@
 <script setup lang="ts">
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
-  import { round, toNumber } from 'lodash-es'
+  import { cloneDeep, isEqual, round, toNumber } from 'lodash-es'
   import { ElMessage } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
@@ -202,6 +203,7 @@
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtUploadFile from '@/components/core/forms/art-upload-file/index.vue'
   import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
   import { formatWithDayjs } from '@/utils/time'
@@ -325,7 +327,7 @@
     loadError.value = false
     try {
       const [result] = await Promise.all([
-        fetchOrderQuote(currentOrderId),
+        fetchOrderQuote(currentOrderId, { showErrorMessage: false }),
         userStore.ensureDictLoaded('tmsOrderQuoteExpenseItem'),
         userStore.ensureDictLoaded('tmsOrderQuoteStatus')
       ])
@@ -395,7 +397,12 @@
   }
 
   async function handleSubmit(): Promise<boolean> {
-    if (!orderId.value || loadError.value || !order.value) return false
+    if (!orderId.value || loadError.value || reloadLoading.value || !order.value) return false
+    const currentOrderId = orderId.value
+    const requestId = loadRequestId
+    const payload = cloneDeep(form.value)
+    const mode = submitMode.value
+    const isCurrent = () => currentOrderId === orderId.value && requestId === loadRequestId
     if (attachmentRef.value?.hasPendingUpload()) {
       ElMessage.warning('请等待附件上传完成后再保存报价')
       return false
@@ -407,7 +414,16 @@
       ])
       if (!feesValid || !paymentValid) return false
     } catch (error) {
-      notifyFriendlyError(error, '表单校验未完成，请稍后重试', 'warning')
+      if (isCurrent()) notifyFriendlyError(error, '表单校验未完成，请稍后重试', 'warning')
+      return false
+    }
+    if (!isCurrent() || loadError.value || reloadLoading.value) return false
+    if (attachmentRef.value?.hasPendingUpload()) {
+      ElMessage.warning('请等待附件上传完成后再保存报价')
+      return false
+    }
+    if (!isEqual(payload, form.value) || mode !== submitMode.value) {
+      ElMessage.warning('报价内容已变化，请检查后重新提交')
       return false
     }
     if (!validateAmounts()) return false
@@ -416,12 +432,21 @@
       return false
     }
     try {
-      await saveOrderQuote(orderId.value, form.value, submitMode.value === 'submit')
-      ElMessage.success(submitMode.value === 'submit' ? '报价已提交到系统' : '报价已保存')
+      await saveOrderQuote(currentOrderId, payload, mode === 'submit', { showErrorMessage: false })
       emit('success')
+      if (!isCurrent()) return false
+      if (!isEqual(payload, form.value)) {
+        ElMessage.warning(
+          mode === 'submit'
+            ? '本次报价已提交，后续修改尚未保存，请检查报价状态后再办理'
+            : '本次报价已保存，后续修改尚未保存，请检查后再次保存'
+        )
+        return false
+      }
+      ElMessage.success(mode === 'submit' ? '报价已提交到系统' : '报价已保存')
       return true
     } catch (error) {
-      notifyFriendlyError(error, '报价保存失败，请检查费用、附件和网络后重试')
+      if (isCurrent()) notifyFriendlyError(error, '报价保存失败，请检查费用、附件和网络后重试')
       return false
     }
   }

@@ -32,7 +32,7 @@
     DataSelectRecord
   } from '@/components/core/forms/art-data-select/types'
   import { fetchCustomerSelectorList } from '@tms/api'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
 
   defineOptions({ name: 'TmsOrderCustomerSelectorDialog' })
 
@@ -68,7 +68,7 @@
   })
 
   const fetchSelectorData = async (params: DataSelectFetchParams) => {
-    const { from, to } = pageInfoHandler({ current: params.page, size: params.pageSize })
+    const { from, to } = buildSupabasePageRange({ current: params.page, size: params.pageSize })
     const { data, total } = await fetchCustomerSelectorList({
       keyword: params.keyword,
       addressType: selector.mode,

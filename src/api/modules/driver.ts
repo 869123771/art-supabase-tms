@@ -4,6 +4,8 @@ import { normalizeNullableText } from '@/utils/form/normalize'
 import { useSupabase } from '@/hooks'
 import { normalizeBooleanFilter, withRequestOptions } from '@/api/providers/supabase/query'
 import type { ApiRequestOptions } from '@/types/api/request'
+import type { QueryResult } from '@/types/api/response'
+import { loadAllDocumentPages } from '@/utils/business/document-detail-list'
 
 type Driver = Api.Tms.BasicData.Driver
 type DriverSearchParams = Api.Tms.BasicData.DriverSearchParams
@@ -198,17 +200,30 @@ export async function fetchDriverAssignedVehicles(
     throw new Error('司机标识无效，请刷新页面后重试')
   }
 
-  const query = supabase
-    .from('mdm_vehicle')
-    .select('id, carrier_id, plate_no')
-    .eq('carrier_id', carrierId)
-    .or(`primary_driver_id.eq.${driverId},secondary_driver_id.eq.${driverId}`)
-    .order('plate_no', { ascending: true })
-    .limit(200)
-
-  return await responseHandle<DriverAssignedVehicle[]>(() => withRequestOptions(query, options), {
-    showErrorMessage: true
-  })
+  try {
+    const data = await loadAllDocumentPages<DriverAssignedVehicle, { from?: number; to?: number }>(
+      ({ from = 0, to = 499 }) =>
+        responseHandle<DriverAssignedVehicle[]>(
+          () =>
+            withRequestOptions(
+              supabase
+                .from('mdm_vehicle')
+                .select('id, carrier_id, plate_no', { count: 'exact' })
+                .eq('carrier_id', carrierId)
+                .or(`primary_driver_id.eq.${driverId},secondary_driver_id.eq.${driverId}`)
+                .order('plate_no', { ascending: true })
+                .order('id')
+                .range(from, to),
+              options
+            ),
+          { showErrorMessage: true }
+        ),
+      {}
+    )
+    return { data, total: data.length, error: null } satisfies QueryResult<DriverAssignedVehicle[]>
+  } catch (error) {
+    return { data: null, error } satisfies QueryResult<DriverAssignedVehicle[]>
+  }
 }
 
 export async function addDriver(params: Driver) {

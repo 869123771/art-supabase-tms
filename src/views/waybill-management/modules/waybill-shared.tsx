@@ -11,7 +11,7 @@ import ArtButtonMore, {
 } from '@/components/core/forms/art-button-more/index.vue'
 import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
 import { ColumnOption } from '@/types'
-import { pageInfoHandler } from '@/utils/table/table-utils'
+import { buildSupabasePageRange } from '@/utils/supabase/pagination'
 import { formatWithDayjs } from '@/utils/time'
 import { formatCompactNumberValue } from '@/utils/ui/format'
 import { canViewField, formatSensitiveNumber, mergeFieldAccessMaps } from '@/utils/field-permission'
@@ -346,7 +346,7 @@ const syncWaybillFieldAccess = (
 }
 
 export function fetchWaybillTableData(params: TableParams, mode: WaybillMode) {
-  const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+  const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
   const modeParams = createWaybillModeParams(params, mode)
   return fetchWaybillList({ ...params, ...modeParams, from, to }, getWaybillListScope(mode))
 }

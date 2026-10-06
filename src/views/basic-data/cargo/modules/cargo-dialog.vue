@@ -1,8 +1,9 @@
 <template>
-  <ArtDialog ref="dialogRef" size="lg">
+  <ArtDialog ref="dialogRef" size="lg" @close="handleDialogClose">
     <ArtForm
       ref="formRef"
-      v-model="form"
+      :model-value="form"
+      @update:model-value="replaceReactiveModel(form, $event)"
       :items="formItems"
       :rules="formRules"
       :span="8"
@@ -15,6 +16,8 @@
 </template>
 
 <script setup lang="ts">
+  import { replaceReactiveModel } from '@/utils/form/model'
+  import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import type { FormRules } from 'element-plus'
@@ -55,6 +58,8 @@
   const dialogRef = ref<ArtDialogExpose<CargoDialogOpenData>>()
   const formRef = ref<DialogExposeForm>()
   const materials = ref<CargoMaterialOption[]>([])
+  const materialContextVersion = ref(0)
+  const dialogActive = ref(false)
   const groups = ref<MasterGroup[]>([])
   const groupTree = new TreeUtils({ parentKey: 'parentId' })
 
@@ -95,12 +100,22 @@
         }))
     )
   )
-  const materialOptions = computed(() =>
-    materials.value.map((material) => ({
+  const fetchMaterialChoices = async (params?: Record<string, unknown>) => {
+    const tenantId = typeof params?.tenantId === 'string' ? params.tenantId : ''
+    const version = params?.contextVersion
+    const rows = tenantId ? await fetchCargoMaterialOptions(tenantId) : []
+    if (
+      dialogActive.value &&
+      version === materialContextVersion.value &&
+      tenantId === form.tenantId
+    ) {
+      materials.value = rows
+    }
+    return rows.map((material) => ({
       label: `${material.materialCode} · ${material.materialName}`,
       value: material.id
     }))
-  )
+  }
   const unitLabel = computed(() => {
     const material = materials.value.find((item) => item.id === form.materialId)
     return material?.baseUnit?.unitName || material?.basicUnit || form.unit || ''
@@ -137,8 +152,14 @@
       key: 'materialId',
       type: 'select',
       span: 16,
+      api: fetchMaterialChoices,
+      params: {
+        tenantId: form.tenantId,
+        contextVersion: materialContextVersion.value,
+        active: dialogActive.value
+      },
+      shouldFetch: (params) => Boolean(params?.active && params.tenantId),
       props: {
-        options: materialOptions.value,
         filterable: true,
         clearable: true,
         disabled: !form.tenantId,
@@ -209,8 +230,10 @@
   const replaceForm = (next: CargoForm): void => {
     Object.assign(form, initialForm(), next)
   }
-  const loadMaterials = async (): Promise<void> => {
-    materials.value = form.tenantId ? await fetchCargoMaterialOptions(form.tenantId) : []
+  const handleDialogClose = (): void => {
+    dialogActive.value = false
+    materialContextVersion.value += 1
+    materials.value = []
   }
   const handleTenantChange = (): void => {
     form.materialId = null
@@ -219,7 +242,7 @@
     form.cargoName = ''
     form.specModel = ''
     form.unit = ''
-    void loadMaterials()
+    materials.value = []
   }
   const applyMaterial = (id?: string): void => {
     const material = materials.value.find((item) => item.id === id)
@@ -229,8 +252,6 @@
     form.unit = material?.basicUnit || ''
     if (material?.materialGroupId) form.materialGroupId = material.materialGroupId
   }
-  const normalizeNumber = (value?: number | null): number | null =>
-    value === null || value === undefined || Number.isNaN(Number(value)) ? null : Number(value)
   const payload = (): Cargo => ({
     id: form.id,
     tenantId: form.tenantId,
@@ -238,16 +259,17 @@
     materialGroupId: form.materialGroupId,
     cargoName: form.cargoName,
     unit: form.unit,
-    lengthM: normalizeNumber(form.lengthM),
-    widthM: normalizeNumber(form.widthM),
-    heightM: normalizeNumber(form.heightM),
-    volumeM3: normalizeNumber(form.volumeM3),
-    weightKg: normalizeNumber(form.weightKg),
-    valueAmount: normalizeNumber(form.valueAmount),
+    lengthM: normalizeNullableNumber(form.lengthM),
+    widthM: normalizeNullableNumber(form.widthM),
+    heightM: normalizeNullableNumber(form.heightM),
+    volumeM3: normalizeNullableNumber(form.volumeM3),
+    weightKg: normalizeNullableNumber(form.weightKg),
+    valueAmount: normalizeNullableNumber(form.valueAmount),
     enabled: form.enabled,
-    remark: form.remark || null
+    remark: normalizeNullableText(form.remark)
   })
   const handleSubmit = async (): Promise<boolean> => {
+    if (!dialogActive.value) return false
     try {
       if (!(await validateArtFormForSubmit(formRef.value))) return false
     } catch (error) {
@@ -266,6 +288,9 @@
     }
   }
   const handleOpen = async (data: CargoDialogOpenData): Promise<void> => {
+    materialContextVersion.value += 1
+    dialogActive.value = true
+    materials.value = []
     groups.value = data.groups
     const selectedGroup = groups.value.find((group) => group.id === data.initialGroupId)
     replaceForm({
@@ -289,19 +314,11 @@
         ? '运输参数已复制，请选择另一条 MDM 物料编码。'
         : '物料身份来自 MDM，运输参数供 TMS 开单使用。',
       contentMaxHeight: '70vh',
-      loading: true,
-      loadingText: '正在加载物料编码…',
-      onOpen: async (_openData, api) => {
-        try {
-          await loadMaterials()
-        } finally {
-          api.setLoading(false)
-        }
-      },
       onConfirm: handleSubmit,
       onReset: () => {
         replaceForm(initialForm())
-        void loadMaterials()
+        materials.value = []
+        materialContextVersion.value += 1
         void nextTick().then(() => formRef.value?.clearValidate())
       }
     })

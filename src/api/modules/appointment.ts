@@ -1,5 +1,5 @@
 import { useSupabase } from '@/hooks'
-import { pageInfoHandler } from '@/utils/table/table-utils'
+import { buildSupabasePageRange } from '@/utils/supabase/pagination'
 import { fetchDispatchWorkbench } from '@tms/api/modules/dispatch-execution'
 
 export type AppointmentKind = 'pickup' | 'delivery'
@@ -106,7 +106,7 @@ export async function fetchAppointmentList(
     if (!ids.length) return { data: [] as AppointmentListRow[], total: 0, error: null }
   }
 
-  const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+  const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
   const result = await fetchDispatchWorkbench({ ...params, ids, from, to }, 'loaded', false)
   if (result.error) throw result.error
   const waybills = result.data ?? []

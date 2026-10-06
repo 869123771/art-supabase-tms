@@ -1,5 +1,7 @@
 import { buildOrIlikeFilter } from '@/utils/supabase/search'
 import { fetchAllRangePages } from '@/utils/supabase/pagination'
+import { loadAllDocumentPages } from '@/utils/business/document-detail-list'
+import type { QueryResult } from '@/types/api/response'
 import { useSupabase } from '@/hooks'
 import type { MasterDataDeleteDependencyDetail } from '@/api/master-data-delete'
 import {
@@ -83,31 +85,48 @@ export async function fetchStationOptions(
   params: StationOptionSearchParams = {},
   options?: ApiRequestOptions
 ) {
-  const withRoleFilter = Boolean(params.stationType)
-  let query = supabase
-    .from('mdm_station')
-    .select(
-      stationSelect(withRoleFilter, 'id, station_code, station_name, station_type, region_code')
-    )
-    .eq('enabled', true)
-    .order('sort', { ascending: true })
-    .order('station_code', { ascending: true })
-    .limit(1000)
+  try {
+    const data = await loadAllDocumentPages<
+      Api.Tms.Order.StationOption,
+      StationOptionSearchParams & { from?: number; to?: number }
+    >(async ({ from = 0, to = 499, tenantId, stationType, keyword }) => {
+      const withRoleFilter = Boolean(stationType)
+      let query = supabase
+        .from('mdm_station')
+        .select(
+          stationSelect(
+            withRoleFilter,
+            'id, station_code, station_name, station_type, region_code'
+          ),
+          { count: 'exact' }
+        )
+        .eq('enabled', true)
+        .order('sort', { ascending: true })
+        .order('station_code', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to)
 
-  if (params.tenantId) query = query.eq('tenant_id', params.tenantId)
-  if (params.stationType) query = query.eq('stationRoleFilter.role_type', params.stationType)
-  if (params.keyword) {
-    query = query.or(
-      buildOrIlikeFilter(['station_code', 'station_name', 'region_code'], params.keyword)
-    )
+      if (tenantId) query = query.eq('tenant_id', tenantId)
+      if (stationType) query = query.eq('stationRoleFilter.role_type', stationType)
+      if (keyword) {
+        query = query.or(
+          buildOrIlikeFilter(['station_code', 'station_name', 'region_code'], keyword)
+        )
+      }
+
+      return await responseHandle<Api.Tms.Order.StationOption[]>(
+        () => withRequestOptions(query, options),
+        {
+          showErrorMessage: true
+        }
+      )
+    }, params)
+    return { data, total: data.length, error: null } satisfies QueryResult<
+      Api.Tms.Order.StationOption[]
+    >
+  } catch (error) {
+    return { data: null, error } satisfies QueryResult<Api.Tms.Order.StationOption[]>
   }
-
-  return await responseHandle<Api.Tms.Order.StationOption[]>(
-    () => withRequestOptions(query, options),
-    {
-      showErrorMessage: true
-    }
-  )
 }
 
 export async function fetchStationDeleteDependencies(

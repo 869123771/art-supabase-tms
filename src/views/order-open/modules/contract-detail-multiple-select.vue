@@ -33,7 +33,7 @@
     DataSelectRecord
   } from '@/components/core/forms/art-data-select/types'
   import { fetchAvailableContractDetailList } from '@tms/api'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
 
   defineOptions({ name: 'TmsContractDetailMultipleSelect' })
 
@@ -74,7 +74,7 @@
   }
 
   const fetchSelectorData = async (params: DataSelectFetchParams) => {
-    const { from, to } = pageInfoHandler({ current: params.page, size: params.pageSize })
+    const { from, to } = buildSupabasePageRange({ current: params.page, size: params.pageSize })
     return await fetchAvailableContractDetailList({ keyword: params.keyword, from, to })
   }
 

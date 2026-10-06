@@ -14,7 +14,8 @@
     </BusinessWorkspaceHeader>
     <ArtTableQuery
       ref="tableRef"
-      v-model="search"
+      :model-value="search"
+      @update:model-value="replaceReactiveModel(search, $event)"
       :search-items="searchItems"
       :api-fn="fetchTable"
       :columns-factory="columnsFactory"
@@ -62,6 +63,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { replaceReactiveModel } from '@/utils/form/model'
   import DOMPurify from 'dompurify'
   import { RouterLink } from 'vue-router'
   import { storeToRefs } from 'pinia'
@@ -84,7 +86,7 @@
   import { useUserStore } from '@/store/modules/user'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import type { ColumnOption } from '@/types'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatWithDayjs } from '@/utils/time'
   import {
     copyElectronicContract,
@@ -264,7 +266,7 @@
   ])
 
   const fetchTable = (params: ElectronicContractSearch & { current: number; size: number }) => {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     return fetchElectronicContractList({ ...params, from, to })
   }
 

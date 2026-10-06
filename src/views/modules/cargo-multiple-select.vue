@@ -33,7 +33,7 @@
     DataSelectRecord
   } from '@/components/core/forms/art-data-select/types'
   import { fetchCargoList } from '@tms/api'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
 
   defineOptions({ name: 'TmsCargoMultipleSelect' })
 
@@ -71,7 +71,7 @@
   }
 
   async function fetchCargoSelectorData(params: DataSelectFetchParams) {
-    const { from, to } = pageInfoHandler({ current: params.page, size: params.pageSize })
+    const { from, to } = buildSupabasePageRange({ current: params.page, size: params.pageSize })
     const { data, total } = await fetchCargoList({
       keyword: String(params.keyword ?? '').trim(),
       enabled: true,

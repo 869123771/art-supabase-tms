@@ -1,5 +1,6 @@
 import { buildOrIlikeFilter } from '@/utils/supabase/search'
 import { useSupabase } from '@/hooks'
+import { loadAllDocumentPages } from '@/utils/business/document-detail-list'
 import {
   applyCreateTimeRange,
   normalizeBooleanFilter,
@@ -51,20 +52,25 @@ const cargoPayload = (cargo: Cargo): Record<string, unknown> =>
   )
 
 export async function fetchCargoMaterialOptions(tenantId: string): Promise<CargoMaterialOption[]> {
-  const { data } = await responseHandle<CargoMaterialOption[]>(
-    () =>
-      supabase
-        .from('mdm_material')
-        .select(
-          'id,tenant_id,material_code,material_name,specification_model,basic_unit,material_group_id,baseUnit:mdm_unit_of_measure!mdm_material_base_unit_fkey(unit_name,symbol)'
-        )
-        .eq('tenant_id', tenantId)
-        .eq('status', 'enabled')
-        .order('material_code')
-        .limit(1000),
-    { breakReturn: true, showErrorMessage: false }
+  return loadAllDocumentPages<CargoMaterialOption, { from?: number; to?: number }>(
+    ({ from = 0, to = 499 }) =>
+      responseHandle<CargoMaterialOption[]>(
+        () =>
+          supabase
+            .from('mdm_material')
+            .select(
+              'id,tenant_id,material_code,material_name,specification_model,basic_unit,material_group_id,baseUnit:mdm_unit_of_measure!mdm_material_base_unit_fkey(unit_name,symbol)',
+              { count: 'exact' }
+            )
+            .eq('tenant_id', tenantId)
+            .eq('status', 'enabled')
+            .order('material_code')
+            .order('id')
+            .range(from, to),
+        { breakReturn: true, showErrorMessage: false }
+      ),
+    {}
   )
-  return data ?? []
 }
 
 const applyCargoFilters = <TQuery extends SupabaseQueryLike>(

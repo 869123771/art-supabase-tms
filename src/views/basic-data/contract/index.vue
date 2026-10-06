@@ -58,7 +58,7 @@
   } from '@/components/core/forms/art-button-more/index.vue'
   import { ColumnOption, DialogType } from '@/types'
   import { formatNameCodeOption } from '@/utils/form'
-  import { pageInfoHandler } from '@/utils/table/table-utils'
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatWithDayjs } from '@/utils/time'
   import { canViewField, formatSensitiveNumber } from '@/utils/field-permission'
   import { useUserStore } from '@/store/modules/user'
@@ -459,7 +459,7 @@
   ])
 
   const fetchTableData = async (params: TableParams) => {
-    const { from, to } = pageInfoHandler({ current: params.current, size: params.size })
+    const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchContractList({ ...params, from, to })
     listFieldAccess.value = result.fieldAccess
     currentRows.value = result.data
