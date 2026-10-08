@@ -1,6 +1,6 @@
 import dayjs from 'dayjs'
 import { clamp, escape, uniqBy } from 'lodash-es'
-import { formatWithDayjs } from '@/utils/time'
+import { createDateTimeFormatter } from '@/utils/ui/format'
 import type { GeoCoord, InTransitRecord, TransitStatus } from './monitor-types'
 import { INITIAL_MAP_CENTER, stationGeoPositions } from './monitor-geo-config'
 
@@ -199,11 +199,9 @@ export const estimateDistanceKm = (origin: GeoCoord, destination: GeoCoord): num
   return Math.max(30, Math.round(radius * 2 * Math.atan2(Math.sqrt(factor), Math.sqrt(1 - factor))))
 }
 
-export const formatDateTime = (value?: string | null): string =>
-  formatWithDayjs(value, 'HH:mm') || '--'
+export const formatDateTime = createDateTimeFormatter({ format: 'HH:mm' })
 
-export const formatRefreshTime = (value?: string): string =>
-  formatWithDayjs(value, 'HH:mm:ss') || '--'
+export const formatRefreshTime = createDateTimeFormatter({ format: 'HH:mm:ss' })
 
 export const formatText = (value?: string | number | null, fallback = '-'): string => {
   const text = String(value ?? '').trim()

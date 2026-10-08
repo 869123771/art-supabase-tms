@@ -52,6 +52,8 @@
 </template>
 
 <script setup lang="tsx">
+  import { toDictionaryOption } from '@/utils/form/option'
+
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import { ElLink, ElMessage } from 'element-plus'
@@ -190,7 +192,7 @@
       return orderStatusTabValues
         .map((value) => orderStatusDict.find((item) => item.value === value))
         .filter((item): item is Api.DataCenter.DictListItem => Boolean(item))
-        .map((item) => ({ label: item.label || item.name, value: item.value }))
+        .map(toDictionaryOption)
     }),
     paymentMethodOptions: computed(() => getDictMap.value.tmsOrderPaymentMethod ?? []),
     statusTabs: computed<StatusTab[]>(() => {

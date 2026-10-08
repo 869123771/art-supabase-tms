@@ -1,9 +1,8 @@
 <template>
-  <ArtDialog ref="dialogRef" size="xl" :show-fullscreen-button="true">
+  <ArtDialog :loading="reloadLoading" ref="dialogRef" size="xl" :show-fullscreen-button="true">
     <ArtAsyncState
       v-if="loadError || reloadLoading"
       :error="loadError ? '报价信息加载失败，请重试' : null"
-      :loading="reloadLoading"
       error-title="报价信息加载失败"
       error-description="请重新加载后核对最新报价信息。"
       @retry="loadQuote"

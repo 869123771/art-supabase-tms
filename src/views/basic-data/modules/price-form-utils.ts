@@ -88,6 +88,25 @@ export function joinRegionPath(regionPath?: readonly string[]): string {
   return (regionPath ?? []).filter(Boolean).join('/')
 }
 
+export function normalizePriceRegionSearch<
+  TParams extends {
+    originRegionPath?: readonly string[]
+    destinationRegionPath?: readonly string[]
+  }
+>(
+  params: TParams
+): Omit<TParams, 'originRegionPath' | 'destinationRegionPath'> & {
+  originRegion: string | undefined
+  destinationRegion: string | undefined
+} {
+  const { originRegionPath, destinationRegionPath, ...rest } = params
+  return {
+    ...rest,
+    originRegion: joinRegionPath(originRegionPath) || undefined,
+    destinationRegion: joinRegionPath(destinationRegionPath) || undefined
+  }
+}
+
 export function normalizeText(value?: string | null): string | null {
   const text = String(value ?? '').trim()
   return text || null

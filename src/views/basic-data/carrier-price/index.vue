@@ -43,6 +43,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { normalizePriceRegionSearch } from '../modules/price-form-utils'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
@@ -284,7 +285,7 @@
         exportColumns: createExcelColumns(),
         exportApi: ({ selectedIds, searchParams, maxRows }) =>
           exportCarrierPriceList({
-            ...normalizeSearchParams(searchParams as SearchModel),
+            ...normalizePriceRegionSearch(searchParams as SearchModel),
             ids: selectedIds.map(String),
             maxRows
           })
@@ -396,7 +397,7 @@
   async function fetchTableData(params: TableParams) {
     const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchCarrierPriceList({
-      ...normalizeSearchParams(params),
+      ...normalizePriceRegionSearch(params),
       from,
       to
     })
@@ -420,20 +421,6 @@
 
   function getSensitiveColumnVisibility(): string {
     return [canViewListField('contactPhones'), canViewListField('costAmounts')].join(':')
-  }
-
-  function normalizeSearchParams(params: SearchModel): SearchParams {
-    const { originRegionPath, destinationRegionPath, ...rest } = params
-    return {
-      ...rest,
-      originRegion: joinRegionPath(originRegionPath),
-      destinationRegion: joinRegionPath(destinationRegionPath)
-    }
-  }
-
-  function joinRegionPath(regionPath?: string[]): string | undefined {
-    const text = regionPath?.filter(Boolean).join('/')
-    return text || undefined
   }
 
   function openEditPage(row?: CarrierPrice): void {

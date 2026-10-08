@@ -627,7 +627,7 @@
   import { getScrollBehavior } from '@/utils/ui/scroll'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
-  import { useDateFormat, useNow } from '@vueuse/core'
+  import { useDateFormat, useIntervalFn, useNow } from '@vueuse/core'
   import dayjs from 'dayjs'
   import { cloneDeep, isNil, round } from 'lodash-es'
   import type { FormRules } from 'element-plus'
@@ -927,7 +927,10 @@
   const page = reactive<PageGroup>({
     loading: false,
     saving: false,
-    nowText: useDateFormat(useNow({ interval: 1000 }), 'YYYY/MM/DD HH:mm:ss'),
+    nowText: useDateFormat(
+      useNow({ scheduler: (update) => useIntervalFn(update, 1000) }),
+      'YYYY/MM/DD HH:mm:ss'
+    ),
     error: null
   })
 

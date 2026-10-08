@@ -1,5 +1,5 @@
 <template>
-  <ArtDrawer ref="drawerRef" :show-footer="false">
+  <ArtDrawer :loading="state.loading" ref="drawerRef" :show-footer="false">
     <template #header>
       <div class="transport-advisor__drawer-title">
         <span><ArtSvgIcon icon="ri:shield-flash-line" /></span>
@@ -11,13 +11,7 @@
     </template>
 
     <div class="transport-advisor">
-      <ArtAsyncState
-        :loading="state.loading"
-        :loading-mode="state.data ? 'mask' : 'skeleton'"
-        :error="state.error"
-        min-height="420px"
-        @retry="loadAssessment"
-      >
+      <ArtAsyncState :error="state.error" min-height="420px" @retry="loadAssessment">
         <template v-if="state.data">
           <section
             :class="[

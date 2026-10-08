@@ -1,0 +1,1 @@
+import{x as e}from"./_baseForOwn-gA1sYnDE.js";function t(e){return{label:e.label||e.name,value:e.value}}function n(t,n,r){let i=String(e(t,n)??``),a=String(e(t,r)??``);return a?`${i}（${a}）`:i}export{t as n,n as t};

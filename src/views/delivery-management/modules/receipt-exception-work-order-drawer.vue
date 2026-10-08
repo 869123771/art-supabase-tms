@@ -1,5 +1,5 @@
 <template>
-  <ArtDrawer ref="drawerRef" size="xl" :show-footer="false">
+  <ArtDrawer :loading="state.loading" ref="drawerRef" size="xl" :show-footer="false">
     <template #header>
       <div class="exception-work-orders__drawer-title">
         <span aria-hidden="true"><ArtSvgIcon icon="ri:file-warning-line" /></span>
@@ -98,8 +98,6 @@
         </div>
 
         <ArtAsyncState
-          :loading="state.loading"
-          loading-mode="skeleton"
           :error="state.error"
           :empty="!state.rows.length"
           empty-text="暂无签收异常工单"

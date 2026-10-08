@@ -44,6 +44,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { normalizePriceRegionSearch } from '../modules/price-form-utils'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
@@ -367,7 +368,7 @@
       exportColumns: customerPriceExcelColumns.value,
       exportApi: ({ selectedIds, searchParams, maxRows }) =>
         exportCustomerPriceList({
-          ...normalizeSearchParams(searchParams as SearchModel),
+          ...normalizePriceRegionSearch(searchParams as SearchModel),
           ids: selectedIds.map(String),
           maxRows
         })
@@ -377,7 +378,7 @@
   const fetchTableData = async (params: TableParams) => {
     const { from, to } = buildSupabasePageRange({ current: params.current, size: params.size })
     const result = await fetchCustomerPriceList({
-      ...normalizeSearchParams(params),
+      ...normalizePriceRegionSearch(params),
       from,
       to
     })
@@ -450,20 +451,6 @@
     delete query.refresh
     delete query.refreshType
     await router.replace({ name: 'TmsCustomerPrice', query })
-  }
-
-  const normalizeSearchParams = (params: SearchModel): SearchParams => {
-    const { originRegionPath, destinationRegionPath, ...rest } = params
-    return {
-      ...rest,
-      originRegion: joinRegionPath(originRegionPath),
-      destinationRegion: joinRegionPath(destinationRegionPath)
-    }
-  }
-
-  const joinRegionPath = (regionPath?: string[]): string | undefined => {
-    const text = regionPath?.filter(Boolean).join('/')
-    return text || undefined
   }
 
   const openEditPage = (row?: CustomerPrice): void => {

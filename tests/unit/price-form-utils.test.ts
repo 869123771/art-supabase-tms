@@ -7,6 +7,7 @@ import {
   joinRegionPath,
   mergeCargoSelections,
   normalizeMoney,
+  normalizePriceRegionSearch,
   normalizeText,
   splitRegionPath
 } from '../../src/views/basic-data/modules/price-form-utils'
@@ -71,4 +72,27 @@ test('price field normalizers keep API payloads predictable', () => {
 test('region paths round-trip through the API representation', () => {
   assert.deepEqual(splitRegionPath(' 浙江省 / 杭州市 / 西湖区 '), ['浙江省', '杭州市', '西湖区'])
   assert.equal(joinRegionPath(['浙江省', '杭州市', '西湖区']), '浙江省/杭州市/西湖区')
+})
+
+test('price search removes cascade paths and preserves filters without mutating input', () => {
+  const params = {
+    originRegionPath: ['浙江省', '', '杭州市'],
+    destinationRegionPath: [],
+    keyword: '报价',
+    current: 2,
+    size: 20
+  }
+  const before = structuredClone(params)
+  assert.deepEqual(normalizePriceRegionSearch(params), {
+    originRegion: '浙江省/杭州市',
+    destinationRegion: undefined,
+    keyword: '报价',
+    current: 2,
+    size: 20
+  })
+  assert.deepEqual(params, before)
+  assert.deepEqual(normalizePriceRegionSearch({}), {
+    originRegion: undefined,
+    destinationRegion: undefined
+  })
 })
