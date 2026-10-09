@@ -18,7 +18,7 @@
         primary-min="250px"
         primary-max="360px"
         :breakpoint="900"
-        stacked-primary-size="340px"
+        stacked-primary-size="auto"
       >
         <template #primary>
           <MasterGroupPanel
@@ -58,28 +58,18 @@
     </div>
 
     <CustomerDialog ref="dialogRef" @success="handleSaveSuccess" />
-    <ArtDialog ref="deleteInspectionRef" :show-footer="false">
-      <div class="customer-delete-blocker-message-box">
-        <ArtAsyncState
-          v-if="deleteInspectionError"
-          :error="deleteInspectionError"
-          error-title="关联信息加载失败"
-          @retry="showCustomerDeleteBlockersIfNeeded(deleteInspectionCustomers)"
-        />
-        <component :is="deleteInspectionContent" v-else-if="deleteInspectionContent" />
-      </div>
-    </ArtDialog>
+    <MasterDataDeleteGuard ref="deleteGuardRef" />
   </div>
 </template>
 
 <script setup lang="tsx">
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
-  import { ElButton, ElMessage, ElScrollbar, ElTag } from 'element-plus'
-  import type { VNode } from 'vue'
-  import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
-  import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
-  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
+  import { ElMessage, ElTag } from 'element-plus'
+  import { sumBy } from 'lodash-es'
+  import MasterDataDeleteGuard, {
+    type MasterDataDeleteDependencyMeta
+  } from '@/components/business/master-data-delete-guard/index.vue'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
     ArtTableQueryExpose,
@@ -145,13 +135,6 @@
     unit: string
   }
 
-  interface CustomerDeleteBlockerItem extends CustomerDeleteDependencyMeta {
-    affectedCustomerNames: string[]
-    count: number
-    dependencyCode: CustomerDeleteDependencyCode
-    records: CustomerDeleteDependencyDetail[]
-  }
-
   interface CustomerTableState {
     importing: boolean
     searchQuery: SearchParams
@@ -163,11 +146,7 @@
   const { effectiveTenantId } = storeToRefs(useTenantScopeStore())
   const tableQueryRef = ref<ArtTableQueryExpose>()
   const dialogRef = ref<CustomerDialogExpose>()
-  const deleteInspectionRef = ref<ArtDialogExpose>()
-  const deleteInspectionContent = shallowRef<() => VNode>()
-  const deleteInspectionError = ref('')
-  const deleteInspectionCustomers = shallowRef<Customer[]>([])
-  let deleteInspectionSequence = 0
+  const deleteGuardRef = ref<InstanceType<typeof MasterDataDeleteGuard>>()
   const customerFieldAccess = ref<Api.Tms.BasicData.CustomerFieldAccessMap>({})
   const groupState = reactive({
     rows: [] as MasterGroup[],
@@ -639,42 +618,6 @@
     }
   }
 
-  const getCustomerDeleteBlockerItems = (
-    dependencies: CustomerDeleteDependencyDetail[],
-    customers: Customer[]
-  ): CustomerDeleteBlockerItem[] => {
-    const customerNameMap = new Map(customers.map((item) => [String(item.id), item.customerName]))
-    const grouped = new Map<
-      CustomerDeleteDependencyCode,
-      { customerNames: Set<string>; records: CustomerDeleteDependencyDetail[] }
-    >()
-    dependencies.forEach((dependency) => {
-      const current = grouped.get(dependency.dependencyCode) ?? {
-        customerNames: new Set<string>(),
-        records: []
-      }
-      current.records.push(dependency)
-      const customerName = customerNameMap.get(dependency.customerId)
-      if (customerName) current.customerNames.add(customerName)
-      grouped.set(dependency.dependencyCode, current)
-    })
-
-    return Array.from(grouped.entries())
-      .map(([dependencyCode, value]) => ({
-        dependencyCode,
-        ...customerDeleteDependencyMeta[dependencyCode],
-        count: value.records.length,
-        affectedCustomerNames: Array.from(value.customerNames),
-        records: value.records
-      }))
-      .sort((left, right) => left.order - right.order)
-  }
-
-  const formatAffectedCustomers = (names: string[]): string => {
-    const displayed = names.slice(0, 3)
-    return `${displayed.join('、')}${names.length > displayed.length ? ` 等 ${names.length} 个客户` : ''}`
-  }
-
   const dependencyStatusLabelMap: Record<string, string> = {
     active: '当前生效',
     reversed: '已撤销',
@@ -696,12 +639,6 @@
 
   const formatDependencyStatus = (status?: string | null): string =>
     status ? dependencyStatusLabelMap[status] || status : ''
-
-  const formatDependencyAmount = (amount?: number | null): string =>
-    `¥${Number(amount ?? 0).toLocaleString('zh-CN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}`
 
   const safeCleanupLabelMap: Record<CustomerDeleteSafeCleanupCode, string> = {
     customer_price: '客户报价',
@@ -737,203 +674,57 @@
       .join('、')
   }
 
-  const handleSafeCleanup = async (
-    customers: Customer[],
-    candidates: CustomerDeleteSafeCleanupCandidate[]
-  ): Promise<void> => {
+  const showCustomerDeleteBlockersIfNeeded = async (customers: Customer[]): Promise<boolean> => {
+    if (!deleteGuardRef.value) return true
     const customerIds = customers.map((item) => String(item.id)).filter(Boolean)
-    if (!customerIds.length || !candidates.length) return
-    await deleteInspectionRef.value?.handleClose(true)
-    await nextTick()
-    try {
-      await confirmAction(
-        `将永久删除 ${formatSafeCleanupSummary(candidates)}。该操作不会删除收付款流水、核销记录及已生效票据，是否继续？`,
-        '一键清理确认',
+    let cleanupCandidates: CustomerDeleteSafeCleanupCandidate[] = []
+    const dependencyMeta: Record<string, MasterDataDeleteDependencyMeta> = Object.fromEntries(
+      Object.entries(customerDeleteDependencyMeta).map(([code, meta]) => [
+        code,
         {
-          type: 'warning',
-          confirmButtonText: `确认清理 ${candidates.length} 项`,
-          cancelButtonText: '取消',
-          confirmButtonType: 'danger',
-          closeOnClickModal: false
+          ...meta,
+          description: meta.action,
+          routeQuery: (record: { resourceId: string }) => ({
+            fromCustomerDelete: '1',
+            customerName:
+              customers.find((item) => String(item.id) === record.resourceId)?.customerName ?? ''
+          })
         }
-      )
-      const results = await cleanupCustomerDeleteSafeDependencies(customerIds)
-      const deletedCount = results.reduce((total, item) => total + item.deletedCount, 0)
-      if (!deletedCount) {
-        ElMessage.warning('资料状态已发生变化，本次没有可安全清理的记录')
-        await showCustomerDeleteBlockersIfNeeded(customers)
-        return
-      }
-      const stillBlocked = await showCustomerDeleteBlockersIfNeeded(customers)
-      if (!stillBlocked) {
-        ElMessage.success(`已安全清理 ${deletedCount} 项资料，现在可以重新删除客户`)
-      } else {
-        ElMessage.success(`已安全清理 ${deletedCount} 项资料，其余财务历史仍需保留`)
-      }
-    } catch (error) {
-      if (!isFeedbackCancel(error)) {
-        ElMessage.error(getFriendlySupabaseErrorMessage(error, '安全清理失败，请稍后重试'))
-      }
-    }
-  }
-
-  const openCustomerDeleteDependency = (
-    item: CustomerDeleteBlockerItem,
-    record: CustomerDeleteDependencyDetail,
-    customers: Customer[]
-  ): void => {
-    const customer = customers.find((candidate) => String(candidate.id) === record.customerId)
-    void deleteInspectionRef.value?.handleClose(true)
-    void router.push({
-      name: item.routeName,
-      query: {
-        fromCustomerDelete: '1',
-        customerId: record.customerId,
-        customerName: customer?.customerName,
-        recordId: record.targetId,
-        recordNo: record.recordNo,
-        dependencyCode: item.dependencyCode
+      ])
+    )
+    return deleteGuardRef.value.inspect({
+      resourceLabel: '客户',
+      resources: customers.map((item) => ({ id: String(item.id), label: item.customerName })),
+      navigationResource: { type: 'customer', queryKey: 'customerId' },
+      dependencyMeta,
+      fetchDependencies: async (ids) => {
+        const [details, candidates] = await Promise.all([
+          fetchCustomerDeleteDependencyDetails(ids),
+          fetchCustomerDeleteSafeCleanupCandidates(ids)
+        ])
+        cleanupCandidates = candidates
+        const candidateKeys = new Set(
+          candidates.map((item) => getSafeCleanupCandidateKey(item.dependencyCode, item.recordId))
+        )
+        return details.map((record) => ({
+          ...record,
+          resourceId: record.customerId,
+          recordStatus: formatDependencyStatus(record.recordStatus),
+          cleanupAllowed: isSafeCleanupRecord(record, candidateKeys)
+        }))
+      },
+      cleanup: {
+        selectionMode: 'all',
+        actionLabel: '一键清理可删除项',
+        count: () => cleanupCandidates.length,
+        confirmMessage: () =>
+          '将永久删除 ' +
+          formatSafeCleanupSummary(cleanupCandidates) +
+          '。该操作不会删除收付款流水、核销记录及已生效票据，是否继续？',
+        run: async () =>
+          sumBy(await cleanupCustomerDeleteSafeDependencies(customerIds), 'deletedCount')
       }
     })
-  }
-
-  const showCustomerDeleteBlockers = (
-    dependencies: CustomerDeleteDependencyDetail[],
-    cleanupCandidates: CustomerDeleteSafeCleanupCandidate[],
-    customers: Customer[]
-  ): void => {
-    const blockerItems = getCustomerDeleteBlockerItems(dependencies, customers)
-    const cleanupCandidateKeys = new Set(
-      cleanupCandidates.map((candidate) =>
-        getSafeCleanupCandidateKey(candidate.dependencyCode, candidate.recordId)
-      )
-    )
-    const customerLabel =
-      customers.length === 1
-        ? `客户“${customers[0].customerName}”`
-        : `选中的 ${customers.length} 个客户`
-    deleteInspectionContent.value = () => (
-      <div class="customer-delete-blockers">
-        <div class="customer-delete-blockers__lead">
-          <p>{customerLabel}仍被以下业务资料引用。点击具体记录可直接打开并精确过滤。</p>
-          {cleanupCandidates.length ? (
-            <ElButton
-              type="danger"
-              plain
-              onClick={() => void handleSafeCleanup(customers, cleanupCandidates)}
-            >
-              <i class="ri:delete-bin-5-line" aria-hidden="true" />
-              一键清理可删除项（{cleanupCandidates.length}）
-            </ElButton>
-          ) : null}
-        </div>
-        <ElScrollbar maxHeight="430px">
-          <div class="customer-delete-blockers__list">
-            {blockerItems.map((item, index) => (
-              <div key={item.dependencyCode} class="customer-delete-blockers__item">
-                <span class="customer-delete-blockers__index">{index + 1}</span>
-                <div class="customer-delete-blockers__content">
-                  <div class="customer-delete-blockers__title">
-                    <strong>{item.label}</strong>
-                    <ElTag type="warning" effect="light" size="small">
-                      {item.count} {item.unit}
-                    </ElTag>
-                  </div>
-                  <p>{item.action}</p>
-                  {customers.length > 1 && item.affectedCustomerNames.length ? (
-                    <small>涉及：{formatAffectedCustomers(item.affectedCustomerNames)}</small>
-                  ) : null}
-                  <div class="customer-delete-blockers__records">
-                    {item.records.map((record) => (
-                      <div key={record.recordId} class="customer-delete-blockers__record">
-                        <div class="customer-delete-blockers__record-copy">
-                          <strong>{record.recordNo || '未编号记录'}</strong>
-                          <span>
-                            {record.recordSummary ? `${record.recordSummary} · ` : ''}
-                            {formatDependencyStatus(record.recordStatus) || '待处理'}
-                            {record.recordAmount !== null && record.recordAmount !== undefined
-                              ? ` · ${formatDependencyAmount(record.recordAmount)}`
-                              : ''}
-                          </span>
-                        </div>
-                        <div class="customer-delete-blockers__record-actions">
-                          <ElTag
-                            type={
-                              isSafeCleanupRecord(record, cleanupCandidateKeys) ? 'success' : 'info'
-                            }
-                            effect="light"
-                            size="small"
-                          >
-                            {isSafeCleanupRecord(record, cleanupCandidateKeys)
-                              ? '可一键清理'
-                              : '需保留/处理'}
-                          </ElTag>
-                          <ElButton
-                            link
-                            type="primary"
-                            onClick={() => openCustomerDeleteDependency(item, record, customers)}
-                          >
-                            {item.actionLabel}
-                            <i class="ri:arrow-right-s-line" aria-hidden="true" />
-                          </ElButton>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ElScrollbar>
-        <div class="customer-delete-blockers__tip">
-          <i class="ri:information-line" aria-hidden="true" />
-          <span>处理页会作为顶部任务标签打开。完成后点击“返回客户管理”，再重新删除该客户。</span>
-        </div>
-      </div>
-    )
-  }
-
-  const showCustomerDeleteBlockersIfNeeded = async (customers: Customer[]): Promise<boolean> => {
-    const sequence = ++deleteInspectionSequence
-    deleteInspectionCustomers.value = customers
-    deleteInspectionError.value = ''
-    deleteInspectionContent.value = undefined
-    await deleteInspectionRef.value?.handleOpen(
-      {},
-      {
-        title: '暂时无法删除客户',
-        size: 'md',
-        loading: true,
-        loadingText: '正在检查关联资料…',
-        showCancelButton: false,
-        showConfirmButton: false,
-        dialogProps: { closeOnClickModal: false }
-      }
-    )
-    try {
-      const customerIds = customers.map((item) => String(item.id)).filter(Boolean)
-      const [dependencies, cleanupCandidates] = await Promise.all([
-        fetchCustomerDeleteDependencyDetails(customerIds),
-        fetchCustomerDeleteSafeCleanupCandidates(customerIds)
-      ])
-      if (sequence !== deleteInspectionSequence || !deleteInspectionRef.value?.visible.value)
-        return true
-      if (!dependencies.length) {
-        await deleteInspectionRef.value?.handleClose(true)
-        return false
-      }
-      showCustomerDeleteBlockers(dependencies, cleanupCandidates, customers)
-      return true
-    } catch (error) {
-      if (sequence === deleteInspectionSequence)
-        deleteInspectionError.value = getFriendlySupabaseErrorMessage(
-          error,
-          '暂时无法检查客户关联资料，请重试'
-        )
-      return true
-    } finally {
-      if (sequence === deleteInspectionSequence) deleteInspectionRef.value?.setLoading(false)
-    }
   }
 
   const isFeedbackCancel = (error: unknown): boolean => error === 'cancel' || error === 'close'
@@ -1043,183 +834,6 @@
       gap: 8px;
       min-width: 0;
       min-height: 0;
-    }
-  }
-</style>
-
-<style lang="scss">
-  .customer-delete-blocker-message-box {
-    width: 100%;
-
-    .customer-delete-blockers {
-      &__lead {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        justify-content: space-between;
-        margin: 0 0 12px;
-        line-height: 1.6;
-        color: var(--el-text-color-primary);
-
-        p {
-          margin: 0;
-        }
-
-        .el-button {
-          flex: none;
-
-          i {
-            margin-right: 4px;
-          }
-        }
-      }
-
-      &__list {
-        display: grid;
-        gap: 8px;
-        padding-right: 8px;
-      }
-
-      &__item {
-        display: flex;
-        gap: 10px;
-        align-items: flex-start;
-        padding: 10px 12px;
-        background: var(--el-fill-color-light);
-        border: 1px solid var(--el-border-color-lighter);
-        border-radius: var(--el-border-radius-base);
-      }
-
-      &__index {
-        display: inline-flex;
-        flex: 0 0 22px;
-        align-items: center;
-        justify-content: center;
-        width: 22px;
-        height: 22px;
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--el-color-warning-dark-2);
-        background: var(--el-color-warning-light-9);
-        border-radius: 50%;
-      }
-
-      &__content {
-        flex: 1;
-        min-width: 0;
-
-        p,
-        small {
-          display: block;
-          margin: 4px 0 0;
-          line-height: 1.5;
-          color: var(--el-text-color-secondary);
-        }
-      }
-
-      &__title {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        justify-content: space-between;
-      }
-
-      &__tip {
-        display: flex;
-        gap: 6px;
-        align-items: flex-start;
-        padding: 10px 12px;
-        margin-top: 12px;
-        line-height: 1.5;
-        color: var(--el-color-warning-dark-2);
-        background: var(--el-color-warning-light-9);
-        border-radius: var(--el-border-radius-base);
-
-        i {
-          flex: none;
-          margin-top: 2px;
-          font-size: 16px;
-        }
-      }
-
-      &__records {
-        display: grid;
-        gap: 6px;
-        padding-top: 8px;
-        margin-top: 8px;
-        border-top: 1px dashed var(--el-border-color);
-      }
-
-      &__record {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        justify-content: space-between;
-        min-width: 0;
-        padding: 7px 8px;
-        background: var(--el-bg-color);
-        border-radius: var(--el-border-radius-small);
-
-        .el-button {
-          flex: none;
-
-          i {
-            margin-left: 2px;
-            font-size: 16px;
-          }
-        }
-      }
-
-      &__record-copy {
-        display: grid;
-        min-width: 0;
-
-        strong,
-        span {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        strong {
-          font-size: 13px;
-          color: var(--el-text-color-primary);
-        }
-
-        span {
-          margin-top: 2px;
-          font-size: 12px;
-          color: var(--el-text-color-secondary);
-        }
-      }
-
-      &__record-actions {
-        display: inline-flex;
-        flex: none;
-        gap: 8px;
-        align-items: center;
-      }
-
-      @media (width <= 600px) {
-        &__lead {
-          flex-direction: column;
-          align-items: stretch;
-
-          .el-button {
-            width: 100%;
-          }
-        }
-
-        &__record {
-          flex-direction: column;
-          align-items: flex-start;
-        }
-
-        &__record-actions {
-          justify-content: space-between;
-          width: 100%;
-        }
-      }
     }
   }
 </style>

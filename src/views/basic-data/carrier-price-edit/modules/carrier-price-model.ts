@@ -1,9 +1,8 @@
 import { cloneDeep, omit } from 'lodash-es'
-import { normalizeNullableNumber } from '@/utils/form/normalize'
+import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
 import {
   joinRegionPath,
   normalizeMoney,
-  normalizeText,
   roundNumber,
   toNumber,
   type CargoSummary
@@ -121,12 +120,12 @@ export function normalizeCarrierPriceCargoItems(
 ): CarrierPriceCargoItem[] {
   return (items ?? [])
     .map((item) => ({
-      orderNo: normalizeText(item.orderNo),
-      originRegion: normalizeText(item.originRegion),
-      destinationRegion: normalizeText(item.destinationRegion),
-      cargoName: normalizeText(item.cargoName),
+      orderNo: normalizeNullableText(item.orderNo),
+      originRegion: normalizeNullableText(item.originRegion),
+      destinationRegion: normalizeNullableText(item.destinationRegion),
+      cargoName: normalizeNullableText(item.cargoName),
       quantity: normalizeNullableNumber(item.quantity),
-      unit: normalizeText(item.unit),
+      unit: normalizeNullableText(item.unit),
       volumeM3: normalizeNullableNumber(item.volumeM3),
       weightKg: normalizeNullableNumber(item.weightKg),
       splitTransportFee: normalizeMoney(item.splitTransportFee),
@@ -169,15 +168,15 @@ export function normalizeCarrierPricePayload(
   Object.assign(payload, {
     originRegion: joinRegionPath(raw.originRegionPath),
     destinationRegion: joinRegionPath(raw.destinationRegionPath),
-    driverId: normalizeText(raw.driverId),
-    vehicleId: normalizeText(raw.vehicleId),
-    contactName: normalizeText(raw.contactName),
-    contactPhone: normalizeText(raw.contactPhone),
-    driverName: normalizeText(raw.driverName),
-    driverPhone: normalizeText(raw.driverPhone),
-    plateNo: normalizeText(raw.plateNo),
-    vehicleType: normalizeText(raw.vehicleType),
-    vehicleLength: normalizeText(raw.vehicleLength),
+    driverId: normalizeNullableText(raw.driverId),
+    vehicleId: normalizeNullableText(raw.vehicleId),
+    contactName: normalizeNullableText(raw.contactName),
+    contactPhone: normalizeNullableText(raw.contactPhone),
+    driverName: normalizeNullableText(raw.driverName),
+    driverPhone: normalizeNullableText(raw.driverPhone),
+    plateNo: normalizeNullableText(raw.plateNo),
+    vehicleType: normalizeNullableText(raw.vehicleType),
+    vehicleLength: normalizeNullableText(raw.vehicleLength),
     cargoItems: normalizeCarrierPriceCargoItems(raw.cargoItems),
     cargoQuantityTotal: options.cargoSummary.quantity,
     cargoVolumeTotal: options.cargoSummary.volume,
@@ -196,7 +195,7 @@ export function normalizeCarrierPricePayload(
       paymentFields.reduce((total, field) => total + toNumber(raw[field] as number), 0),
       2
     ),
-    remark: normalizeText(raw.remark)
+    remark: normalizeNullableText(raw.remark)
   })
 
   if (!options.editableFields.contactPhones) {

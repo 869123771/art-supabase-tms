@@ -134,7 +134,12 @@
         >
           <span class="text-[var(--art-gray-700)]">报价费用与补充费用合计（含税）</span>
           <strong class="text-lg tabular-nums text-[var(--el-color-primary)]">
-            ¥{{ formatCurrencyAmount(totalAmount) }}
+            ¥{{
+              formatNumberValue(totalAmount, 'zh-CN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              })
+            }}
           </strong>
         </div>
       </section>
@@ -192,6 +197,7 @@
 </template>
 
 <script setup lang="ts">
+  import { formatNumberValue } from '@/utils/ui/format'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { cloneDeep, isEqual, round, toNumber } from 'lodash-es'
@@ -294,10 +300,6 @@
   function moneyValue(value?: number | string | null): number {
     const amount = toNumber(value ?? 0)
     return Number.isFinite(amount) ? amount : 0
-  }
-
-  function formatCurrencyAmount(value: number): string {
-    return value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
 
   function expenseLabel(code: string): string {

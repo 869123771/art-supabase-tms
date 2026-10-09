@@ -48,9 +48,10 @@
 </template>
 
 <script setup lang="tsx">
+  import { createDateTimeFormatter } from '@/utils/ui/format'
+
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
-  import dayjs from 'dayjs'
   import { ElTag } from 'element-plus'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type { ArtTableQueryExpose } from '@/components/core/tables/art-table-query/index.vue'
@@ -64,6 +65,12 @@
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import { formatWithDayjs } from '@/utils/time'
   import { fetchTransportEventList, fetchTransportEventOverview } from '@tms/api'
+
+  const formatTableDateTime = createDateTimeFormatter({
+    format: 'MM-DD HH:mm',
+    emptyText: '--',
+    invalidText: '--'
+  })
 
   defineOptions({ name: 'TmsTransportEvent' })
 
@@ -223,7 +230,7 @@
               预计延误
             </ElTag>
           ) : row.waybill?.plannedUnloadTime ? (
-            <span>{dayjs(row.waybill.plannedUnloadTime).format('MM-DD HH:mm')}</span>
+            <span>{formatTableDateTime(row.waybill.plannedUnloadTime)}</span>
           ) : (
             <span>--</span>
           )

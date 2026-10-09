@@ -243,7 +243,6 @@
   const route = useRoute()
   const router = useRouter()
   const userStore = useUserStore()
-  const { getDictMap } = storeToRefs(userStore)
   const normalizedOrderStatus = computed(() => normalizeOrderStatus(detail.data?.orderStatus))
   const detail: UnwrapNestedRefs<DetailGroup> = reactive<DetailGroup>({
     loading: false,
@@ -352,8 +351,7 @@
         data.transportRequirements
           ?.map(
             (item) =>
-              getDictMap.value.tmsOrderTransportRequirement?.find((option) => option.value === item)
-                ?.label || item
+              userStore.getDictItemByValue('tmsOrderTransportRequirement', item)?.label || item
           )
           .join('、') || '--'
     },
@@ -616,9 +614,7 @@
     if (status === 'created') return '开单'
 
     const normalizedStatus = normalizeOrderStatus(status)
-    const dictItem = getDictMap.value.tmsOrderStatus?.find(
-      (item) => item.value === normalizedStatus
-    )
+    const dictItem = userStore.getDictItemByValue('tmsOrderStatus', normalizedStatus)
     return dictItem?.label || normalizedStatus || '-'
   }
 
@@ -662,10 +658,6 @@
     return date && time ? `${date}\n${time}` : '-'
   }
 
-  function formatCurrency(value?: number | string | null): string {
-    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
-  }
-
   function createMoneyDescriptionItems(
     items: Array<[key: string, label: string, strong?: boolean]>
   ): ArtDescriptionItem<Partial<OrderRecord>>[] {
@@ -673,7 +665,10 @@
       key,
       label,
       field: key,
-      formatter: (value) => formatCurrency(value as number | string | null | undefined),
+      formatter: (value) =>
+        formatSensitiveNumberWithAffix(value as number | string | null | undefined, {
+          prefix: '¥'
+        }),
       className: strong ? 'order-detail__strong' : undefined
     }))
   }

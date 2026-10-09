@@ -105,7 +105,7 @@
   import { compact, uniq } from 'lodash-es'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
-  import { formatWithDayjs } from '@/utils/time'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
   import { canViewField } from '@/utils/field-permission'
 
   defineOptions({ name: 'TmsWaybillTrackingPanel' })
@@ -272,9 +272,7 @@
     return typeof value === 'boolean' ? value : null
   }
 
-  function formatDateTime(value: string): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD HH:mm:ss') || '-'
-  }
+  const formatDateTime = createDateTimeFormatter({ emptyText: '-' })
 </script>
 
 <style scoped lang="scss">

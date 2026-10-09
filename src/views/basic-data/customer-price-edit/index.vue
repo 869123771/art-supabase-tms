@@ -661,7 +661,7 @@
         resultField: 'data',
         labelField: 'customerName',
         valueField: 'id',
-        labelFn: formatCustomerOption,
+        labelFn: (option) => formatNameCodeOption(option, 'customerName', 'customerCode'),
         afterFetch: syncCustomerOptions,
         props: {
           clearable: true,
@@ -1100,10 +1100,6 @@
     form.customerOptions = getResponseData<CustomerOption>(result)
     syncCustomerCode(form.data.customerId)
     return result
-  }
-
-  function formatCustomerOption(option: Record<string, unknown>): string {
-    return formatNameCodeOption(option, 'customerName', 'customerCode')
   }
 
   function handleCustomerChange(customerId?: string): void {

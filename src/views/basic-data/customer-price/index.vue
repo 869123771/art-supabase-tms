@@ -157,7 +157,10 @@
           {
             key: 'totalFee',
             title: '运费合计',
-            formatter: (value) => formatMoney(value as number | string | null)
+            formatter: (value) =>
+              formatSensitiveNumber(
+                typeof value === 'number' || typeof value === 'string' ? value : undefined
+              )
           } satisfies ArtTableQueryExcelColumn
         ]
       : []),
@@ -309,7 +312,7 @@
             label: '运费合计',
             width: 120,
             align: 'right',
-            formatter: (row) => formatMoney(row.totalFee)
+            formatter: (row) => formatSensitiveNumber(row.totalFee)
           } as ColumnOption<CustomerPrice>
         ]
       : []),
@@ -576,8 +579,6 @@
     const item = options.find((option) => option.value === value || option.label === value)
     return item?.label || item?.name || value
   }
-
-  const formatMoney = (value?: number | string | null): string => formatSensitiveNumber(value)
 
   const formatDateTime = (value?: string | null): string =>
     value ? (formatWithDayjs(value, 'YYYY-MM-DD HH:mm:ss') ?? '-') : '-'

@@ -146,7 +146,12 @@
     type TmsVehicleReference
   } from '@tms/api'
   import type { ColumnOption } from '@/types'
-  import { canViewField, getFieldAccess, mergeFieldAccessMaps } from '@/utils/field-permission'
+  import {
+    isReadableFieldAccess,
+    canViewField,
+    getFieldAccess,
+    mergeFieldAccessMaps
+  } from '@/utils/field-permission'
   import CarrierPerformanceAdvisorDrawer from './modules/carrier-performance-advisor-drawer.vue'
   import CarrierRelationTable from './modules/carrier-relation-table.vue'
   import { navigateToApplication } from '@/utils/application-navigation'
@@ -199,7 +204,7 @@
   const canViewCarrierField = (field: Api.Tms.BasicData.CarrierFieldKey): boolean =>
     canViewField(detail.data?.fieldAccess, field)
   const canViewCarrierAttachments = (): boolean =>
-    ['read', 'edit'].includes(getFieldAccess(detail.data?.fieldAccess, 'attachments'))
+    isReadableFieldAccess(getFieldAccess(detail.data?.fieldAccess, 'attachments'))
 
   const basicItems = computed<ArtDescriptionItem<Partial<Carrier>>[]>(() => [
     { key: 'carrierCode', label: '承运商编码', field: 'carrierCode', copyable: true },

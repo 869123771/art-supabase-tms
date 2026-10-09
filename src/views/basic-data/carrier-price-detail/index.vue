@@ -29,7 +29,9 @@
       >
       <article v-if="canViewSensitiveField('costAmounts')"
         ><span>成本合计</span
-        ><strong>¥ {{ formatRateMoney(detail.data?.totalFee) }}</strong></article
+        ><strong>{{
+          formatSensitiveNumberWithAffix(detail.data?.totalFee, { prefix: '¥ ' })
+        }}</strong></article
       >
     </section>
 
@@ -121,12 +123,13 @@
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import type { ColumnOption } from '@/types'
   import { fetchCarrierPriceDetail } from '@tms/api'
+
   import {
-    formatRateDateTime,
-    formatRateMoney,
-    formatRateNumber
-  } from '../modules/rate-card-detail'
-  import { canViewField } from '@/utils/field-permission'
+    canViewField,
+    formatSensitiveNumber,
+    formatSensitiveNumberWithAffix
+  } from '@/utils/field-permission'
+  import { formatDateTimeValue } from '@/utils/ui/format'
 
   defineOptions({ name: 'TmsCarrierPriceDetail' })
 
@@ -161,7 +164,7 @@
       key: 'cargoSummary',
       label: '货物汇总',
       value: (data: Partial<CarrierPrice>) =>
-        `${formatRateNumber(data.cargoQuantityTotal)} 件 / ${formatRateNumber(data.cargoVolumeTotal)} m³ / ${formatRateNumber(data.cargoWeightTotal)} kg`
+        `${formatSensitiveNumber(data.cargoQuantityTotal, { maximumFractionDigits: 2 })} 件 / ${formatSensitiveNumber(data.cargoVolumeTotal, { maximumFractionDigits: 2 })} m³ / ${formatSensitiveNumber(data.cargoWeightTotal, { maximumFractionDigits: 2 })} kg`
     }
   ]
   const carrierItems = computed<ArtDescriptionItem<Partial<CarrierPrice>>[]>(() => [
@@ -234,14 +237,14 @@
       key: 'createTime',
       label: '创建时间',
       field: 'createTime',
-      formatter: (value) => formatRateDateTime(value as string | null)
+      formatter: (value) => formatDateTimeValue(value as string | null)
     },
     { key: 'updateBy', label: '更新人', field: 'updateBy' },
     {
       key: 'updateTime',
       label: '更新时间',
       field: 'updateTime',
-      formatter: (value) => formatRateDateTime(value as string | null)
+      formatter: (value) => formatDateTimeValue(value as string | null)
     }
   ]
   const cargoColumns = computed<ColumnOption<CargoItem>[]>(() => [
@@ -253,7 +256,7 @@
       label: '数量',
       minWidth: 90,
       align: 'right',
-      formatter: (row) => formatRateNumber(row.quantity)
+      formatter: (row) => formatSensitiveNumber(row.quantity, { maximumFractionDigits: 2 })
     },
     { prop: 'unit', label: '单位', minWidth: 90, dict: { code: 'tmsCargoUnit', display: 'text' } },
     {
@@ -261,14 +264,14 @@
       label: '体积(m³)',
       minWidth: 110,
       align: 'right',
-      formatter: (row) => formatRateNumber(row.volumeM3)
+      formatter: (row) => formatSensitiveNumber(row.volumeM3, { maximumFractionDigits: 2 })
     },
     {
       prop: 'weightKg',
       label: '重量(kg)',
       minWidth: 110,
       align: 'right',
-      formatter: (row) => formatRateNumber(row.weightKg)
+      formatter: (row) => formatSensitiveNumber(row.weightKg, { maximumFractionDigits: 2 })
     },
     ...(canViewSensitiveField('costAmounts')
       ? [
@@ -277,21 +280,21 @@
             label: '拆分运费(元)',
             minWidth: 130,
             align: 'right',
-            formatter: (row) => formatRateMoney(row.splitTransportFee)
+            formatter: (row) => formatSensitiveNumber(row.splitTransportFee)
           } as ColumnOption<CargoItem>,
           {
             prop: 'loadingFee',
             label: '装卸费(元)',
             minWidth: 120,
             align: 'right',
-            formatter: (row) => formatRateMoney(row.loadingFee)
+            formatter: (row) => formatSensitiveNumber(row.loadingFee)
           } as ColumnOption<CargoItem>,
           {
             prop: 'packageFee',
             label: '包装费(元)',
             minWidth: 120,
             align: 'right',
-            formatter: (row) => formatRateMoney(row.packageFee)
+            formatter: (row) => formatSensitiveNumber(row.packageFee)
           } as ColumnOption<CargoItem>
         ]
       : [])
@@ -330,7 +333,8 @@
       key: String(key),
       label,
       field: String(key),
-      formatter: (value) => `¥ ${formatRateMoney(value as number | string | null)}`
+      formatter: (value) =>
+        formatSensitiveNumberWithAffix(value as number | string | null, { prefix: '¥ ' })
     }))
   }
 </script>

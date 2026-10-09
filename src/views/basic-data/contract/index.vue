@@ -295,7 +295,7 @@
       resultField: 'data',
       labelField: 'companyName',
       valueField: 'id',
-      labelFn: formatCarrierOption,
+      labelFn: (option) => formatNameCodeOption(option, 'companyName', 'carrierCode'),
       props: { clearable: true, filterable: true, placeholder: '请选择承运商' }
     },
     {
@@ -306,7 +306,7 @@
       resultField: 'data',
       labelField: 'customerName',
       valueField: 'id',
-      labelFn: formatCustomerOption,
+      labelFn: (option) => formatNameCodeOption(option, 'customerName', 'customerCode'),
       props: { clearable: true, filterable: true, placeholder: '请选择客户或货主' }
     },
     {
@@ -385,7 +385,7 @@
             label: '合同金额',
             width: 130,
             align: 'right' as const,
-            formatter: (row: Contract) => formatMoney(row.contractAmount)
+            formatter: (row: Contract) => formatSensitiveNumber(row.contractAmount)
           }
         ]
       : []),
@@ -466,14 +466,6 @@
     return result
   }
 
-  function formatCarrierOption(option: Record<string, unknown>): string {
-    return formatNameCodeOption(option, 'companyName', 'carrierCode')
-  }
-
-  function formatCustomerOption(option: Record<string, unknown>): string {
-    return formatNameCodeOption(option, 'customerName', 'customerCode')
-  }
-
   const createDictLabelMap = (options: Api.DataCenter.DictListItem[]): Map<string, string> => {
     const map = new Map<string, string>()
     options.forEach((item) => {
@@ -512,9 +504,6 @@
     const key = String(value || '')
     return billingLabelMap.value.get(key) || key
   }
-
-  const formatMoney = (value?: Api.Tms.BasicData.SensitiveNumber): string =>
-    formatSensitiveNumber(value)
 
   const formatDateTime = (value?: unknown): string => {
     if (!value) return '-'

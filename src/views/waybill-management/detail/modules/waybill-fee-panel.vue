@@ -175,7 +175,7 @@
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
-  import { canViewField, getFieldAccess } from '@/utils/field-permission'
+  import { isReadableFieldAccess, canViewField, getFieldAccess } from '@/utils/field-permission'
   import { formatWithDayjs } from '@/utils/time'
   import { formatSensitiveNumber, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
 
@@ -211,7 +211,7 @@
   const costTotal = computed<number | null>(() => {
     let total = 0
     for (const cost of props.waybill.costs) {
-      if (!['read', 'edit'].includes(getFieldAccess(cost.fieldAccess, 'costAmounts'))) return null
+      if (!isReadableFieldAccess(getFieldAccess(cost.fieldAccess, 'costAmounts'))) return null
       const amount = Number(cost.amount)
       if (!Number.isFinite(amount)) return null
       total += amount
@@ -278,7 +278,7 @@
   }
 
   function canReadEvidence(cost: Cost): boolean {
-    return ['read', 'edit'].includes(getFieldAccess(cost.fieldAccess, 'expenseEvidence'))
+    return isReadableFieldAccess(getFieldAccess(cost.fieldAccess, 'expenseEvidence'))
   }
 
   function costAmount(cost: Cost): string {

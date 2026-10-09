@@ -8,6 +8,14 @@ import {
   normalizeOrderPayload
 } from '../../src/views/order-open/modules/order-open-model'
 
+test('空白坐标按空值处理，真实零坐标保留', () => {
+  const form = createInitialForm()
+  Object.assign(form, { shippingLongitude: '   ', shippingLatitude: 0 })
+  const payload = normalizeOrderPayload({ form, stationNames: {} })
+  assert.equal(payload.shippingLongitude, null)
+  assert.equal(payload.shippingLatitude, 0)
+})
+
 test('order payload normalizes monetary totals, stations and cargo summary', () => {
   const form = createInitialForm()
   Object.assign(form, {
@@ -180,4 +188,54 @@ test('favorite route patch fills both endpoint customers, contacts and addresses
     formatOrderAddress('河南省/许昌市/禹州市', '河南省许昌市禹州市矿区一号门'),
     '河南省许昌市禹州市矿区一号门'
   )
+})
+
+test('favorite route contact backfill never reuses masked or ungranted endpoint values', () => {
+  for (const level of ['hidden', 'masked', 'read', 'edit'] as const) {
+    const route: Api.Tms.BasicData.FavoriteRoute = {
+      id: 'route-permissions',
+      routeName: '测试权限线路',
+      customerId: 'customer',
+      originAddressId: 'origin',
+      destinationAddressId: 'destination',
+      enabled: true,
+      originAddress: {
+        id: 'origin',
+        customerId: 'customer',
+        addressType: 'shipping',
+        contactName: '测试发货联系人',
+        contactPhone: '13900000001',
+        region: '河南省/许昌市/禹州市',
+        addressDetail: '测试发货地址',
+        longitude: 113.4,
+        latitude: 34.1,
+        fieldAccess: { contactPhone: level, addressDetail: level }
+      },
+      destinationAddress: {
+        id: 'destination',
+        customerId: 'customer',
+        addressType: 'receiving',
+        contactName: '测试收货联系人',
+        contactPhone: '13900000002',
+        region: '山西省/长治市/潞州区',
+        addressDetail: '测试收货地址',
+        longitude: 113.1,
+        latitude: 36.2,
+        fieldAccess: { contactPhone: 'masked', addressDetail: 'read' }
+      }
+    }
+    const patch = createFavoriteRouteContactPatch(route)
+    const readable = level === 'read' || level === 'edit'
+    assert.equal(patch.shippingContactPhone, readable ? '13900000001' : '')
+    assert.equal(patch.shippingAddressDetail, readable ? '测试发货地址' : '')
+    assert.deepEqual(patch.shippingRegionPath, readable ? ['河南省', '许昌市', '禹州市'] : [])
+    assert.equal(patch.shippingLongitude, readable ? 113.4 : null)
+    assert.equal(patch.receivingContactPhone, '')
+    assert.equal(patch.receivingAddressDetail, '测试收货地址')
+    delete route.originAddress!.fieldAccess
+    const ungranted = createFavoriteRouteContactPatch(route)
+    assert.equal(ungranted.shippingContactPhone, '')
+    assert.equal(ungranted.shippingAddressDetail, '')
+    assert.deepEqual(ungranted.shippingRegionPath, [])
+  }
 })

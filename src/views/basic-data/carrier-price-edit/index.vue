@@ -495,7 +495,7 @@
         resultField: 'data',
         labelField: 'companyName',
         valueField: 'id',
-        labelFn: formatCarrierOption,
+        labelFn: (option) => formatNameCodeOption(option, 'companyName', 'carrierCode'),
         afterFetch: syncCarrierOptions,
         props: {
           clearable: true,
@@ -1090,10 +1090,6 @@
     if (form.data.vehicle && !form.vehicleOptions.some((item) => item.id === form.data.vehicleId)) {
       form.vehicleOptions = [form.data.vehicle, ...form.vehicleOptions]
     }
-  }
-
-  function formatCarrierOption(option: Record<string, unknown>): string {
-    return formatNameCodeOption(option, 'companyName', 'carrierCode')
   }
 
   function handleCarrierChange(carrierId?: string): void {

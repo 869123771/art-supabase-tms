@@ -1,5 +1,6 @@
+import { normalizeNullableNumber } from '@/utils/form/normalize'
 import { differenceWith, round, uniqBy } from 'lodash-es'
-import { createInitialCargoItem, numericValue, textValue, type CargoItem } from './order-open-model'
+import { createInitialCargoItem, textValue, type CargoItem } from './order-open-model'
 
 type ContractDetail = Api.Tms.BasicData.ContractDetailSelectorItem
 
@@ -22,7 +23,7 @@ export const createCargoItemFromContractDetail = (detail: ContractDetail): Cargo
   quantity: 1,
   unit: detail.unit,
   unitPrice: detail.transportUnitPrice,
-  freight: round(numericValue(detail.transportUnitPrice), 2),
+  freight: round(normalizeNullableNumber(detail.transportUnitPrice) ?? 0, 2),
   sourceContractId: detail.contractId,
   sourceContractNo: detail.contractNo,
   sourceContractName: detail.contractName,
@@ -52,7 +53,10 @@ export const mergeOrderContractDetails = (
 }
 
 export const calculateContractCargoFreight = (item: CargoItem): number =>
-  round(numericValue(item.quantity) * numericValue(item.unitPrice), 2)
+  round(
+    (normalizeNullableNumber(item.quantity) ?? 0) * (normalizeNullableNumber(item.unitPrice) ?? 0),
+    2
+  )
 
 export const calculateContractTransportFee = (items: readonly CargoItem[]): number =>
   round(

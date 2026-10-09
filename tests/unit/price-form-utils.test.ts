@@ -8,7 +8,6 @@ import {
   mergeCargoSelections,
   normalizeMoney,
   normalizePriceRegionSearch,
-  normalizeText,
   splitRegionPath
 } from '../../src/views/basic-data/modules/price-form-utils'
 
@@ -61,8 +60,6 @@ test('mergeCargoSelections keeps current rows and ignores already selected cargo
 })
 
 test('price field normalizers keep API payloads predictable', () => {
-  assert.equal(normalizeText('  备注  '), '备注')
-  assert.equal(normalizeText('  '), null)
   assert.equal(normalizeNullableNumber(''), null)
   assert.equal(normalizeNullableNumber('12.5'), 12.5)
   assert.equal(normalizeMoney('12.345'), 12.35)

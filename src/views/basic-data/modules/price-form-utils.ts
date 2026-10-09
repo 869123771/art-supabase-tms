@@ -1,5 +1,5 @@
 import { differenceBy, round, sumBy, toNumber as lodashToNumber, uniqBy } from 'lodash-es'
-import { normalizeNullableNumber } from '@/utils/form/normalize'
+import { normalizeNullableNumber, normalizeNonNullableText } from '@/utils/form/normalize'
 
 type NumericValue = number | string | null | undefined
 
@@ -60,9 +60,9 @@ export function mergeCargoSelections<TItem extends NamedCargo, TSelection extend
   currentItems: readonly TItem[],
   selectedCargoes: readonly TSelection[],
   createItem: (cargo: TSelection) => TItem,
-  isPlaceholder: (item: TItem) => boolean = (item) => !normalizeRequiredText(item.cargoName)
+  isPlaceholder: (item: TItem) => boolean = (item) => !normalizeNonNullableText(item.cargoName)
 ): MergeCargoSelectionsResult<TItem> {
-  const cargoNameKey = (item: NamedCargo): string => normalizeRequiredText(item.cargoName)
+  const cargoNameKey = (item: NamedCargo): string => normalizeNonNullableText(item.cargoName)
   const uniqueSelections = uniqBy(selectedCargoes.filter(cargoNameKey), cargoNameKey)
   const additions = differenceBy(uniqueSelections, currentItems, cargoNameKey).map(createItem)
 
@@ -105,15 +105,6 @@ export function normalizePriceRegionSearch<
     originRegion: joinRegionPath(originRegionPath) || undefined,
     destinationRegion: joinRegionPath(destinationRegionPath) || undefined
   }
-}
-
-export function normalizeText(value?: string | null): string | null {
-  const text = String(value ?? '').trim()
-  return text || null
-}
-
-export function normalizeRequiredText(value?: string | null): string {
-  return String(value ?? '').trim()
 }
 
 export function normalizeMoney(value: NumericValue): number {

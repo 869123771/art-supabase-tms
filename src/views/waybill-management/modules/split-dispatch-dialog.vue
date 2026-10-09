@@ -146,6 +146,7 @@
 </template>
 
 <script setup lang="ts">
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
   import type {
     DataSelectColumn,
     DataSelectFetchParams,
@@ -246,10 +247,10 @@
   }
 
   async function fetchVehicleSelectData(params: DataSelectFetchParams) {
-    const from = (params.page - 1) * params.pageSize
+    const { from, to } = buildSupabasePageRange({ current: params.page, size: params.pageSize })
     const result = await fetchDispatchVehicleOptions({
       from,
-      to: from + params.pageSize - 1,
+      to,
       keyword: params.keyword
     })
     return { data: result.data ?? [], total: result.total ?? 0 }

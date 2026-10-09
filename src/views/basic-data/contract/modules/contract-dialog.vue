@@ -75,6 +75,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
@@ -297,7 +298,7 @@
         resultField: 'data',
         labelField: 'companyName',
         valueField: 'id',
-        labelFn: formatCarrierOption,
+        labelFn: (option) => formatNameCodeOption(option, 'companyName', 'carrierCode'),
         afterFetch: syncCarrierOptions,
         props: {
           clearable: true,
@@ -316,7 +317,7 @@
         resultField: 'data',
         labelField: 'customerName',
         valueField: 'id',
-        labelFn: formatCustomerOption,
+        labelFn: (option) => formatNameCodeOption(option, 'customerName', 'customerCode'),
         afterFetch: syncCustomerOptions,
         props: {
           clearable: true,
@@ -653,14 +654,6 @@
     return result
   }
 
-  const formatCarrierOption = (option: Record<string, unknown>): string => {
-    return formatNameCodeOption(option, 'companyName', 'carrierCode')
-  }
-
-  const formatCustomerOption = (option: Record<string, unknown>): string => {
-    return formatNameCodeOption(option, 'customerName', 'customerCode')
-  }
-
   const handleBusinessTypeChange = (businessType: ContractBusinessType): void => {
     const partyPatch: Partial<Contract> = usesCarrierParty(businessType)
       ? { customerId: null, customer: null, customerSignatory: '', contactName: '' }
@@ -706,11 +699,6 @@
     return Number.isNaN(numberValue) ? null : numberValue
   }
 
-  const normalizeText = (value?: string | null): string | null => {
-    const text = String(value ?? '').trim()
-    return text || null
-  }
-
   const normalizePayload = (): Contract => {
     const payload = omit(cloneDeep(toRaw(form.data)), [
       'tenantId',
@@ -727,27 +715,27 @@
     const normalized: Contract = {
       ...payload,
       contractStatus: payload.contractStatus || 'draft',
-      customerId: hasCarrierParty ? null : normalizeText(payload.customerId),
-      carrierId: hasCarrierParty ? normalizeText(payload.carrierId) : null,
-      paperContractNo: normalizeText(payload.paperContractNo),
-      mnemonicCode: normalizeText(payload.mnemonicCode),
-      contactName: normalizeText(payload.contactName),
-      waybillNo: normalizeText(payload.waybillNo),
-      customerSignatory: normalizeText(payload.customerSignatory),
+      customerId: hasCarrierParty ? null : normalizeNullableText(payload.customerId),
+      carrierId: hasCarrierParty ? normalizeNullableText(payload.carrierId) : null,
+      paperContractNo: normalizeNullableText(payload.paperContractNo),
+      mnemonicCode: normalizeNullableText(payload.mnemonicCode),
+      contactName: normalizeNullableText(payload.contactName),
+      waybillNo: normalizeNullableText(payload.waybillNo),
+      customerSignatory: normalizeNullableText(payload.customerSignatory),
       contractAmount: normalizeNumber(payload.contractAmount),
       transportUnitPrice: normalizeNumber(payload.transportUnitPrice),
       roadConsumptionRate: normalizeNumber(payload.roadConsumptionRate),
       lossDeductionPrice: normalizeNumber(payload.lossDeductionPrice),
-      effectiveDate: normalizeText(payload.effectiveDate),
-      expiryDate: normalizeText(payload.expiryDate),
+      effectiveDate: normalizeNullableText(payload.effectiveDate),
+      expiryDate: normalizeNullableText(payload.expiryDate),
       agreedTransportQuantity: normalizeNumber(payload.agreedTransportQuantity),
-      transportRoute: normalizeText(payload.transportRoute),
-      shipperName: normalizeText(payload.shipperName),
-      payerName: normalizeText(payload.payerName),
-      consigneeName: normalizeText(payload.consigneeName),
-      specialTransportRequirements: normalizeText(payload.specialTransportRequirements),
-      otherDeductionTerms: normalizeText(payload.otherDeductionTerms),
-      contractDescription: normalizeText(payload.contractDescription),
+      transportRoute: normalizeNullableText(payload.transportRoute),
+      shipperName: normalizeNullableText(payload.shipperName),
+      payerName: normalizeNullableText(payload.payerName),
+      consigneeName: normalizeNullableText(payload.consigneeName),
+      specialTransportRequirements: normalizeNullableText(payload.specialTransportRequirements),
+      otherDeductionTerms: normalizeNullableText(payload.otherDeductionTerms),
+      contractDescription: normalizeNullableText(payload.contractDescription),
       transportDetails: (payload.transportDetails ?? []).map(normalizeTransportDetail),
       attachments: payload.attachments ?? []
     }
@@ -766,7 +754,7 @@
   }
 
   const normalizeTransportDetail = (detail: ContractTransportDetail): ContractTransportDetail => ({
-    cargoId: normalizeText(detail.cargoId),
+    cargoId: normalizeNullableText(detail.cargoId),
     cargoDescription: String(detail.cargoDescription ?? '').trim(),
     cargoCode: String(detail.cargoCode ?? '').trim(),
     contractQuantity: Number(detail.contractQuantity ?? 0),

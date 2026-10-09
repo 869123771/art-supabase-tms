@@ -29,7 +29,9 @@
       >
       <article v-if="canViewSensitiveField('quoteAmounts')"
         ><span>报价合计</span
-        ><strong>¥ {{ formatRateMoney(detail.data?.totalFee) }}</strong></article
+        ><strong>{{
+          formatSensitiveNumberWithAffix(detail.data?.totalFee, { prefix: '¥ ' })
+        }}</strong></article
       >
     </section>
 
@@ -125,13 +127,13 @@
   import type { ColumnOption } from '@/types'
   import { fetchCustomerPriceDetail } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'
+  import { formatRateAddress } from '../modules/rate-card-detail'
   import {
-    formatRateAddress,
-    formatRateDateTime,
-    formatRateMoney,
-    formatRateNumber
-  } from '../modules/rate-card-detail'
-  import { canViewField } from '@/utils/field-permission'
+    canViewField,
+    formatSensitiveNumber,
+    formatSensitiveNumberWithAffix
+  } from '@/utils/field-permission'
+  import { formatDateTimeValue } from '@/utils/ui/format'
 
   defineOptions({ name: 'TmsCustomerPriceDetail' })
 
@@ -255,7 +257,8 @@
       key: 'vehicleCount',
       label: '车辆数',
       field: 'vehicleCount',
-      formatter: (value) => formatRateNumber(value as number | null, 0)
+      formatter: (value) =>
+        formatSensitiveNumber(value as number | null, { maximumFractionDigits: 0 })
     },
     {
       key: 'billingMethod',
@@ -290,14 +293,14 @@
       key: 'createTime',
       label: '创建时间',
       field: 'createTime',
-      formatter: (value) => formatRateDateTime(value as string | null)
+      formatter: (value) => formatDateTimeValue(value as string | null)
     },
     { key: 'updateBy', label: '更新人', field: 'updateBy' },
     {
       key: 'updateTime',
       label: '更新时间',
       field: 'updateTime',
-      formatter: (value) => formatRateDateTime(value as string | null)
+      formatter: (value) => formatDateTimeValue(value as string | null)
     }
   ]
   const cargoColumns: ColumnOption<CargoItem>[] = [
@@ -308,7 +311,7 @@
       label: '数量',
       minWidth: 100,
       align: 'right',
-      formatter: (row) => formatRateNumber(row.quantity)
+      formatter: (row) => formatSensitiveNumber(row.quantity, { maximumFractionDigits: 2 })
     },
     { prop: 'unit', label: '单位', minWidth: 100, dict: { code: 'tmsCargoUnit', display: 'text' } },
     {
@@ -316,14 +319,14 @@
       label: '体积(m³)',
       minWidth: 120,
       align: 'right',
-      formatter: (row) => formatRateNumber(row.volumeM3)
+      formatter: (row) => formatSensitiveNumber(row.volumeM3, { maximumFractionDigits: 2 })
     },
     {
       prop: 'weightKg',
       label: '重量(kg)',
       minWidth: 120,
       align: 'right',
-      formatter: (row) => formatRateNumber(row.weightKg)
+      formatter: (row) => formatSensitiveNumber(row.weightKg, { maximumFractionDigits: 2 })
     }
   ]
 
@@ -378,7 +381,8 @@
       key: String(key),
       label,
       field: String(key),
-      formatter: (value) => `¥ ${formatRateMoney(value as number | string | null)}`
+      formatter: (value) =>
+        formatSensitiveNumberWithAffix(value as number | string | null, { prefix: '¥ ' })
     }))
   }
 </script>

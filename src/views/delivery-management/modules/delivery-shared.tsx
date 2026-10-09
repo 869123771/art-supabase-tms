@@ -13,7 +13,7 @@ import type { ColumnOption } from '@/types'
 import { buildSupabasePageRange } from '@/utils/supabase/pagination'
 import { exportDeliveryList, fetchDeliveryList } from '@tms/api'
 import { canEditField, canViewField, formatSensitiveNumber } from '@/utils/field-permission'
-import { formatCompactNumberValue } from '@/utils/ui/format'
+import { formatArtValue, formatCompactNumberValue } from '@/utils/ui/format'
 import { useUserStore } from '@/store/modules/user'
 import { useWebsiteConfig } from '@/hooks/core/useWebsiteConfig'
 import { printLoadedWaybill } from '../../modules/waybill-print'
@@ -204,7 +204,17 @@ export const createDeliveryColumns = (
       prop: 'cargoItems',
       label: '货物类型',
       minWidth: 120,
-      formatter: (row) => formatCargoType(row)
+      formatter: (row) =>
+        formatArtValue(
+          row.cargoItems
+            ?.map((item) => item.cargoName)
+            .find(Boolean)
+            ?.trim(),
+          'text',
+          {
+            emptyText: '-'
+          }
+        )
     },
     {
       prop: 'cargoQuantityTotal',
@@ -234,31 +244,31 @@ export const createDeliveryColumns = (
       prop: 'declaredValue',
       label: '声明价值',
       width: 110,
-      formatter: (row) => formatMoney(row.declaredValue)
+      formatter: (row) => formatSensitiveNumber(row.declaredValue)
     },
     {
       prop: 'insuranceFee',
       label: '保费',
       width: 100,
-      formatter: (row) => formatMoney(row.insuranceFee)
+      formatter: (row) => formatSensitiveNumber(row.insuranceFee)
     },
     {
       prop: 'deliveryFee',
       label: '配送费',
       width: 100,
-      formatter: (row) => formatMoney(row.deliveryFee)
+      formatter: (row) => formatSensitiveNumber(row.deliveryFee)
     },
     {
       prop: 'unloadingFee',
       label: '卸货费',
       width: 100,
-      formatter: (row) => formatMoney(row.unloadingFee)
+      formatter: (row) => formatSensitiveNumber(row.unloadingFee)
     },
     {
       prop: 'codAmount',
       label: '代收货款',
       width: 110,
-      formatter: (row) => formatMoney(row.codAmount)
+      formatter: (row) => formatSensitiveNumber(row.codAmount)
     },
     {
       prop: 'orderStatus',
@@ -365,15 +375,6 @@ function printDeliveryWaybill(context: DeliveryListContext, row: DeliveryRecord)
   if (!opened) ElMessage.warning('浏览器拦截了打印窗口，请允许弹出窗口后重试')
 }
 
-function formatCargoType(row: DeliveryRecord): string {
-  const cargoName = row.cargoItems?.map((item) => item.cargoName).find(Boolean)
-  return formatValue(cargoName)
-}
-
-function formatMoney(value?: number | string | null): string {
-  return formatSensitiveNumber(value)
-}
-
 function isDeliveryColumnVisible(context: DeliveryListContext, key: string): boolean {
   const fieldByColumn: Partial<Record<string, Api.Tms.Order.OrderFieldKey>> = {
     receivingContactPhone: 'receiverContact',
@@ -388,9 +389,4 @@ function isDeliveryColumnVisible(context: DeliveryListContext, key: string): boo
   }
   const field = fieldByColumn[key]
   return !field || canViewField(context.fieldAccess.value, field)
-}
-
-function formatValue(value?: string | number | null): string {
-  const text = String(value ?? '').trim()
-  return text || '-'
 }

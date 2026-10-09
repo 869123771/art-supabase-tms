@@ -13,7 +13,7 @@ import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
 import { ColumnOption } from '@/types'
 import { buildSupabasePageRange } from '@/utils/supabase/pagination'
 import { formatWithDayjs } from '@/utils/time'
-import { formatCompactNumberValue } from '@/utils/ui/format'
+import { formatArtValue, formatCompactNumberValue } from '@/utils/ui/format'
 import { canViewField, formatSensitiveNumber, mergeFieldAccessMaps } from '@/utils/field-permission'
 import { useUserStore } from '@/store/modules/user'
 import { useWebsiteConfig } from '@/hooks/core/useWebsiteConfig'
@@ -485,7 +485,17 @@ export const createWaybillColumns = (
       prop: 'cargoItems',
       label: '货物类型',
       width: 120,
-      formatter: (row) => formatCargoType(row)
+      formatter: (row) =>
+        formatArtValue(
+          row.cargoItems
+            ?.map((item) => item.cargoName)
+            .find(Boolean)
+            ?.trim(),
+          'text',
+          {
+            emptyText: '-'
+          }
+        )
     },
     {
       prop: 'cargoQuantityTotal',
@@ -517,7 +527,7 @@ export const createWaybillColumns = (
             prop: 'declaredValue',
             label: '声明价值',
             width: 110,
-            formatter: (row: WaybillRecord) => formatMoney(row.declaredValue)
+            formatter: (row: WaybillRecord) => formatSensitiveNumber(row.declaredValue)
           }
         ]
       : []),
@@ -527,25 +537,25 @@ export const createWaybillColumns = (
             prop: 'insuranceFee',
             label: '保费',
             width: 100,
-            formatter: (row: WaybillRecord) => formatMoney(row.insuranceFee)
+            formatter: (row: WaybillRecord) => formatSensitiveNumber(row.insuranceFee)
           },
           {
             prop: 'deliveryFee',
             label: '配送费',
             width: 100,
-            formatter: (row: WaybillRecord) => formatMoney(row.deliveryFee)
+            formatter: (row: WaybillRecord) => formatSensitiveNumber(row.deliveryFee)
           },
           {
             prop: 'unloadingFee',
             label: '卸货费',
             width: 100,
-            formatter: (row: WaybillRecord) => formatMoney(row.unloadingFee)
+            formatter: (row: WaybillRecord) => formatSensitiveNumber(row.unloadingFee)
           },
           {
             prop: 'totalFee',
             label: '总运费',
             width: 110,
-            formatter: (row: WaybillRecord) => formatMoney(row.totalFee)
+            formatter: (row: WaybillRecord) => formatSensitiveNumber(row.totalFee)
           }
         ]
       : []),
@@ -934,20 +944,6 @@ function handlePrint(context: WaybillListContext, row: WaybillRecord): void {
   if (!opened) ElMessage.warning('浏览器拦截了打印窗口，请允许弹出窗口后重试')
 }
 
-function formatCargoType(row: WaybillRecord): string {
-  const cargoName = row.cargoItems?.map((item) => item.cargoName).find(Boolean)
-  return formatValue(cargoName)
-}
-
 function formatRoute(row: WaybillRecord): string {
   return [row.originStation, row.transferStation, row.destinationStation].filter(Boolean).join('-')
-}
-
-function formatMoney(value?: number | string | null): string {
-  return formatSensitiveNumber(value)
-}
-
-function formatValue(value?: string | number | null): string {
-  const text = String(value ?? '').trim()
-  return text || '-'
 }

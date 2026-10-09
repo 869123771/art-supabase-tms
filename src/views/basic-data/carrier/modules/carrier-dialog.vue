@@ -53,7 +53,12 @@
   import { addCarrier, editCarrier, fetchCarrierOptions } from '@tms/api'
   import { fetchRegionOptions } from '@/api/region-options'
   import { useUserStore } from '@/store/modules/user'
-  import { canEditField, canViewField, getFieldAccess } from '@/utils/field-permission'
+  import {
+    isReadableFieldAccess,
+    canEditField,
+    canViewField,
+    getFieldAccess
+  } from '@/utils/field-permission'
 
   defineOptions({ name: 'TmsCarrierDialog' })
 
@@ -126,7 +131,7 @@
     canEditField(form.fieldAccess, field)
 
   const canViewCarrierAttachments = computed(() =>
-    ['read', 'edit'].includes(getFieldAccess(form.fieldAccess, 'attachments'))
+    isReadableFieldAccess(getFieldAccess(form.fieldAccess, 'attachments'))
   )
 
   const formRules: FormRules<CarrierForm> = {

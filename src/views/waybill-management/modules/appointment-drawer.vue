@@ -352,6 +352,7 @@
 </template>
 
 <script setup lang="ts">
+  import { createDateTimeFormatter } from '@/utils/ui/format'
   import dayjs from 'dayjs'
   import { ElMessage, type FormItemRule } from 'element-plus'
   import ArtForm from '@/components/core/forms/art-form/index.vue'
@@ -458,8 +459,11 @@
   }
 
   const displayTime = (value: string): string => dayjs(value).format('YYYY-MM-DD HH:mm')
-  const toLocal = (value: string | null): string =>
-    value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : ''
+  const toLocal = createDateTimeFormatter({
+    format: 'YYYY-MM-DD HH:mm:ss',
+    emptyText: '',
+    invalidText: ''
+  })
   const toIso = (value: string | null): string | null => (value ? dayjs(value).toISOString() : null)
   const candidateName = (id: string): string =>
     candidates.value.find((candidate) => candidate.id === id)?.waybillNo || '未找到子单'

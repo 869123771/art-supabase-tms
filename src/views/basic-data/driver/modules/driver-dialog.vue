@@ -108,7 +108,12 @@
     fetchDriverEmployeeOptions
   } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'
-  import { canEditField, canViewField, getFieldAccess } from '@/utils/field-permission'
+  import {
+    isReadableFieldAccess,
+    canEditField,
+    canViewField,
+    getFieldAccess
+  } from '@/utils/field-permission'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
 
   defineOptions({ name: 'TmsDriverDialog' })
@@ -200,7 +205,7 @@
     canEditField(form.fieldAccess, field)
 
   const canViewIdentityDocuments = computed(() =>
-    ['read', 'edit'].includes(getFieldAccess(form.fieldAccess, 'identityDocuments'))
+    isReadableFieldAccess(getFieldAccess(form.fieldAccess, 'identityDocuments'))
   )
 
   const formRules = computed<FormRules<DriverForm>>(() => ({

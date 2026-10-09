@@ -51,6 +51,7 @@
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import { ColumnOption, DialogType } from '@/types'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
+  import { normalizeImportedEnabled } from '@/utils/form/normalize'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { useUserStore } from '@/store/modules/user'
   import { useTenantScopeStore } from '@/store/modules/tenant-scope'
@@ -301,8 +302,7 @@
       permission: 'TmsStation:Import',
       type: 'import',
       importColumns: stationExcelColumns,
-      importTransformer: (rows) =>
-        rows.map((row) => normalizeImportRow(row as Record<string, unknown>)),
+      importRecordTransformer: (rows) => rows.map(normalizeImportRow),
       importApi: async (rows) => {
         const targetTenantId = defaultWriteTenantId.value
         if (!targetTenantId) throw new Error('无法确定导入目标租户，请刷新后重试')
@@ -369,11 +369,6 @@
     return fetchStationList({ ...params, from, to })
   }
 
-  const normalizeEnabled = (value: unknown): boolean => {
-    if (value === false || value === 'false' || value === '停用' || value === '否') return false
-    return true
-  }
-
   const normalizeStationTypes = (value: unknown): string[] =>
     uniq(
       String(value ?? '')
@@ -387,7 +382,7 @@
     ({
       ...row,
       stationTypes: normalizeStationTypes(row.stationTypes),
-      enabled: normalizeEnabled(row.enabled)
+      enabled: normalizeImportedEnabled(row.enabled)
     }) as StationSavePayload
 
   const openDialog = (row?: Station): void => {

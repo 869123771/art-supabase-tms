@@ -1,5 +1,5 @@
 <template>
-  <ArtDrawer ref="drawerRef">
+  <ArtDrawer ref="drawerRef" :loading="state.loading" loading-text="正在评估承运商…">
     <template #header>
       <div class="carrier-advisor__drawer-title">
         <span><ArtSvgIcon icon="ri:bar-chart-grouped-line" /></span>
@@ -11,13 +11,7 @@
     </template>
 
     <div class="carrier-advisor">
-      <template v-if="state.loading && !assessment">
-        <div class="carrier-advisor__skeleton art-card-xs">
-          <ElSkeleton :rows="8" animated />
-        </div>
-      </template>
-
-      <template v-else-if="assessment">
+      <template v-if="assessment">
         <section class="carrier-advisor__hero art-card-xs" :class="`is-${assessment.riskLevel}`">
           <header class="carrier-advisor__hero-header">
             <div class="carrier-advisor__hero-main">
@@ -479,10 +473,6 @@
         margin-top: 3px;
         color: var(--art-text-gray-500);
       }
-    }
-
-    &__skeleton {
-      padding: 24px;
     }
 
     &__hero {

@@ -35,7 +35,12 @@
               >重试加载</ElButton
             >
           </div>
-          <ElSkeleton v-if="vehicleLoading" :rows="2" animated />
+          <ArtAsyncState
+            v-if="vehicleLoading"
+            :loading="vehicleLoading"
+            :min-height="160"
+            size="compact"
+          />
           <p v-else-if="vehicleError" class="order-config__hint is-error"
             >车型规格加载失败，请重试。</p
           >
@@ -171,19 +176,18 @@
 </template>
 
 <script setup lang="ts">
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import { ElMessage, type FormRules } from 'element-plus'
   import { uniqBy } from 'lodash-es'
-  import { storeToRefs } from 'pinia'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import ArtUploadFile from '@/components/core/forms/art-upload-file/index.vue'
   import { fetchTmsVehicleTypeProfiles, type TmsVehicleTypeProfile } from '@tms/api'
-  import { useUserStore } from '@/store/modules/user'
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import VehicleTypeArt from './vehicle-type-art.vue'
 
   const config = defineModel<Api.Tms.Order.OrderConfig>({ required: true })
   defineProps<{ canEditAttachments: boolean; resourceTenantId: string }>()
-  const { getDictMap } = storeToRefs(useUserStore())
   const vehicleFormRef = ref<InstanceType<typeof ArtForm>>()
   const settingsFormRef = ref<InstanceType<typeof ArtForm>>()
   const attachmentUploadRef = ref<{ hasPendingUpload: () => boolean }>()
@@ -200,22 +204,16 @@
       (profile) => `${profile.lengthM}:${profile.volumeM3}:${profile.loadTons}`
     )
   )
-  const loadTypeOptions = computed(() =>
-    (getDictMap.value.tmsOrderLoadType ?? []).map((item) => ({
-      label: item.label,
-      value: item.value
-    }))
-  )
-  const billingModeOptions = computed(() => getDictMap.value.tmsOrderBillingMode ?? [])
-  const cargoCategoryOptions = computed(() => getDictMap.value.tmsOrderCargoCategory ?? [])
-  const packagingOptions = computed(() => getDictMap.value.tmsOrderPackaging ?? [])
-  const transportRequirementOptions = computed(
-    () => getDictMap.value.tmsOrderTransportRequirement ?? []
-  )
-  const trackingMethodOptions = computed(() => getDictMap.value.tmsOrderTrackingMethod ?? [])
-  const booleanOptions = computed(() => getDictMap.value.commonBoolean ?? [])
+  const loadTypeOptions = useDictionaryOptions('tmsOrderLoadType')
+  const billingModeOptions = useDictionaryOptions('tmsOrderBillingMode')
+  const cargoCategoryOptions = useDictionaryOptions('tmsOrderCargoCategory')
+  const packagingOptions = useDictionaryOptions('tmsOrderPackaging')
+  const transportRequirementOptions = useDictionaryOptions('tmsOrderTransportRequirement')
+  const trackingMethodOptions = useDictionaryOptions('tmsOrderTrackingMethod')
+  const booleanOptions = useDictionaryOptions<boolean>('commonBoolean', (value) => value === 'true')
+  const cargoUnitOptions = useDictionaryOptions('tmsCargoUnit')
   const billingUnitOptions = computed(() =>
-    (getDictMap.value.tmsCargoUnit ?? []).filter((item) => {
+    cargoUnitOptions.filter((item) => {
       if (config.value.billingMode === 'weight') return ['kg', 'ton'].includes(item.value)
       if (config.value.billingMode === 'volume')
         return ['cubic_meter', 'liter'].includes(item.value)
@@ -283,7 +281,7 @@
       label: '计费模式',
       type: 'select',
       placeholder: '请选择计费模式',
-      options: billingModeOptions.value,
+      options: billingModeOptions,
       props: { onChange: () => (config.value.billingUnit = '') }
     },
     {
@@ -299,7 +297,7 @@
       label: '货物分类',
       type: 'select',
       placeholder: '请选择货物分类',
-      options: cargoCategoryOptions.value,
+      options: cargoCategoryOptions,
       props: { onChange: handleCategoryChange }
     },
     ...(config.value.cargoCategory === 'temperature'
@@ -316,25 +314,22 @@
       label: '包装方式',
       type: 'select',
       placeholder: '请选择包装方式',
-      options: packagingOptions.value
+      options: packagingOptions
     },
     {
       key: 'selfPickup',
       label: '是否自提',
       type: 'radioGroup',
-      options: booleanOptions.value.map((item) => ({
-        label: item.label,
-        value: item.value === 'true'
-      })),
+      options: booleanOptions,
       props: { optionType: 'button' }
     },
     {
       key: 'insured',
       label: '是否保价',
       type: 'radioGroup',
-      options: booleanOptions.value.map((item) => ({
-        label: item.value === 'true' ? '保价' : '不保价',
-        value: item.value === 'true'
+      options: booleanOptions.map((item) => ({
+        label: item.value ? '保价' : '不保价',
+        value: item.value
       })),
       props: { optionType: 'button' }
     },
@@ -342,9 +337,9 @@
       key: 'allowConsolidation',
       label: '允许与其他客户单合车',
       type: 'radioGroup',
-      options: booleanOptions.value.map((item) => ({
-        label: item.value === 'true' ? '允许合单' : '单独运输',
-        value: item.value === 'true'
+      options: booleanOptions.map((item) => ({
+        label: item.value ? '允许合单' : '单独运输',
+        value: item.value
       })),
       props: { optionType: 'button' },
       description: '客户明确允许后，调度才能与线路和货物条件相容的订单合车。'
@@ -354,14 +349,14 @@
       label: '运输要求',
       type: 'checkboxGroup',
       span: config.value.trackingMethod ? 12 : 18,
-      options: transportRequirementOptions.value
+      options: transportRequirementOptions
     },
     {
       key: 'trackingMethod',
       label: '跟踪方式',
       type: 'select',
       placeholder: '请选择跟踪方式',
-      options: trackingMethodOptions.value,
+      options: trackingMethodOptions,
       props: { clearable: true, onChange: () => (config.value.trackingNumber = '') }
     },
     ...(config.value.trackingMethod

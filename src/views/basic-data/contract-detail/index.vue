@@ -117,7 +117,6 @@
 
 <script setup lang="ts">
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
-  import { isNil } from 'lodash-es'
   import { ElTag } from 'element-plus'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
@@ -126,7 +125,11 @@
   import WorkflowBusinessHistory from '@/components/business/workflow-business-history/index.vue'
   import type { ColumnOption } from '@/types'
   import { fetchContractDetail } from '@tms/api'
-  import { canViewField, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
+  import {
+    canViewField,
+    formatSensitiveNumber,
+    formatSensitiveNumberWithAffix
+  } from '@/utils/field-permission'
 
   defineOptions({ name: 'TmsContractDetail' })
 
@@ -261,7 +264,8 @@
       key: 'agreedTransportQuantity',
       label: '合同约定运输量',
       field: 'agreedTransportQuantity',
-      formatter: (value) => formatNumber(value as number | null | undefined)
+      formatter: (value) =>
+        formatSensitiveNumber(value as number | null | undefined, { maximumFractionDigits: 4 })
     }
   ])
 
@@ -304,7 +308,7 @@
       label: '合同数量',
       minWidth: 120,
       align: 'right',
-      formatter: (row) => formatNumber(row.contractQuantity)
+      formatter: (row) => formatSensitiveNumber(row.contractQuantity, { maximumFractionDigits: 4 })
     },
     { prop: 'unit', label: '计量单位', minWidth: 110, dict: { code: 'tmsCargoUnit' } },
     ...(canViewSensitiveField('transportDetailsPricing')
@@ -357,11 +361,6 @@
 
   const formatMoney = (value?: Api.Tms.BasicData.SensitiveNumber, prefix = ''): string => {
     return formatSensitiveNumberWithAffix(value, { prefix })
-  }
-
-  const formatNumber = (value?: number | null): string => {
-    if (isNil(value) || Number.isNaN(Number(value))) return '--'
-    return Number(value).toLocaleString('zh-CN', { maximumFractionDigits: 4 })
   }
 
   const formatRate = (value?: Api.Tms.BasicData.SensitiveNumber): string => {

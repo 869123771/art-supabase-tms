@@ -624,6 +624,8 @@
 </template>
 
 <script setup lang="tsx">
+  import { normalizeNullableNumber } from '@/utils/form/normalize'
+
   import { getScrollBehavior } from '@/utils/ui/scroll'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
@@ -651,11 +653,20 @@
   import ArtTable from '@/components/core/tables/art-table/index.vue'
   import { useAmapGeocoder } from '@/hooks/core/useAmapGeocoder'
   import { useAuth } from '@/hooks/core/useAuth'
+  import {
+    useDictionaryOptions,
+    type DictionarySelectOption
+  } from '@/hooks/core/useDictionaryOptions'
   import { useWebsiteConfig } from '@/hooks/core/useWebsiteConfig'
   import { useLazyComponent } from '@/hooks/core/useLazyComponent'
   import type { ColumnOption } from '@/types'
   import { formatNameCodeOption } from '@/utils/form'
-  import { canEditField, canViewField, getFieldAccess } from '@/utils/field-permission'
+  import {
+    isReadableFieldAccess,
+    canEditField,
+    canViewField,
+    getFieldAccess
+  } from '@/utils/field-permission'
   import {
     addOrder,
     editOrder,
@@ -693,11 +704,9 @@
     calculateOrderCargoSummary,
     getDictLabel,
     moneyValue,
-    nullableNumber,
     normalizeOrderPayload,
     parseOrderRegionPath,
     stripOrderRegionPrefix,
-    numericValue,
     textValue,
     type OrderForm
   } from './modules/order-open-model'
@@ -799,10 +808,10 @@
   interface FormGroup {
     data: OrderForm
     stationCaches: Record<StationMode, StationOption[]>
-    deliveryMethodOptions: ComputedRef<Api.DataCenter.DictListItem[]>
-    paymentMethodOptions: ComputedRef<Api.DataCenter.DictListItem[]>
-    transportModeOptions: ComputedRef<Api.DataCenter.DictListItem[]>
-    cargoUnitOptions: ComputedRef<Api.DataCenter.DictListItem[]>
+    deliveryMethodOptions: DictionarySelectOption[]
+    paymentMethodOptions: DictionarySelectOption[]
+    transportModeOptions: DictionarySelectOption[]
+    cargoUnitOptions: DictionarySelectOption[]
     stationItems: ComputedRef<FormItem[]>
     shippingItems: ComputedRef<FormItem[]>
     receivingItems: ComputedRef<FormItem[]>
@@ -832,7 +841,12 @@
   const { hasAuth, hasAnyAuth } = useAuth()
   const { geocodeAddress } = useAmapGeocoder()
   const { estimateDrivingRoute } = useAmapDrivingEstimate()
-  const { getDictMap } = storeToRefs(userStore)
+  const loadTypeOptions = useDictionaryOptions('tmsOrderLoadType')
+  const billingModeOptions = useDictionaryOptions('tmsOrderBillingMode')
+  const cargoCategoryOptions = useDictionaryOptions('tmsOrderCargoCategory')
+  const packagingOptions = useDictionaryOptions('tmsOrderPackaging')
+  const transportRequirementOptions = useDictionaryOptions('tmsOrderTransportRequirement')
+  const trackingMethodOptions = useDictionaryOptions('tmsOrderTrackingMethod')
   const { component: customerSelectorComponent, load: loadCustomerSelector } = useLazyComponent(
     () => import('./modules/customer-selector-dialog.vue')
   )
@@ -901,12 +915,12 @@
   const canEstimateDistance = computed(
     () =>
       isValidCoordinate(
-        nullableNumber(form.data.shippingLongitude),
-        nullableNumber(form.data.shippingLatitude)
+        normalizeNullableNumber(form.data.shippingLongitude),
+        normalizeNullableNumber(form.data.shippingLatitude)
       ) &&
       isValidCoordinate(
-        nullableNumber(form.data.receivingLongitude),
-        nullableNumber(form.data.receivingLatitude)
+        normalizeNullableNumber(form.data.receivingLongitude),
+        normalizeNullableNumber(form.data.receivingLatitude)
       )
   )
 
@@ -941,10 +955,10 @@
       destination: [],
       transfer: []
     },
-    deliveryMethodOptions: computed(() => getDictMap.value.tmsOrderDeliveryMethod ?? []),
-    paymentMethodOptions: computed(() => getDictMap.value.tmsOrderPaymentMethod ?? []),
-    transportModeOptions: computed(() => getDictMap.value.tmsOrderTransportMode ?? []),
-    cargoUnitOptions: computed(() => getDictMap.value.tmsCargoUnit ?? []),
+    deliveryMethodOptions: useDictionaryOptions('tmsOrderDeliveryMethod'),
+    paymentMethodOptions: useDictionaryOptions('tmsOrderPaymentMethod'),
+    transportModeOptions: useDictionaryOptions('tmsOrderTransportMode'),
+    cargoUnitOptions: useDictionaryOptions('tmsCargoUnit'),
     stationItems: computed<FormItem[]>(() => [
       {
         label: '发货站',
@@ -1204,7 +1218,7 @@
             placeholder="请选择"
           >
             {form.cargoUnitOptions.map((item) => (
-              <ElOption key={item.value} label={item.label || item.name} value={item.value} />
+              <ElOption key={item.value} label={item.label} value={item.value} />
             ))}
           </ElSelect>
         )
@@ -1309,13 +1323,13 @@
     cargoSummary: computed(() => calculateOrderCargoSummary(form.data.cargoItems)),
     extraServiceFee: computed(() =>
       round(
-        numericValue(form.data.deliveryFee) +
-          numericValue(form.data.unloadingFee) +
-          numericValue(form.data.collectPaymentFee) +
-          numericValue(form.data.transferFee) +
-          numericValue(form.data.insuranceFee) +
-          numericValue(form.data.packageFee) +
-          numericValue(form.data.otherFee),
+        (normalizeNullableNumber(form.data.deliveryFee) ?? 0) +
+          (normalizeNullableNumber(form.data.unloadingFee) ?? 0) +
+          (normalizeNullableNumber(form.data.collectPaymentFee) ?? 0) +
+          (normalizeNullableNumber(form.data.transferFee) ?? 0) +
+          (normalizeNullableNumber(form.data.insuranceFee) ?? 0) +
+          (normalizeNullableNumber(form.data.packageFee) ?? 0) +
+          (normalizeNullableNumber(form.data.otherFee) ?? 0),
         2
       )
     ),
@@ -1457,10 +1471,10 @@
   )
 
   async function calculateDistance(): Promise<void> {
-    const shippingLongitude = nullableNumber(form.data.shippingLongitude)
-    const shippingLatitude = nullableNumber(form.data.shippingLatitude)
-    const receivingLongitude = nullableNumber(form.data.receivingLongitude)
-    const receivingLatitude = nullableNumber(form.data.receivingLatitude)
+    const shippingLongitude = normalizeNullableNumber(form.data.shippingLongitude)
+    const shippingLatitude = normalizeNullableNumber(form.data.shippingLatitude)
+    const receivingLongitude = normalizeNullableNumber(form.data.receivingLongitude)
+    const receivingLatitude = normalizeNullableNumber(form.data.receivingLatitude)
     if (
       !isValidCoordinate(shippingLongitude, shippingLatitude) ||
       !isValidCoordinate(receivingLongitude, receivingLatitude)
@@ -1600,7 +1614,7 @@
 
   function handleCargoQuantityChange(row: CargoItem, value?: number): void {
     form.data.cargoItems = (form.data.cargoItems ?? []).map((item) =>
-      item === row ? { ...item, quantity: nullableNumber(value) } : item
+      item === row ? { ...item, quantity: normalizeNullableNumber(value) } : item
     )
   }
 
@@ -1771,8 +1785,8 @@
     const effectiveAccess = address?.fieldAccess ?? customer.fieldAccess
     const phoneAccess = getFieldAccess(effectiveAccess, 'contactPhone')
     const addressAccess = getFieldAccess(effectiveAccess, 'addressDetail')
-    const canReadPhone = phoneAccess === 'read' || phoneAccess === 'edit'
-    const canReadAddress = addressAccess === 'read' || addressAccess === 'edit'
+    const canReadPhone = isReadableFieldAccess(phoneAccess)
+    const canReadAddress = isReadableFieldAccess(addressAccess)
     const contactPhone = canReadPhone ? address?.contactPhone || customer.contactPhone || '' : ''
     const regionPath = canReadAddress
       ? parseOrderRegionPath(address?.region || customer.region)
@@ -1837,10 +1851,10 @@
     return {
       cargoName: textValue(item.cargoName),
       packageType: textValue(item.unit),
-      quantity: nullableNumber(item.quantity),
+      quantity: normalizeNullableNumber(item.quantity),
       unit: textValue(item.unit),
-      weightKg: nullableNumber(item.weightKg),
-      volumeM3: nullableNumber(item.volumeM3)
+      weightKg: normalizeNullableNumber(item.weightKg),
+      volumeM3: normalizeNullableNumber(item.volumeM3)
     }
   }
 
@@ -1887,12 +1901,12 @@
         paymentMethods: toAiOptions(form.paymentMethodOptions),
         transportModes: toAiOptions(form.transportModeOptions),
         cargoUnits: toAiOptions(form.cargoUnitOptions),
-        loadTypes: toAiOptions(getDictMap.value.tmsOrderLoadType ?? []),
-        billingModes: toAiOptions(getDictMap.value.tmsOrderBillingMode ?? []),
-        cargoCategories: toAiOptions(getDictMap.value.tmsOrderCargoCategory ?? []),
-        packagingOptions: toAiOptions(getDictMap.value.tmsOrderPackaging ?? []),
-        transportRequirements: toAiOptions(getDictMap.value.tmsOrderTransportRequirement ?? []),
-        trackingMethods: toAiOptions(getDictMap.value.tmsOrderTrackingMethod ?? [])
+        loadTypes: toAiOptions(loadTypeOptions),
+        billingModes: toAiOptions(billingModeOptions),
+        cargoCategories: toAiOptions(cargoCategoryOptions),
+        packagingOptions: toAiOptions(packagingOptions),
+        transportRequirements: toAiOptions(transportRequirementOptions),
+        trackingMethods: toAiOptions(trackingMethodOptions)
       }
     })
   }
@@ -1959,10 +1973,10 @@
       form.data.cargoItems = draft.cargoItems.map((item) => ({
         cargoName: textValue(item.cargoName),
         packageType: textValue(item.packageType || item.unit),
-        quantity: nullableNumber(item.quantity),
+        quantity: normalizeNullableNumber(item.quantity),
         unit: textValue(item.unit || item.packageType),
-        weightKg: nullableNumber(item.weightKg),
-        volumeM3: nullableNumber(item.volumeM3)
+        weightKg: normalizeNullableNumber(item.weightKg),
+        volumeM3: normalizeNullableNumber(item.volumeM3)
       }))
     }
 
@@ -1987,8 +2001,8 @@
     const normalizedAddress = textValue(address)
     if (!normalizedAddress) return { patch: {}, failed: false }
 
-    const longitude = nullableNumber(reference.longitude)
-    const latitude = nullableNumber(reference.latitude)
+    const longitude = normalizeNullableNumber(reference.longitude)
+    const latitude = normalizeNullableNumber(reference.latitude)
     if (isValidCoordinate(longitude, latitude)) {
       return {
         patch: createCoordinatePatch(mode, reference.id ?? null, longitude, latitude),
@@ -2098,13 +2112,8 @@
     })
   }
 
-  function toAiOptions(options: Api.DataCenter.DictListItem[]): Api.Tms.Order.AiOrderOption[] {
-    return options
-      .filter((item) => item.value)
-      .map((item) => ({
-        label: item.label || item.name || item.value,
-        value: item.value
-      }))
+  function toAiOptions(options: DictionarySelectOption[]): Api.Tms.Order.AiOrderOption[] {
+    return options.filter((item) => item.value)
   }
 
   async function validateContactStep(): Promise<boolean> {
@@ -2294,7 +2303,10 @@
 
   function sumFields(fields: Array<keyof OrderForm>): number {
     return round(
-      fields.reduce((sum, field) => sum + numericValue(form.data[field] as number), 0),
+      fields.reduce(
+        (sum, field) => sum + (normalizeNullableNumber(form.data[field] as number) ?? 0),
+        0
+      ),
       2
     )
   }

@@ -1,6 +1,7 @@
-import { cloneDeep, isNil, omit, round, toNumber, trim } from 'lodash-es'
+import { normalizeNullableNumber, normalizeNullableText } from '@/utils/form/normalize'
+import { cloneDeep, omit, round, trim } from 'lodash-es'
 import dayjs from 'dayjs'
-import { getFieldAccess } from '@/utils/field-permission'
+import { isReadableFieldAccess, getFieldAccess } from '@/utils/field-permission'
 
 export type OrderRecord = Api.Tms.Order.OrderRecord
 export type CargoItem = Api.Tms.Order.CargoItem
@@ -155,11 +156,6 @@ export function createInitialForm(): OrderForm {
   }
 }
 
-export function numericValue(value?: number | string | null): number {
-  const parsed = toNumber(value ?? 0)
-  return Number.isFinite(parsed) ? parsed : 0
-}
-
 export function textValue(value?: string | null): string {
   return trim(String(value ?? ''))
 }
@@ -208,12 +204,10 @@ export function createFavoriteRouteContactPatch(route: FavoriteRoute): Partial<O
   const originAddressAccess = getFieldAccess(origin?.fieldAccess, 'addressDetail')
   const destinationPhoneAccess = getFieldAccess(destination?.fieldAccess, 'contactPhone')
   const destinationAddressAccess = getFieldAccess(destination?.fieldAccess, 'addressDetail')
-  const canReadOriginPhone = originPhoneAccess === 'read' || originPhoneAccess === 'edit'
-  const canReadOriginAddress = originAddressAccess === 'read' || originAddressAccess === 'edit'
-  const canReadDestinationPhone =
-    destinationPhoneAccess === 'read' || destinationPhoneAccess === 'edit'
-  const canReadDestinationAddress =
-    destinationAddressAccess === 'read' || destinationAddressAccess === 'edit'
+  const canReadOriginPhone = isReadableFieldAccess(originPhoneAccess)
+  const canReadOriginAddress = isReadableFieldAccess(originAddressAccess)
+  const canReadDestinationPhone = isReadableFieldAccess(destinationPhoneAccess)
+  const canReadDestinationAddress = isReadableFieldAccess(destinationAddressAccess)
 
   return {
     shippingCustomerId: origin?.customerId || route.customerId || null,
@@ -238,19 +232,8 @@ export function createFavoriteRouteContactPatch(route: FavoriteRoute): Partial<O
   }
 }
 
-export function nullableText(value?: string | null): string | null {
-  const text = textValue(value)
-  return text || null
-}
-
-export function nullableNumber(value?: number | string | null): number | null {
-  if (isNil(value) || value === '') return null
-  const parsed = toNumber(value)
-  return Number.isFinite(parsed) ? parsed : null
-}
-
 export function moneyValue(value?: number | string | null): number {
-  return round(nullableNumber(value) ?? 0, 2)
+  return round(normalizeNullableNumber(value) ?? 0, 2)
 }
 
 export function createCustomerPriceBusinessPatch(
@@ -274,22 +257,22 @@ export function createCustomerPriceBusinessPatch(
 export function normalizeCargoItems(items?: CargoItem[]): CargoItem[] {
   return (items ?? [])
     .map((item) => ({
-      cargoId: nullableText(item.cargoId),
+      cargoId: normalizeNullableText(item.cargoId),
       cargoName: textValue(item.cargoName),
-      cargoCode: nullableText(item.cargoCode),
-      specModel: nullableText(item.specModel),
-      remark: nullableText(item.remark),
+      cargoCode: normalizeNullableText(item.cargoCode),
+      specModel: normalizeNullableText(item.specModel),
+      remark: normalizeNullableText(item.remark),
       packageType: textValue(item.packageType),
-      quantity: nullableNumber(item.quantity),
+      quantity: normalizeNullableNumber(item.quantity),
       unit: textValue(item.unit),
-      weightKg: nullableNumber(item.weightKg),
-      volumeM3: nullableNumber(item.volumeM3),
-      unitPrice: nullableNumber(item.unitPrice),
-      freight: nullableNumber(item.freight),
-      sourceContractId: nullableText(item.sourceContractId),
-      sourceContractNo: nullableText(item.sourceContractNo),
-      sourceContractName: nullableText(item.sourceContractName),
-      sourceContractDetailKey: nullableText(item.sourceContractDetailKey)
+      weightKg: normalizeNullableNumber(item.weightKg),
+      volumeM3: normalizeNullableNumber(item.volumeM3),
+      unitPrice: normalizeNullableNumber(item.unitPrice),
+      freight: normalizeNullableNumber(item.freight),
+      sourceContractId: normalizeNullableText(item.sourceContractId),
+      sourceContractNo: normalizeNullableText(item.sourceContractNo),
+      sourceContractName: normalizeNullableText(item.sourceContractName),
+      sourceContractDetailKey: normalizeNullableText(item.sourceContractDetailKey)
     }))
     .filter(
       (item) =>
@@ -300,15 +283,15 @@ export function normalizeCargoItems(items?: CargoItem[]): CargoItem[] {
 export function calculateOrderCargoSummary(items?: CargoItem[]): OrderCargoSummary {
   return {
     quantity: round(
-      (items ?? []).reduce((sum, item) => sum + numericValue(item.quantity), 0),
+      (items ?? []).reduce((sum, item) => sum + (normalizeNullableNumber(item.quantity) ?? 0), 0),
       0
     ),
     weight: round(
-      (items ?? []).reduce((sum, item) => sum + numericValue(item.weightKg), 0),
+      (items ?? []).reduce((sum, item) => sum + (normalizeNullableNumber(item.weightKg) ?? 0), 0),
       2
     ),
     volume: round(
-      (items ?? []).reduce((sum, item) => sum + numericValue(item.volumeM3), 0),
+      (items ?? []).reduce((sum, item) => sum + (normalizeNullableNumber(item.volumeM3) ?? 0), 0),
       3
     )
   }
@@ -316,7 +299,7 @@ export function calculateOrderCargoSummary(items?: CargoItem[]): OrderCargoSumma
 
 function sumOrderFields(form: OrderForm, fields: Array<keyof OrderForm>): number {
   return round(
-    fields.reduce((sum, field) => sum + numericValue(form[field] as number), 0),
+    fields.reduce((sum, field) => sum + (normalizeNullableNumber(form[field] as number) ?? 0), 0),
     2
   )
 }
@@ -364,15 +347,15 @@ export function normalizeOrderPayload({
     codAmount: moneyValue(raw.codAmount),
     handlingFee: moneyValue(raw.handlingFee),
     paymentTotal: sumOrderFields(raw, paymentFields),
-    originStationId: nullableText(raw.originStationId),
-    destinationStationId: nullableText(raw.destinationStationId),
-    transferStationId: nullableText(raw.transferStationId),
-    shippingAddressId: nullableText(raw.shippingAddressId),
-    receivingAddressId: nullableText(raw.receivingAddressId),
-    shippingLongitude: nullableNumber(raw.shippingLongitude),
-    shippingLatitude: nullableNumber(raw.shippingLatitude),
-    receivingLongitude: nullableNumber(raw.receivingLongitude),
-    receivingLatitude: nullableNumber(raw.receivingLatitude),
+    originStationId: normalizeNullableText(raw.originStationId),
+    destinationStationId: normalizeNullableText(raw.destinationStationId),
+    transferStationId: normalizeNullableText(raw.transferStationId),
+    shippingAddressId: normalizeNullableText(raw.shippingAddressId),
+    receivingAddressId: normalizeNullableText(raw.receivingAddressId),
+    shippingLongitude: normalizeNullableNumber(raw.shippingLongitude),
+    shippingLatitude: normalizeNullableNumber(raw.shippingLatitude),
+    receivingLongitude: normalizeNullableNumber(raw.receivingLongitude),
+    receivingLatitude: normalizeNullableNumber(raw.receivingLatitude),
     shippingRegionPath: raw.shippingRegionPath ?? [],
     receivingRegionPath: raw.receivingRegionPath ?? [],
     shippingAddressDetail: formatOrderAddress(
@@ -383,13 +366,13 @@ export function normalizeOrderPayload({
       (raw.receivingRegionPath ?? []).join(''),
       raw.receivingAddressDetail
     ),
-    distanceKm: nullableNumber(raw.distanceKm),
+    distanceKm: normalizeNullableNumber(raw.distanceKm),
     departureAt: raw.departureAt || null,
     arrivalAt: raw.arrivalAt || null,
     orderConfig: raw.orderConfig ?? createInitialOrderConfig(),
     originStation: stationNames.origin || textValue(raw.originStation),
     destinationStation: stationNames.destination || textValue(raw.destinationStation),
-    transferStation: stationNames.transfer || nullableText(raw.transferStation),
+    transferStation: stationNames.transfer || normalizeNullableText(raw.transferStation),
     transportMode: textValue(raw.transportMode),
     orderRemark: textValue(raw.orderRemark),
     orderNo: textValue(raw.orderNo),
@@ -400,7 +383,7 @@ export function normalizeOrderPayload({
 }
 
 export function getDictLabel(
-  options: Api.DataCenter.DictListItem[],
+  options: Pick<Api.DataCenter.DictListItem, 'label' | 'value'>[],
   value?: string | null
 ): string {
   if (!value) return ''

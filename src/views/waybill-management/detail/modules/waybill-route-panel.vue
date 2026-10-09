@@ -109,7 +109,7 @@
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import { useAmapSdk, type AmapBrowserNamespace } from '@/hooks/core/useAmapSdk'
-  import { formatWithDayjs } from '@/utils/time'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
   import {
     buildDrivingRoutePoints,
     buildWaybillGpsTrackPoints,
@@ -310,9 +310,7 @@
     )
   }
 
-  function formatDateTime(value?: string | null): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD HH:mm:ss') || '-'
-  }
+  const formatDateTime = createDateTimeFormatter({ emptyText: '-' })
 
   function formatDuration(minutes: number): string {
     if (minutes < 60) return `${minutes} 分钟`

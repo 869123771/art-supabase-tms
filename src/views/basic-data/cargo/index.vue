@@ -21,7 +21,7 @@
         primary-min="250px"
         primary-max="360px"
         :breakpoint="900"
-        stacked-primary-size="340px"
+        stacked-primary-size="auto"
       >
         <template #primary>
           <MasterGroupPanel
@@ -72,6 +72,7 @@
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import { ColumnOption, DialogType } from '@/types'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
+  import { normalizeImportedEnabled, normalizeNullableNumber } from '@/utils/form/normalize'
   import { formatWithDayjs } from '@/utils/time'
   import { useUserStore } from '@/store/modules/user'
   import { useTenantScopeStore } from '@/store/modules/tenant-scope'
@@ -333,8 +334,7 @@
       type: 'import',
       permission: 'TmsCargo:Import',
       importColumns: cargoImportColumns,
-      importTransformer: (rows) =>
-        rows.map((row) => normalizeImportRow(row as Record<string, unknown>)),
+      importRecordTransformer: (rows) => rows.map(normalizeImportRow),
       importApi: async (rows) => {
         const targetTenantId = defaultWriteTenantId.value
         if (!targetTenantId) throw new Error('无法确定导入目标租户，请刷新后重试')
@@ -385,27 +385,16 @@
     return Number(value).toFixed(digits)
   }
 
-  const parseOptionalNumber = (value: unknown): number | null => {
-    if (value === '' || value === null || value === undefined) return null
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : null
-  }
-
-  const normalizeEnabled = (value: unknown): boolean => {
-    if (value === false || value === 'false' || value === '停用' || value === '否') return false
-    return true
-  }
-
   const normalizeImportRow = (row: Record<string, unknown>): Cargo =>
     ({
       ...row,
-      lengthM: parseOptionalNumber(row.lengthM),
-      widthM: parseOptionalNumber(row.widthM),
-      heightM: parseOptionalNumber(row.heightM),
-      volumeM3: parseOptionalNumber(row.volumeM3),
-      weightKg: parseOptionalNumber(row.weightKg),
-      valueAmount: parseOptionalNumber(row.valueAmount),
-      enabled: normalizeEnabled(row.enabled)
+      lengthM: normalizeNullableNumber(row.lengthM),
+      widthM: normalizeNullableNumber(row.widthM),
+      heightM: normalizeNullableNumber(row.heightM),
+      volumeM3: normalizeNullableNumber(row.volumeM3),
+      weightKg: normalizeNullableNumber(row.weightKg),
+      valueAmount: normalizeNullableNumber(row.valueAmount),
+      enabled: normalizeImportedEnabled(row.enabled)
     }) as Cargo
 
   const openDialog = (row?: Cargo, copy = false): void => {

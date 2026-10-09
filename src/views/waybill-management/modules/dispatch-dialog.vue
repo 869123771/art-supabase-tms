@@ -318,6 +318,8 @@
 </template>
 
 <script setup lang="ts">
+  import { buildSupabasePageRange } from '@/utils/supabase/pagination'
+  import { normalizeNullableText } from '@/utils/form/normalize'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import DOMPurify from 'dompurify'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
@@ -588,10 +590,10 @@
   }
 
   function candidateParams(params: DataSelectFetchParams) {
-    const from = (params.page - 1) * params.pageSize
+    const { from, to } = buildSupabasePageRange({ current: params.page, size: params.pageSize })
     const tenantId = dialog.rows[0]?.tenantId || tenantScopeStore.effectiveTenantId
     if (!tenantId) throw new Error('运单缺少所属租户，请刷新列表后重试')
-    return { tenantId, keyword: params.keyword, from, to: from + params.pageSize - 1 }
+    return { tenantId, keyword: params.keyword, from, to }
   }
 
   async function fetchCarrierSelectData(params: DataSelectFetchParams) {
@@ -801,7 +803,7 @@
       dispatchDriverId: form.data.dispatchMode === 'carrier' ? null : form.data.dispatchDriverId,
       id: dialog.mode === 'single' ? ids[0] : undefined,
       ids: dialog.mode === 'batch' ? ids : undefined,
-      dispatchRemark: normalizeText(form.data.dispatchRemark)
+      dispatchRemark: normalizeNullableText(form.data.dispatchRemark)
     }
   }
 
@@ -863,11 +865,6 @@
   function formatValue(value?: string | number | null): string {
     const text = trim(String(value ?? ''))
     return text || '-'
-  }
-
-  function normalizeText(value?: string | null): string | null {
-    const text = trim(String(value ?? ''))
-    return text || null
   }
 
   defineExpose({ handleOpen })

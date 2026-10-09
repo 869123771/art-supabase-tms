@@ -69,6 +69,16 @@ test('行运费按本次数量乘合同单价计算并汇总', () => {
   assert.equal(calculateContractTransportFee([first, second]), 53.5)
 })
 
+test('合同货物计算保留数值字符串并将缺失和无效值按零处理', () => {
+  const item = createCargoItemFromContractDetail(detail())
+  Object.assign(item, { quantity: '2.5', unitPrice: '12.50' })
+  assert.equal(calculateContractCargoFreight(item), 31.25)
+  for (const quantity of [null, undefined, '', '非法数值', Number.NaN, Infinity]) {
+    Object.assign(item, { quantity })
+    assert.equal(calculateContractCargoFreight(item), 0)
+  }
+})
+
 test('数量变化后同步行运费与基础运费，非合同货物不参与计算', () => {
   const first = createCargoItemFromContractDetail(detail({ transportUnitPrice: 345.2 }))
   first.quantity = 2.5

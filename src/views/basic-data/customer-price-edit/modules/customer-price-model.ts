@@ -1,11 +1,13 @@
 import { cloneDeep, omit } from 'lodash-es'
-import { normalizeNullableNumber } from '@/utils/form/normalize'
+import {
+  normalizeNullableNumber,
+  normalizeNullableText,
+  normalizeNonNullableText
+} from '@/utils/form/normalize'
 import {
   calculateCargoSummary,
   joinRegionPath,
   normalizeMoney,
-  normalizeRequiredText,
-  normalizeText,
   roundNumber,
   toNumber
 } from '../../modules/price-form-utils'
@@ -101,9 +103,9 @@ export function normalizeCustomerPriceCargoItems(
 ): CustomerPriceCargoItem[] {
   return (items ?? [])
     .map((item) => ({
-      cargoName: normalizeText(item.cargoName),
+      cargoName: normalizeNullableText(item.cargoName),
       quantity: normalizeNullableNumber(item.quantity),
-      unit: normalizeText(item.unit),
+      unit: normalizeNullableText(item.unit),
       volumeM3: normalizeNullableNumber(item.volumeM3),
       weightKg: normalizeNullableNumber(item.weightKg)
     }))
@@ -144,11 +146,11 @@ export function normalizeCustomerPricePayload(form: CustomerPriceForm): Customer
     cargoQuantityTotal: cargoSummary.quantity,
     cargoVolumeTotal: cargoSummary.volume,
     cargoWeightTotal: cargoSummary.weight,
-    vehicleType: normalizeText(raw.vehicleType),
-    vehicleLength: normalizeText(raw.vehicleLength),
+    vehicleType: normalizeNullableText(raw.vehicleType),
+    vehicleLength: normalizeNullableText(raw.vehicleLength),
     vehicleCount: normalizeNullableNumber(raw.vehicleCount),
-    cargoType: normalizeText(raw.cargoType),
-    remark: normalizeText(raw.remark),
+    cargoType: normalizeNullableText(raw.cargoType),
+    remark: normalizeNullableText(raw.remark),
     transportFee: normalizeMoney(raw.transportFee),
     insuranceFee: normalizeMoney(raw.insuranceFee),
     packageFee: normalizeMoney(raw.packageFee),
@@ -163,16 +165,16 @@ export function normalizeCustomerPricePayload(form: CustomerPriceForm): Customer
     collectAmount: normalizeMoney(raw.collectAmount),
     periodicAmount: normalizeMoney(raw.periodicAmount),
     paymentTotal: sumMoneyFields(raw, paymentFields),
-    shippingAddressId: normalizeText(raw.shippingAddressId),
-    receivingAddressId: normalizeText(raw.receivingAddressId),
-    shippingContactName: normalizeRequiredText(raw.shippingContactName),
-    shippingContactPhone: normalizeRequiredText(raw.shippingContactPhone),
-    shippingAddressDetail: normalizeRequiredText(raw.shippingAddressDetail),
+    shippingAddressId: normalizeNullableText(raw.shippingAddressId),
+    receivingAddressId: normalizeNullableText(raw.receivingAddressId),
+    shippingContactName: normalizeNonNullableText(raw.shippingContactName),
+    shippingContactPhone: normalizeNonNullableText(raw.shippingContactPhone),
+    shippingAddressDetail: normalizeNonNullableText(raw.shippingAddressDetail),
     shippingLongitude: normalizeNullableNumber(raw.shippingLongitude),
     shippingLatitude: normalizeNullableNumber(raw.shippingLatitude),
-    receivingContactName: normalizeRequiredText(raw.receivingContactName),
-    receivingContactPhone: normalizeRequiredText(raw.receivingContactPhone),
-    receivingAddressDetail: normalizeRequiredText(raw.receivingAddressDetail),
+    receivingContactName: normalizeNonNullableText(raw.receivingContactName),
+    receivingContactPhone: normalizeNonNullableText(raw.receivingContactPhone),
+    receivingAddressDetail: normalizeNonNullableText(raw.receivingAddressDetail),
     receivingLongitude: normalizeNullableNumber(raw.receivingLongitude),
     receivingLatitude: normalizeNullableNumber(raw.receivingLatitude)
   })
