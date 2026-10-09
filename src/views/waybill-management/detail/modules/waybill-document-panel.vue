@@ -34,12 +34,12 @@
     </ArtSectionCard>
 
     <section class="waybill-document-panel__section art-card-xs">
-      <ElScrollbar class="waybill-document-panel__toolbar-scroll">
+      <div class="overflow-x-auto">
         <div class="waybill-document-panel__toolbar">
           <ElSegmented v-model="activeCategory" :options="filterOptions" />
           <span>当前显示 {{ filteredDocuments.length }} 份</span>
         </div>
-      </ElScrollbar>
+      </div>
 
       <div v-if="filteredDocuments.length" class="waybill-document-panel__gallery">
         <article v-for="(document, index) in filteredDocuments" :key="document.url">
@@ -97,7 +97,8 @@
                 ><dt>归档时间</dt><dd>{{ date(document.time) }}</dd></div
               >
               <div
-                ><dt>文件大小</dt><dd>{{ size(document.fileSize) }}</dd></div
+                ><dt>文件大小</dt
+                ><dd>{{ formatSize(document.fileSize, { precision: 1, emptyText: '-' }) }}</dd></div
               >
             </dl>
             <p v-if="document.remark">{{ document.remark }}</p>
@@ -138,6 +139,7 @@
 </template>
 
 <script setup lang="ts">
+  import { formatSize } from '@/utils/file/format-size'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { uniqBy } from 'lodash-es'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
@@ -403,13 +405,6 @@
     if (mimeType?.includes('pdf')) return 'ri:file-pdf-2-line'
     if (mimeType?.includes('sheet') || mimeType?.includes('excel')) return 'ri:file-excel-2-line'
     return 'ri:file-3-line'
-  }
-
-  function size(value?: number | null): string {
-    if (value == null) return '-'
-    if (value < 1024) return `${value} B`
-    if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`
-    return `${(value / 1024 / 1024).toFixed(1)} MB`
   }
 
   function date(value?: string | null): string {
