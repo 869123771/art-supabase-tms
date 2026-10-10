@@ -238,7 +238,7 @@
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import { analyzeCarrierPerformanceByAi } from '@tms/api'
-  import { formatWithDayjs } from '@/utils/time'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
 
   defineOptions({ name: 'TmsCarrierPerformanceAdvisorDrawer' })
 
@@ -434,9 +434,12 @@
         : 'ri:information-line'
   }
 
-  function formatTime(value?: string | null): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD HH:mm') ?? '--'
-  }
+  const formatTime = createDateTimeFormatter({
+    format: 'YYYY-MM-DD HH:mm',
+    emptyText: '--',
+    invalidText: '--',
+    allowTimeOnly: false
+  })
 
   defineExpose({ handleOpen })
 </script>

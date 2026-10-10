@@ -52,7 +52,7 @@
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
-  import { formatWithDayjs } from '@/utils/time'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
   import { fetchAppointmentList } from '@tms/api'
   import type { AppointmentKind, AppointmentListRow, AppointmentSearchParams } from '@tms/api'
   import AppointmentDrawer from './appointment-drawer.vue'
@@ -153,8 +153,12 @@
     }
   ])
 
-  const displayTime = (value?: string | null): string =>
-    value ? formatWithDayjs(value, 'YYYY-MM-DD HH:mm') || '-' : '-'
+  const displayTime = createDateTimeFormatter({
+    format: 'YYYY-MM-DD HH:mm',
+    emptyText: '-',
+    invalidText: '-',
+    allowTimeOnly: false
+  })
 
   const displayPair = (primary?: string | null, secondary?: string | null) => (
     <div class="min-w-0 leading-5">

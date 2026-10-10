@@ -1,4 +1,5 @@
 import { meanBy, uniqBy } from 'lodash-es'
+import { normalizeCoordinatePair } from '@/utils/geo'
 
 export type WaybillLocationSource = 'gps' | 'operation' | 'address' | 'expense'
 export type WaybillPointKind = 'business' | 'energy' | 'stop' | 'endpoint'
@@ -227,18 +228,7 @@ export function isValidMapCoordinate(
   longitude?: number | string | null,
   latitude?: number | string | null
 ): boolean {
-  if (longitude == null || latitude == null || longitude === '' || latitude === '') return false
-  const numericLongitude = Number(longitude)
-  const numericLatitude = Number(latitude)
-  return (
-    Number.isFinite(numericLongitude) &&
-    Number.isFinite(numericLatitude) &&
-    numericLongitude >= -180 &&
-    numericLongitude <= 180 &&
-    numericLatitude >= -90 &&
-    numericLatitude <= 90 &&
-    !(numericLongitude === 0 && numericLatitude === 0)
-  )
+  return toCoordinate(longitude, latitude) !== null
 }
 
 export function getWaybillEventLabel(type: string): string {
@@ -362,8 +352,9 @@ function toCoordinate(
   longitude?: number | string | null,
   latitude?: number | string | null
 ): { longitude: number; latitude: number } | null {
-  if (!isValidMapCoordinate(longitude, latitude)) return null
-  return { longitude: Number(longitude), latitude: Number(latitude) }
+  const coordinate = normalizeCoordinatePair(longitude, latitude)
+  if (!coordinate || (coordinate.longitude === 0 && coordinate.latitude === 0)) return null
+  return coordinate
 }
 
 function createEndpointPoint(

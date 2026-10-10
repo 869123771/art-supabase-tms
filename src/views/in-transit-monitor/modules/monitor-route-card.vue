@@ -2,30 +2,32 @@
   <div class="monitor-route-card">
     <div class="monitor-route-card__cities">
       <strong>{{ order.origin }}</strong>
-      <span>{{ order.progress }}%</span>
+      <span :title="order.progressLabel">{{
+        formatPercentValue(order.progress, { fractionDigits: 0 })
+      }}</span>
       <strong>{{ order.destination }}</strong>
     </div>
     <div class="monitor-route-card__track">
       <i />
-      <b :style="{ width: `${order.progress}%` }" />
-      <em :style="{ left: `${order.progress}%` }" />
+      <b :style="{ width: `${order.progress ?? 0}%` }" />
+      <em v-if="order.progress !== null" :style="{ left: `${order.progress}%` }" />
     </div>
     <div class="monitor-route-card__meta">
       <span>{{ formatDateTime(order.plannedDepartureTime) }}</span>
-      <small>{{ order.totalKm }} km</small>
+      <small>直线估算 {{ formatArtValue(order.totalKm, 'number') }} km</small>
       <span>{{ formatDateTime(order.plannedArrivalTime) }}</span>
     </div>
     <div class="monitor-route-card__source" :class="`is-${order.trackSource}`">
       <ArtSvgIcon
         :icon="order.trackSource === 'gps' ? 'ri:map-pin-time-line' : 'ri:road-map-line'"
       />
-      <span>{{ order.trackSourceLabel }}</span>
+      <span>{{ order.trackSourceLabel }} · {{ order.progressLabel }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { formatWithDayjs } from '@/utils/time'
+  import { createDateTimeFormatter, formatArtValue, formatPercentValue } from '@/utils/ui/format'
   import type { MonitorOrder } from './monitor-types'
 
   defineOptions({ name: 'TmsMonitorRouteCard' })
@@ -34,9 +36,12 @@
     order: MonitorOrder
   }>()
 
-  function formatDateTime(value?: string | null): string {
-    return value ? formatWithDayjs(value, 'MM-DD HH:mm') || '-' : '-'
-  }
+  const formatDateTime = createDateTimeFormatter({
+    format: 'MM-DD HH:mm',
+    emptyText: '-',
+    invalidText: '-',
+    allowTimeOnly: false
+  })
 </script>
 
 <style scoped lang="scss">

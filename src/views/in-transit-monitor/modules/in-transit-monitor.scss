@@ -6,6 +6,9 @@
   --transit-text: #eef7ff;
   --transit-text-strong: #f7fbff;
   --transit-text-muted: #8fb2c6;
+  --el-text-color-primary: var(--transit-text);
+  --el-text-color-secondary: var(--transit-text-muted);
+  --art-gray-600: var(--transit-text-muted);
   --transit-accent: var(--theme-color);
   --transit-focus: color-mix(in srgb, var(--theme-color) 58%, white);
   --transit-success: #23d18b;

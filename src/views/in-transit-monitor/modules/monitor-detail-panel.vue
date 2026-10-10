@@ -4,7 +4,13 @@
       <div class="detail-panel__title">
         <div>
           <strong>车辆详情</strong>
-          <span><i />运输中</span>
+          <span
+            :style="{
+              color: order?.statusColor ?? 'var(--transit-text-muted)',
+              background: `color-mix(in srgb, ${order?.statusColor ?? 'var(--transit-text-muted)'} 10%, transparent)`
+            }"
+            ><i class="bg-current!" />{{ order?.statusLabel ?? '待选择车辆' }}</span
+          >
         </div>
         <ElButton
           v-auth="'TmsInTransitMonitor:View'"
@@ -55,11 +61,13 @@
                 <div class="detail-speed">
                   <div>
                     <span>当前速度</span>
-                    <strong>{{ order.speed }}<small>km/h</small></strong>
+                    <strong>{{ formatArtValue(order.speed, 'number') }}<small>km/h</small></strong>
                   </div>
                   <div>
-                    <span>剩余里程</span>
-                    <strong>{{ order.remainingKm }}<small>km</small></strong>
+                    <span>估算剩余直线距离</span>
+                    <strong
+                      >{{ formatArtValue(order.remainingKm, 'number') }}<small>km</small></strong
+                    >
                   </div>
                 </div>
               </div>
@@ -75,7 +83,7 @@
                     <small>出发时间</small>
                     <em>{{ formatDateTime(order.plannedDepartureTime) }}</em>
                   </div>
-                  <i>{{ order.progress }}%</i>
+                  <i>{{ formatPercentValue(order.progress, { fractionDigits: 0 }) }}</i>
                   <div>
                     <b>{{ order.destination }}</b>
                     <small>预计到达</small>
@@ -84,10 +92,15 @@
                 </div>
                 <div class="detail-progress">
                   <div>
-                    <span>运输进度</span>
-                    <b>{{ order.completedKm }}/{{ order.totalKm }} km</b>
+                    <span>{{ order.progressLabel }}</span>
+                    <b title="直线距离与时间进度估算"
+                      >{{ formatArtValue(order.completedKm, 'number') }}/{{
+                        formatArtValue(order.totalKm, 'number')
+                      }}
+                      km（估）</b
+                    >
                   </div>
-                  <i><b :style="{ width: `${order.progress}%` }" /></i>
+                  <i><b :style="{ width: `${order.progress ?? 0}%` }" /></i>
                 </div>
               </div>
 
@@ -165,7 +178,7 @@
   import { MagicStick, MoreFilled, Phone, Warning } from '@element-plus/icons-vue'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
-  import { formatWithDayjs } from '@/utils/time'
+  import { createDateTimeFormatter, formatArtValue, formatPercentValue } from '@/utils/ui/format'
   import type { MonitorOrder } from './monitor-types'
 
   defineOptions({ name: 'TmsMonitorDetailPanel' })
@@ -181,9 +194,12 @@
     'send-reminder': []
   }>()
 
-  function formatDateTime(value?: string | null): string {
-    return value ? formatWithDayjs(value, 'YYYY-MM-DD HH:mm') || '-' : '-'
-  }
+  const formatDateTime = createDateTimeFormatter({
+    format: 'YYYY-MM-DD HH:mm',
+    emptyText: '-',
+    invalidText: '-',
+    allowTimeOnly: false
+  })
 </script>
 
 <style scoped lang="scss">

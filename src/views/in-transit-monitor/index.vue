@@ -3,7 +3,7 @@
     <ArtAsyncState
       class="transit-screen__state"
       :loading="screen.loading"
-      :error="pageError"
+      :error="screen.error"
       :min-height="0"
       full-height
       @retry="loadMonitorData"
@@ -57,7 +57,8 @@
                     >在途</span
                   >
                   <span
-                    ><b>{{ overview.onTimeRate }}%</b>准时</span
+                    ><b>{{ formatPercentValue(overview.onTimeRate, { fractionDigits: 0 }) }}</b
+                    >到达准时率</span
                   >
                   <span :class="{ 'is-alert': alertItems.length }"
                     ><b>{{ alertItems.length }}</b
@@ -65,13 +66,25 @@
                   >
                 </div>
                 <time :datetime="currentTime">{{ headerTimeText }}</time>
-                <span><i />系统运行正常</span>
+                <span><i />数据已加载</span>
               </div>
             </header>
 
             <main class="transit-screen__body">
-              <section class="monitor-map" :class="`monitor-map--${activeMode}`">
+              <section class="monitor-map isolate" :class="`monitor-map--${activeMode}`">
                 <div ref="chartRef" class="monitor-map__chart" />
+                <ArtAsyncState
+                  v-if="mapLoading || mapError"
+                  class="transit-screen__state z-20 flex! items-center justify-center bg-(--transit-canvas)"
+                  :loading="mapLoading"
+                  :error="
+                    mapError ? '地图加载失败，请重新加载或联系管理员检查地图服务配置。' : null
+                  "
+                  error-title="地图暂不可用"
+                  :min-height="0"
+                  full-height
+                  @retry="reloadMap"
+                />
                 <div class="monitor-map__heading">
                   <strong>{{ monitorHeadingTitle }}</strong>
                   <span>{{ activeOrder?.routeName || '暂无线路' }}</span>
@@ -83,11 +96,22 @@
                   </span>
                 </div>
                 <div class="monitor-map__tools" :class="{ 'is-wide': activeMode !== 'realtime' }">
-                  <ArtIconButton icon="ri:zoom-in-line" label="放大地图" @click="zoomMap('in')" />
-                  <ArtIconButton icon="ri:zoom-out-line" label="缩小地图" @click="zoomMap('out')" />
+                  <ArtIconButton
+                    icon="ri:zoom-in-line"
+                    label="放大地图"
+                    :disabled="!amapReady"
+                    @click="zoomMap('in')"
+                  />
+                  <ArtIconButton
+                    icon="ri:zoom-out-line"
+                    label="缩小地图"
+                    :disabled="!amapReady"
+                    @click="zoomMap('out')"
+                  />
                   <ArtIconButton
                     icon="ri:focus-3-line"
                     label="定位当前车辆"
+                    :disabled="!amapReady"
                     @click="resetMapView"
                   />
                 </div>
@@ -200,7 +224,15 @@
   import { useAmapSdk } from '@/hooks/core/useAmapSdk'
   import { useUserStore } from '@/store/modules/user'
   import { formatWithDayjs } from '@/utils/time'
-  import { useDebounceFn, useEventListener, useIntervalFn, useResizeObserver } from '@vueuse/core'
+  import { formatPercentValue } from '@/utils/ui/format'
+  import {
+    useAsyncState,
+    useDebounceFn,
+    useEventListener,
+    useIntervalFn,
+    useResizeObserver
+  } from '@vueuse/core'
+  import { noop } from 'lodash-es'
   import MonitorDetailPanel from './modules/monitor-detail-panel.vue'
   import RealtimeMonitorPanel from './modules/realtime-monitor-panel.vue'
   import TransportAnomalyAdvisorDrawer from './modules/transport-anomaly-advisor-drawer.vue'
@@ -228,6 +260,7 @@
     ReverseGeocodeResult,
     ScreenScaleState,
     ScreenState,
+    InTransitRecord,
     VehiclePoiState
   } from './modules/monitor-types'
   import type {
@@ -239,6 +272,7 @@
   } from './modules/monitor-amap-types'
   import {
     dedupeGeoPath,
+    getDrivingRouteKey,
     escapeHtml,
     formatRefreshTime,
     getMonitorRecordId,
@@ -267,7 +301,17 @@
   const amapSdk = shallowRef<MonitorAmapNamespace>()
   const amapInstance = shallowRef<MonitorAmapMapInstance>()
   const amapReady = ref(false)
-  const liveTick = ref(0)
+  const mapSetupError = shallowRef<Error>()
+  const {
+    state: mapSdkState,
+    error: mapLoadError,
+    isLoading: mapLoading,
+    executeImmediate: loadMapSdk
+  } = useAsyncState<MonitorAmapNamespace | undefined>(loadAmap, undefined, {
+    immediate: false,
+    onError: noop
+  })
+  const mapError = computed(() => mapSetupError.value ?? mapLoadError.value)
   const currentTime = ref(new Date().toISOString())
   const activeMode = ref<MonitorMode>('realtime')
   const monitorKeywords = reactive<MonitorKeywordState>({
@@ -299,6 +343,52 @@
     region: '',
     selectedOrderId: undefined,
     status: ''
+  })
+  const requestShowsLoading = ref(true)
+  const monitorRequest = useAsyncState<{ orders: InTransitRecord[]; refreshedAt: string }>(
+    async () => {
+      try {
+        const { data, error } = await fetchInTransitMonitorList(
+          { from: 0, to: 199 },
+          { showErrorMessage: false }
+        )
+        if (error) throw error
+        return { orders: data ?? [], refreshedAt: new Date().toISOString() }
+      } catch (error) {
+        throw new Error(getFriendlySupabaseErrorMessage(error, '在途监控数据加载失败，请重试'), {
+          cause: error
+        })
+      }
+    },
+    { orders: [], refreshedAt: '' },
+    { immediate: false, resetOnExecute: false, onError: noop }
+  )
+  watch([monitorRequest.isLoading, requestShowsLoading], ([loading, foreground]) => {
+    screen.loading = loading && foreground
+  })
+  watch(monitorRequest.error, (error) => {
+    screen.error = error instanceof Error ? error : null
+  })
+  watch(monitorRequest.state, (result) => {
+    screen.orders = result.orders
+    screen.loaded = true
+    screen.lastRefreshTime = result.refreshedAt
+    if (!screen.orders.some((row) => getMonitorRecordId(row) === screen.selectedOrderId))
+      screen.selectedOrderId = getPreferredMonitorRecordId(screen.orders)
+    void loadVehiclePois()
+    if (amapReady.value)
+      void nextTick(() => {
+        updateChinaMap()
+        fitSelectedMapView(true)
+      })
+  })
+  watch(chartRef, (element) => {
+    if (element && !mapSdkState.value && !mapLoading.value) void reloadMap()
+  })
+  watch([mapSdkState, chartRef], ([sdk, element]) => {
+    destroyMonitorMap()
+    mapSetupError.value = undefined
+    if (sdk && element) initializeMap(sdk, element)
   })
 
   const screenBaseScale = computed(() => {
@@ -338,7 +428,6 @@
   const headerTimeText = computed(() =>
     formatWithDayjs(currentTime.value, 'YYYY年MM月DD日 HH:mm:ss')
   )
-  const pageError = computed(() => (screen.loaded ? null : screen.error))
   const monitorHeadingTitle = computed(
     () =>
       ({
@@ -363,11 +452,10 @@
     activeMode,
     drivingRoutePaths,
     getDictOptions: (dictCode) => getDictMap.value[dictCode] ?? [],
-    liveTick,
     screen
   })
 
-  watch([activeMode, activeOrder, () => liveTick.value], () => {
+  watch([activeMode, activeOrder], () => {
     const routeOrder = mapRouteOrder.value
     if (routeOrder) void ensureDrivingRoute(routeOrder)
     updateChinaMap()
@@ -381,7 +469,6 @@
     ])
     void loadMonitorData()
     unsubscribeMonitorChanges = subscribeInTransitMonitorChanges(refreshMonitorFromRealtime)
-    void initChinaMap()
   })
 
   onBeforeUnmount(() => {
@@ -407,7 +494,6 @@
   }, 60000)
 
   useIntervalFn(() => {
-    liveTick.value += 1
     currentTime.value = new Date().toISOString()
   }, 1000)
 
@@ -416,41 +502,19 @@
   }, 250)
 
   async function loadMonitorData(showLoading = true): Promise<void> {
-    if (showLoading) screen.loading = true
-    screen.error = null
-    try {
-      const { data } = await fetchInTransitMonitorList({
-        from: 0,
-        to: 199
-      })
-
-      screen.orders = data ?? []
-      screen.loaded = true
-      screen.lastRefreshTime = new Date().toISOString()
-      if (!screen.orders.some((row) => getMonitorRecordId(row) === screen.selectedOrderId)) {
-        screen.selectedOrderId = getPreferredMonitorRecordId(screen.orders)
-      }
-      void loadVehiclePois()
-      if (amapReady.value) {
-        void nextTick(() => {
-          updateChinaMap()
-          fitSelectedMapView(true)
-        })
-      }
-    } catch (error) {
-      screen.error = error instanceof Error ? error : new Error('在途监控数据加载失败')
-    } finally {
-      screen.loading = false
-    }
+    requestShowsLoading.value = showLoading
+    await monitorRequest.executeImmediate()
   }
 
-  async function initChinaMap(): Promise<void> {
-    if (!chartRef.value) return
+  async function reloadMap(): Promise<void> {
+    mapSetupError.value = undefined
+    await loadMapSdk()
+  }
 
+  function initializeMap(AMap: MonitorAmapNamespace, element: HTMLElement): void {
     try {
-      const AMap = await loadAmap()
       amapSdk.value = AMap
-      amapInstance.value = new AMap.Map(chartRef.value, {
+      amapInstance.value = new AMap.Map(element, {
         center: INITIAL_MAP_CENTER,
         doubleClickZoom: true,
         dragEnable: true,
@@ -476,8 +540,8 @@
       const routeOrder = mapRouteOrder.value
       if (routeOrder) void ensureDrivingRoute(routeOrder)
     } catch (error) {
-      amapReady.value = false
-      ElMessage.warning(getFriendlySupabaseErrorMessage(error, '地图加载失败，请稍后重试'))
+      destroyMonitorMap()
+      mapSetupError.value = new Error('地图初始化失败', { cause: error })
     }
 
     updateChinaMap()
@@ -499,14 +563,12 @@
     const origin = active.originGeo
     const destination = active.destinationGeo
 
-    originMarker = upsertMarker(originMarker, origin, '发', active.origin, '#23d18b')
-    destinationMarker = upsertMarker(
-      destinationMarker,
-      destination,
-      '收',
-      active.destination,
-      '#ff9f43'
-    )
+    originMarker = origin
+      ? upsertMarker(originMarker, origin, '发', active.origin, '#23d18b')
+      : removeMapObject(originMarker)
+    destinationMarker = destination
+      ? upsertMarker(destinationMarker, destination, '收', active.destination, '#ff9f43')
+      : removeMapObject(destinationMarker)
 
     if (active.routePath.length < 2 && active.actualTrackPath.length < 2) {
       clearRouteLines()
@@ -538,9 +600,9 @@
     const activeIds = new Set<string>()
 
     modeOrders.value.forEach((item) => {
+      if (!item.currentGeo) return
       activeIds.add(item.id)
-      const position: GeoCoord =
-        item.status === 'pending' ? item.originGeo : [item.longitude, item.latitude]
+      const position = item.currentGeo
       const marker = upsertMarker(
         vehicleMarkers.get(item.id),
         position,
@@ -638,21 +700,28 @@
   }
 
   function getVehiclePoiText(order: MonitorOrder): string {
+    if (!order.currentGeo) return '暂无 GPS 位置'
     const poi = vehiclePois.get(order.id)
     return poi?.coordinateKey === getVehicleCoordinateKey(order) ? poi.label : '正在获取位置...'
   }
 
   function isVehiclePoiLoading(order: MonitorOrder): boolean {
+    if (!order.currentGeo) return false
     const poi = vehiclePois.get(order.id)
     return poi?.coordinateKey === getVehicleCoordinateKey(order) && poi.loading
   }
 
   async function handleVehiclePoiRefresh(order: MonitorOrder): Promise<void> {
+    if (!order.currentGeo) {
+      ElMessage.warning('当前车辆暂无有效 GPS 坐标，请检查定位数据后重试')
+      return
+    }
     const success = await refreshVehiclePoi(order, true)
     if (!success) ElMessage.warning('当前坐标暂无 POI 信息，请稍后重试')
   }
 
   async function refreshVehiclePoi(order: MonitorOrder, force = false): Promise<boolean> {
+    if (!order.currentGeo) return false
     const coordinateKey = getVehicleCoordinateKey(order)
     const current = vehiclePois.get(order.id)
     if (!force && current?.coordinateKey === coordinateKey)
@@ -666,7 +735,7 @@
     vehiclePois.set(order.id, state)
 
     try {
-      const label = await reverseGeocode(order.longitude, order.latitude)
+      const label = await reverseGeocode(...order.currentGeo)
       const nextState = vehiclePois.get(order.id)
       if (nextState?.coordinateKey === coordinateKey) nextState.label = label
       return true
@@ -706,19 +775,21 @@
   }
 
   function getVehicleCoordinateKey(order: MonitorOrder): string {
-    return `${order.longitude.toFixed(6)},${order.latitude.toFixed(6)}`
+    return order.currentGeo?.map((value) => value.toFixed(6)).join(',') ?? ''
   }
 
   async function ensureDrivingRoute(order: MonitorOrder): Promise<void> {
-    if (drivingRoutePaths.has(order.id) || drivingRouteRequests.has(order.id)) return
+    if (!order.originGeo || !order.destinationGeo) return
+    const routeKey = getDrivingRouteKey(order)
+    if (!routeKey || drivingRoutePaths.has(routeKey) || drivingRouteRequests.has(routeKey)) return
     if (!amapReady.value) return
-    drivingRouteRequests.add(order.id)
+    drivingRouteRequests.add(routeKey)
 
     try {
       const AMap = await loadAmap()
       const path = await searchDrivingRoute(AMap, order.originGeo, order.destinationGeo)
       if (path.length > 1) {
-        drivingRoutePaths.set(order.id, path)
+        drivingRoutePaths.set(routeKey, path)
         await nextTick()
         updateChinaMap()
         if (activeOrder.value?.id === order.id) fitSelectedMapView(true)
@@ -726,7 +797,7 @@
     } catch {
       // 高德路线不可用时保持无线状态。
     } finally {
-      drivingRouteRequests.delete(order.id)
+      drivingRouteRequests.delete(routeKey)
     }
   }
 
@@ -866,7 +937,8 @@
     if (overlays.length && map.setFitView) {
       map.setFitView(overlays, false, [96, 96, 96, 380])
     } else {
-      const current: GeoCoord = [active.longitude, active.latitude]
+      const current = active.currentGeo
+      if (!current) return
       if (map.setZoomAndCenter) map.setZoomAndCenter(INITIAL_MAP_ZOOM, current)
       else {
         map.setZoom?.(INITIAL_MAP_ZOOM)
@@ -876,9 +948,9 @@
     syncMapViewState()
   }
 
-  function fitPendingVehicle(origin: GeoCoord): void {
+  function fitPendingVehicle(origin?: GeoCoord): void {
     const map = amapInstance.value
-    if (!map) return
+    if (!map || !origin) return
     map.setCenter?.(origin)
     if (mapZoom.value !== INITIAL_MAP_ZOOM) map.setZoom?.(INITIAL_MAP_ZOOM)
     syncMapViewState()
@@ -906,8 +978,7 @@
   }
 
   function buildVisibleRoutePath(active: MonitorOrder): GeoCoord[] {
-    const remainingPath = active.routePath.length > 1 ? active.remainingPath.slice(1) : []
-    return dedupeGeoPath([...active.passedPath, ...remainingPath])
+    return active.routePath.length > 1 ? active.routePath : active.actualTrackPath
   }
 
   function destroyMonitorMap(): void {

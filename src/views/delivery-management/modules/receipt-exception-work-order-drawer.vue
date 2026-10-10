@@ -198,6 +198,7 @@
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { createFriendlySupabaseError } from '@/utils/supabase'
   import dayjs from 'dayjs'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
   import { ElMessage } from 'element-plus'
   import ArtDrawer from '@/components/core/drawers/art-drawer/index.vue'
   import type { ArtDrawerExpose } from '@/components/core/drawers/art-drawer/types'
@@ -274,9 +275,12 @@
     }
   ])
 
-  function formatDate(value: string) {
-    return dayjs(value).format('YYYY-MM-DD HH:mm')
-  }
+  const formatDate = createDateTimeFormatter({
+    format: 'YYYY-MM-DD HH:mm',
+    emptyText: '-',
+    invalidText: '-',
+    allowTimeOnly: false
+  })
   function isOverdue(row: WorkOrder) {
     return ['pending', 'in_progress'].includes(row.status) && dayjs().isAfter(dayjs(row.dueAt))
   }

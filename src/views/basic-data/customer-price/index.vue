@@ -16,10 +16,11 @@
     </BusinessWorkspaceHeader>
 
     <MasterDeleteProcessingNotice
+      :table="tableQueryRef"
       v-if="customerDeleteContext.active"
       :customer-id="customerDeleteContext.customerId"
       :customer-name="customerDeleteContext.customerName"
-      action-hint="已定位到关联客户报价。确认不再使用后，可直接在表格右侧删除该价格方案。"
+      action-hint="请核对关联客户报价。确认不再使用后，可直接在表格右侧删除该价格方案。"
     />
 
     <ArtTableQuery
@@ -64,7 +65,7 @@
   } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
-  import { formatWithDayjs } from '@/utils/time'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
   import { formatCompactNumberValue } from '@/utils/ui/format'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
@@ -385,13 +386,10 @@
       from,
       to
     })
-    const previousVisibility = getSensitiveColumnVisibility()
+
     customerPriceFieldAccess.value = result.fieldAccess
     currentRows.value = result.data
-    if (previousVisibility !== getSensitiveColumnVisibility()) {
-      await nextTick()
-      tableQueryRef.value?.resetColumns()
-    }
+
     return result
   }
 
@@ -405,8 +403,6 @@
 
   const canViewRowField = (row: CustomerPrice, field: CustomerPriceFieldKey): boolean =>
     canViewField(row.fieldAccess ?? customerPriceFieldAccess.value, field)
-
-  const getSensitiveColumnVisibility = (): string => String(canViewListField('quoteAmounts'))
 
   onActivated(() => {
     syncCustomerDeleteRoute(true)
@@ -580,8 +576,12 @@
     return item?.label || item?.name || value
   }
 
-  const formatDateTime = (value?: string | null): string =>
-    value ? (formatWithDayjs(value, 'YYYY-MM-DD HH:mm:ss') ?? '-') : '-'
+  const formatDateTime = createDateTimeFormatter({
+    format: 'YYYY-MM-DD HH:mm:ss',
+    emptyText: '-',
+    invalidText: '-',
+    allowTimeOnly: false
+  })
 </script>
 
 <style scoped lang="scss">

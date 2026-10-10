@@ -1,5 +1,5 @@
 import { computed, watch, type Ref } from 'vue'
-import { meanBy, sumBy, uniq } from 'lodash-es'
+import { uniq } from 'lodash-es'
 import {
   getVehicleImage,
   MONITOR_STATUS_DICT_CODE,
@@ -17,7 +17,7 @@ import type {
   TransitStatus
 } from './monitor-types'
 import { canViewField } from '@/utils/field-permission'
-import { formatCompactNumberValue } from '@/utils/ui/format'
+import { formatArtValue, formatPercentValue } from '@/utils/ui/format'
 
 const maskPhone = (value?: string | null): string => {
   const phone = String(value ?? '').trim()
@@ -32,7 +32,8 @@ import {
   formatText,
   getDelayText,
   getMonitorRecordId,
-  getRoutePosition,
+  getAverageProgress,
+  getDrivingRouteKey,
   isDelayed,
   normalizeVehicleTypeCode,
   percentOf,
@@ -43,7 +44,6 @@ import {
   resolveProgress,
   resolveSpeed,
   resolveTransitStatus,
-  splitRoutePath,
   toGeoCoord
 } from './monitor-utils'
 
@@ -51,7 +51,6 @@ interface UseMonitorOrdersOptions {
   activeMode: Ref<MonitorMode>
   drivingRoutePaths: ReadonlyMap<string, GeoCoord[]>
   getDictOptions: (dictCode: string) => readonly Api.DataCenter.DictListItem[]
-  liveTick: Ref<number>
   screen: ScreenState
 }
 
@@ -115,25 +114,29 @@ export function useMonitorOrders(options: UseMonitorOrdersOptions) {
     return active && active.status !== 'pending' ? active : undefined
   })
 
-  const averageProgress = computed(() =>
-    modeOrders.value.length ? Math.round(meanBy(modeOrders.value, 'progress')) : 0
-  )
+  const averageProgress = computed(() => getAverageProgress(modeOrders.value))
 
   const overview = computed(() => {
     const orders = modeOrders.value
     const transporting = orders.filter(isRealtimeMonitorOrder).length
     const delayed = orders.filter((item) => item.delayed).length
     const routeCount = uniq(orders.map((item) => item.routeName)).length
-    const vehicleCount = uniq(orders.map((item) => item.plateNo)).length
+    const vehicleCount = uniq(
+      orders.filter((item) => item.plateNo !== '未配车').map((item) => item.plateNo)
+    ).length
+    const arrivals = monitorOrders.value.filter((item) => item.arrivalDelayed !== null)
     const total = orders.length
 
     return {
-      cargoCount: sumBy(orders, 'cargoBoxes'),
       delayedCount: delayed,
-      growthRate: Math.max(4, Math.min(18, routeCount + transporting)),
-      onTimeRate: total > 0 ? Math.round(((total - delayed) / total) * 100) : 100,
+      onTimeRate: arrivals.length
+        ? Math.round(
+            (arrivals.filter((item) => !item.arrivalDelayed).length / arrivals.length) * 100
+          )
+        : null,
+      arrivalCount: arrivals.length,
       routeCount,
-      todayCount: total,
+      orderCount: total,
       transporting,
       vehicleCount
     }
@@ -142,21 +145,21 @@ export function useMonitorOrders(options: UseMonitorOrdersOptions) {
   const overviewBars = computed(() => [
     {
       color: '#4c7dff',
-      label: '在途车辆',
-      percent: percentOf(overview.value.transporting, Math.max(overview.value.todayCount, 1)),
-      value: `${overview.value.transporting}/${overview.value.todayCount}`
+      label: '在途运单',
+      percent: percentOf(overview.value.transporting, Math.max(overview.value.orderCount, 1)),
+      value: `${overview.value.transporting}/${overview.value.orderCount}`
     },
     {
       color: '#23d18b',
-      label: '准时运输',
-      percent: overview.value.onTimeRate,
-      value: `${overview.value.onTimeRate}%`
+      label: '到达准时率',
+      percent: overview.value.onTimeRate ?? 0,
+      value: formatPercentValue(overview.value.onTimeRate, { fractionDigits: 0 })
     },
     {
       color: '#ff9f43',
-      label: '运输完成率',
-      percent: averageProgress.value,
-      value: `${averageProgress.value}%`
+      label: '平均进度（含估算）',
+      percent: averageProgress.value ?? 0,
+      value: formatPercentValue(averageProgress.value, { fractionDigits: 0 })
     }
   ])
 
@@ -168,7 +171,7 @@ export function useMonitorOrders(options: UseMonitorOrdersOptions) {
         key: `delay-${item.id}`,
         level: 'danger' as const,
         time: formatRefreshTime(options.screen.lastRefreshTime),
-        title: `${item.plateNo} 路线偏离或延误`
+        title: `${item.plateNo} 预计到达超时`
       }))
 
     const missingVehicleAlerts = realtimeOrders.value
@@ -219,21 +222,15 @@ export function useMonitorOrders(options: UseMonitorOrdersOptions) {
     const delayed = isDelayed(row)
     const status = resolveTransitStatus(row, delayed)
     const arrivalPerformance = resolveArrivalPerformance(row)
-    const progress = resolveProgress(row, id, status, options.liveTick.value)
-    const routePath = options.drivingRoutePaths.get(id) ?? []
+    const progress = resolveProgress(row, status)
+    const routeKey = getDrivingRouteKey({ id, originGeo, destinationGeo })
+    const routePath = routeKey ? (options.drivingRoutePaths.get(routeKey) ?? []) : []
     const actualTrackPath = resolveActualTrackPath(row)
     const currentGeo =
-      toGeoCoord(row.currentLongitude, row.currentLatitude) ??
-      actualTrackPath.at(-1) ??
-      (routePath.length > 1
-        ? getRoutePosition(routePath, progress).coord
-        : status === 'arrived'
-          ? destinationGeo
-          : originGeo)
-    const routeSegments = splitRoutePath(routePath, currentGeo, progress)
-    const passedPath =
-      actualTrackPath.length > 1 ? [...actualTrackPath, currentGeo] : routeSegments.passedPath
-    const distance = estimateDistanceKm(originGeo, destinationGeo)
+      toGeoCoord(row.currentLongitude, row.currentLatitude) ?? actualTrackPath.at(-1)
+    const passedPath = currentGeo ? [...actualTrackPath, currentGeo] : actualTrackPath
+    const distance =
+      originGeo && destinationGeo ? estimateDistanceKm(originGeo, destinationGeo) : null
     const vehicleTypeCode = normalizeVehicleTypeCode(
       row.vehicle?.vehicleType || order?.dispatchVehicleType
     )
@@ -244,14 +241,13 @@ export function useMonitorOrders(options: UseMonitorOrdersOptions) {
     )
     const cargoWeightText =
       row.cargoWeightTon !== null && row.cargoWeightTon !== undefined
-        ? `${formatCompactNumberValue(row.cargoWeightTon)} 吨`
-        : `${formatCompactNumberValue(order?.cargoWeightTotal)} kg`
+        ? `${formatArtValue(row.cargoWeightTon, 'number')} 吨`
+        : `${formatArtValue(order?.cargoWeightTotal, 'number')} kg`
 
     return {
       actualTrackPath,
       arrivalDelayed: arrivalPerformance.delayed,
       arrivalText: arrivalPerformance.text,
-      cargoBoxes: Number(row.cargoQuantity ?? order?.cargoQuantityTotal ?? 0),
       cargoSummary: [
         {
           label: '货物类型',
@@ -260,16 +256,17 @@ export function useMonitorOrders(options: UseMonitorOrdersOptions) {
         },
         {
           label: '总数量',
-          value: `${formatCompactNumberValue(row.cargoQuantity ?? order?.cargoQuantityTotal, 0)} 件`
+          value: `${formatArtValue(row.cargoQuantity ?? order?.cargoQuantityTotal, 'number', { numberFormat: { maximumFractionDigits: 0 } })} 件`
         },
         { label: '总重量', value: cargoWeightText },
         {
           label: '总体积',
-          value: `${formatCompactNumberValue(row.cargoVolumeM3 ?? order?.cargoVolumeTotal, 3)} 方`
+          value: `${formatArtValue(row.cargoVolumeM3 ?? order?.cargoVolumeTotal, 'number')} 方`
         }
       ],
-      completedKm: Math.round(distance * (progress / 100)),
-      currentLabel: resolveCurrentLabel(row, progress),
+      completedKm:
+        distance !== null && progress !== null ? Math.round(distance * (progress / 100)) : null,
+      currentLabel: currentGeo ? 'GPS 位置' : resolveCurrentLabel(row),
       delayed,
       delayText: getDelayText(row.plannedUnloadTime ?? order?.plannedArrivalTime),
       destination,
@@ -278,8 +275,7 @@ export function useMonitorOrders(options: UseMonitorOrdersOptions) {
       driverPhone: maskPhone(row.driver?.phone || order?.dispatchDriverPhone),
       driverPhoneVisible: canViewField(row.fieldAccess ?? order?.fieldAccess, 'driverPhone'),
       id,
-      latitude: currentGeo[1],
-      longitude: currentGeo[0],
+      currentGeo,
       orderNo: formatText(row.waybillNo || order?.orderNo),
       origin,
       originGeo,
@@ -288,18 +284,28 @@ export function useMonitorOrders(options: UseMonitorOrdersOptions) {
       plannedDepartureTime: row.plannedLoadTime ?? order?.plannedDepartureTime,
       plateNo: formatText(row.vehicle?.plateNo || order?.dispatchPlateNo, '未配车'),
       progress,
-      remainingKm: Math.max(0, Math.round(distance * (1 - progress / 100))),
-      remainingPath: routeSegments.remainingPath,
+      progressLabel: ['transporting', 'delayed'].includes(status) ? '时间估算进度' : '运输进度',
+      remainingKm:
+        distance !== null && progress !== null
+          ? Math.max(0, Math.round(distance * (1 - progress / 100)))
+          : null,
+      remainingPath: routePath,
       routeName: [origin, order?.transferStation, destination].filter(Boolean).join(' - '),
       routePath,
       source: row,
-      speed: resolveSpeed(row, status, id),
+      speed: resolveSpeed(row),
       status,
       statusColor: getMonitorStatusColor(status),
       statusLabel: getMonitorStatusLabel(status),
       totalKm: distance,
-      trackSource: actualTrackPath.length > 1 ? 'gps' : 'planned',
-      trackSourceLabel: actualTrackPath.length > 1 ? 'GPS 实际轨迹' : '规划线路估算',
+      trackSource:
+        actualTrackPath.length > 1 ? 'gps' : routePath.length > 1 ? 'planned' : 'unknown',
+      trackSourceLabel:
+        actualTrackPath.length > 1
+          ? 'GPS 实际轨迹'
+          : routePath.length > 1
+            ? '规划线路'
+            : '暂无轨迹数据',
       vehicleImage: getVehicleImage(vehicleTypeCode),
       vehicleType: vehicleTypeCode,
       vehicleTypeCode,
@@ -344,11 +350,11 @@ export function useMonitorOrders(options: UseMonitorOrdersOptions) {
   }
 
   function getMonitorStatusLabel(status: TransitStatus): string {
-    return getMonitorStatusItem(status)?.label || status
+    return getMonitorStatusItem(status)?.label || '状态未加载'
   }
 
   function getMonitorStatusColor(status: TransitStatus): string {
-    return getMonitorStatusItem(status)?.color || '#409EFF'
+    return getMonitorStatusItem(status)?.color || '#8fb2c6'
   }
 
   function getDictLabel(dictCode: string, value?: string | number | null, fallback = '-'): string {

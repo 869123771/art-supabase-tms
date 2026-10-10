@@ -144,7 +144,7 @@
   import { uniqBy } from 'lodash-es'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
-  import { formatWithDayjs } from '@/utils/time'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
 
   defineOptions({ name: 'TmsWaybillDocumentPanel' })
 
@@ -407,9 +407,12 @@
     return 'ri:file-3-line'
   }
 
-  function date(value?: string | null): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD HH:mm') || '-'
-  }
+  const date = createDateTimeFormatter({
+    format: 'YYYY-MM-DD HH:mm',
+    emptyText: '-',
+    invalidText: '-',
+    allowTimeOnly: false
+  })
 </script>
 
 <style scoped lang="scss">

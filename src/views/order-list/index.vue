@@ -1,6 +1,9 @@
 <template>
   <div class="business-workspace-page art-full-height order-list">
-    <MasterDeleteProcessingNotice action-hint="当前订单已自动定位；业务历史需按流程处理或保留。" />
+    <MasterDeleteProcessingNotice
+      :table="tableQueryRef"
+      action-hint="请核对关联订单；业务历史需按流程处理或保留。"
+    />
     <BusinessWorkspaceHeader
       eyebrow="ORDER COMMAND CENTER"
       title="运输订单"
@@ -52,6 +55,7 @@
 </template>
 
 <script setup lang="tsx">
+  import BusinessTableRowActions from '@/components/business/business-table-row-actions/index.vue'
   import { toDictionaryOption } from '@/utils/form/option'
 
   import { useArtFeedback } from '@/hooks/core/useArtFeedback'
@@ -427,7 +431,7 @@
         width: 100,
         fixed: 'right',
         formatter: (row) => (
-          <div class="flex items-center">
+          <BusinessTableRowActions>
             <ArtButtonTable
               type="view"
               permission="TmsOrderList:View"
@@ -437,7 +441,7 @@
               list={getMoreActions(row)}
               onClick={(item: ButtonMoreItem) => handleMoreAction(item, row)}
             />
-          </div>
+          </BusinessTableRowActions>
         )
       }
     ]

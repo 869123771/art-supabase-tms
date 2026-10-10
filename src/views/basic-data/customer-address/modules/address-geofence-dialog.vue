@@ -15,6 +15,14 @@
         </div>
       </section>
 
+      <ElAlert v-if="!hasCoordinate" type="warning" :closable="false" show-icon>
+        <template #title>该地址缺少有效地图坐标</template>
+        请先编辑地址并通过地图选点保存经纬度，再启用电子围栏。
+      </ElAlert>
+      <ElAlert v-if="!canManage" type="info" :closable="false" show-icon>
+        当前角色可查看地址围栏范围；如需修改，请联系管理员授权“维护地址围栏”按钮。
+      </ElAlert>
+
       <ArtForm
         ref="formRef"
         :model-value="form"
@@ -37,33 +45,31 @@
         </div>
         <div class="address-geofence-dialog__preview-copy">
           <span>当前覆盖半径</span>
-          <strong>{{ form.enabled ? `${form.radiusM} 米` : '未启用' }}</strong>
+          <strong>{{
+            form.enabled ? (hasCoordinate ? `${form.radiusM} 米` : '坐标待修正') : '未启用'
+          }}</strong>
           <p>
             {{
-              form.enabled
+              form.enabled && hasCoordinate
                 ? `以当前地址坐标为中心，进入约 ${form.radiusM} 米范围时判定为到场。`
-                : '启用后才会参与运输执行的到离场定位校验。'
+                : form.enabled
+                  ? '地址坐标缺失或无效，请重新地图选点，或停用围栏后保存。'
+                  : '启用后才会参与运输执行的到离场定位校验。'
             }}
           </p>
         </div>
       </section>
-
-      <ElAlert v-if="!hasCoordinate" type="warning" :closable="false" show-icon>
-        <template #title>该地址尚未完成地图定位</template>
-        请先编辑地址并通过地图选点保存经纬度，再启用电子围栏。
-      </ElAlert>
-      <ElAlert v-else-if="!canManage" type="info" :closable="false" show-icon>
-        当前角色可查看地址围栏范围；如需修改，请联系管理员授权“维护地址围栏”按钮。
-      </ElAlert>
     </div>
   </ArtDialog>
 </template>
 
 <script setup lang="ts">
+  import { formatCoordinateValue } from '@/utils/ui/coordinates'
+  import { normalizeCoordinatePair } from '@/utils/geo'
   import { replaceReactiveModel } from '@/utils/form/model'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
-  import type { FormRules } from 'element-plus'
+  import { ElMessage, type FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
@@ -95,19 +101,9 @@
   const address = shallowRef<CustomerAddress>()
   const form = reactive<GeofenceForm>({ enabled: false, radiusM: 1000 })
   const canManage = computed(() => hasAuth('TmsCustomerAddress:Geofence'))
-  const hasCoordinate = computed(() => {
-    const longitude = address.value?.longitude
-    const latitude = address.value?.latitude
-    const hasLongitude = longitude !== null && longitude !== undefined && longitude !== ''
-    const hasLatitude = latitude !== null && latitude !== undefined && latitude !== ''
-
-    return (
-      hasLongitude &&
-      hasLatitude &&
-      Number.isFinite(Number(longitude)) &&
-      Number.isFinite(Number(latitude))
-    )
-  })
+  const hasCoordinate = computed(
+    () => normalizeCoordinatePair(address.value?.longitude, address.value?.latitude) !== null
+  )
   const addressTitle = computed(
     () => address.value?.customer?.customerName || address.value?.contactName || '客户地址'
   )
@@ -124,7 +120,7 @@
   )
   const coordinateText = computed(() => {
     if (!hasCoordinate.value) return '未定位'
-    return `经纬度：${Number(address.value?.longitude).toFixed(6)}, ${Number(address.value?.latitude).toFixed(6)}`
+    return `经纬度：${formatCoordinateValue(address.value?.longitude, address.value?.latitude, { fractionDigits: 6 })}`
   })
 
   const formRules: FormRules<GeofenceForm> = {
@@ -143,7 +139,7 @@
         ? '启用后，该地址将参与装货或卸货到场定位校验。'
         : '请先完成地址地图定位。',
       props: {
-        disabled: !hasCoordinate.value,
+        disabled: !hasCoordinate.value && !form.enabled,
         activeText: '启用',
         inactiveText: '停用',
         inlinePrompt: true
@@ -170,6 +166,10 @@
 
   const handleSubmit = async (): Promise<boolean> => {
     if (!canManage.value || !address.value?.id) return false
+    if (form.enabled && !hasCoordinate.value) {
+      ElMessage.warning('请先完成地址地图定位，或停用围栏后保存')
+      return false
+    }
     try {
       if (!(await validateArtFormForSubmit(formRef.value))) return false
     } catch (error) {

@@ -359,7 +359,7 @@
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
-  import { formatWithDayjs } from '@/utils/time'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
   import { formatCurrencyValue } from '@/utils/ui'
   import { canViewField } from '@/utils/field-permission'
 
@@ -488,9 +488,12 @@
     return value == null ? '-' : `${value} ${unit}`
   }
 
-  function date(value?: string | null): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD HH:mm') || '-'
-  }
+  const date = createDateTimeFormatter({
+    format: 'YYYY-MM-DD HH:mm',
+    emptyText: '-',
+    invalidText: '-',
+    allowTimeOnly: false
+  })
 
   function canView(field: Api.Tms.Waybill.WaybillFieldKey): boolean {
     return canViewField(props.waybill.fieldAccess, field)

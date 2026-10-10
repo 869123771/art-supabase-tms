@@ -1,10 +1,11 @@
 <template>
   <div class="tms-contract business-workspace-page art-full-height">
     <MasterDeleteProcessingNotice
+      :table="tableQueryRef"
       v-if="deleteContext.active"
       :customer-id="deleteContext.customerId"
       :customer-name="deleteContext.customerName"
-      action-hint="已自动定位关联合同；请先按业务规则终止或保留合同。"
+      action-hint="请核对关联合同；请先按业务规则终止或保留合同。"
     />
     <BusinessWorkspaceHeader
       eyebrow="CONTRACT GOVERNANCE"

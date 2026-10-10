@@ -26,129 +26,133 @@
         </template>
       </BusinessWorkspaceHeader>
 
-      <ElAlert v-if="errorMessage" type="error" show-icon :closable="false" :title="errorMessage">
-        <template #default
-          ><ElButton type="primary" link @click="loadOverview">重新加载</ElButton></template
-        >
-      </ElAlert>
-      <ElSkeleton v-else-if="loading && !overview" :rows="8" animated />
-      <template v-else-if="overview">
-        <ElAlert
-          :type="decision.type"
-          show-icon
-          :closable="false"
-          :title="decision.title"
-          :description="decision.description"
-        />
+      <ArtAsyncState
+        class="grid min-w-0 gap-4"
+        :loading="loading"
+        loading-mode="skeleton"
+        :skeleton-rows="8"
+        :error="errorMessage"
+        error-title="运力容量加载失败"
+        @retry="loadOverview"
+      >
+        <template v-if="overview">
+          <ElAlert
+            :type="decision.type"
+            show-icon
+            :closable="false"
+            :title="decision.title"
+            :description="decision.description"
+          />
 
-        <ArtSectionCard class="capacity-planning-page__timeline" preserve-content-structure>
-          <template #header
-            ><header>
-              <div>
-                <ArtSectionTitle :show-line="false">每日需求与承载</ArtSectionTitle>
-                <p>容量利用率按当日货重 ÷ 在营车辆核载总吨位估算，更新时间 {{ generatedAt }}</p>
-              </div>
+          <ArtSectionCard
+            class="capacity-planning-page__timeline"
+            title="每日需求与承载"
+            :subtitle="`容量利用率按当日货重 ÷ 在营车辆核载总吨位估算，更新时间 ${generatedAt}`"
+            :empty="!overview.daily.length"
+            empty-title="当前周期暂无运输需求"
+            empty-description="调整统计周期，或等待新订单进入计划。"
+            :empty-visual-size="72"
+            preserve-content-structure
+          >
+            <template #actions>
               <ElTag type="info" effect="plain" round>
                 核载 {{ formatNumberValue(overview.fleetCapacityTon) }} 吨
               </ElTag>
-            </header></template
-          >
-          <ArtEmptyState
-            v-if="!overview.daily.length"
-            title="当前周期暂无运输需求"
-            description="调整统计周期，或等待新订单进入计划。"
-            size="compact"
-            :visual-size="72"
-          />
-          <div v-else class="capacity-planning-page__days">
-            <article
-              v-for="day in overview.daily"
-              :key="day.date"
-              :class="{ 'is-risk': day.unassignedTrips > 0 || (day.loadRate ?? 0) > 100 }"
-            >
-              <div class="capacity-planning-page__day-head">
-                <strong>{{ formatWithDayjs(day.date, 'MM-DD') }}</strong>
-                <span>{{ formatWithDayjs(day.date, 'ddd') }}</span>
-              </div>
-              <div class="capacity-planning-page__day-value">
-                <strong>{{ day.demandTrips }}</strong
-                ><span>车次</span>
-              </div>
-              <ElProgress
-                :percentage="Math.min(day.loadRate ?? 0, 100)"
-                :status="dayStatus(day)"
-                :stroke-width="7"
-                :show-text="false"
-              />
-              <div class="capacity-planning-page__day-meta">
-                <span>{{ formatNumberValue(day.demandTon) }} 吨</span>
-                <span>{{ day.loadRate == null ? '容量待补' : `${day.loadRate}%` }}</span>
-              </div>
-              <ElTag v-if="day.unassignedTrips" type="warning" effect="light" size="small">
-                {{ day.unassignedTrips }} 单待配车
-              </ElTag>
-            </article>
-          </div>
-        </ArtSectionCard>
+            </template>
+            <div class="capacity-planning-page__days">
+              <article
+                v-for="day in overview.daily"
+                :key="day.date"
+                :class="{ 'is-risk': day.unassignedTrips > 0 || (day.loadRate ?? 0) > 100 }"
+              >
+                <div class="capacity-planning-page__day-head">
+                  <strong>{{ formatWithDayjs(day.date, 'MM-DD') }}</strong>
+                  <span>{{ formatWithDayjs(day.date, 'ddd') }}</span>
+                </div>
+                <div class="capacity-planning-page__day-value">
+                  <strong>{{ day.demandTrips }}</strong
+                  ><span>车次</span>
+                </div>
+                <ElProgress
+                  :percentage="Math.min(day.loadRate ?? 0, 100)"
+                  :status="dayStatus(day)"
+                  :stroke-width="7"
+                  :show-text="false"
+                />
+                <div class="capacity-planning-page__day-meta">
+                  <span>{{ formatNumberValue(day.demandTon) }} 吨</span>
+                  <span>{{ day.loadRate == null ? '容量待补' : `${day.loadRate}%` }}</span>
+                </div>
+                <ElTag v-if="day.unassignedTrips" type="warning" effect="light" size="small">
+                  {{ day.unassignedTrips }} 单待配车
+                </ElTag>
+              </article>
+            </div>
+          </ArtSectionCard>
 
-        <ArtSectionCard class="capacity-planning-page__backlog" preserve-content-structure>
-          <template #header
-            ><header>
-              <div>
-                <ArtSectionTitle :show-line="false">未配车任务</ArtSectionTitle>
-                <p>按计划装货时间和创建时间排序，优先处理已等待较久的运单。</p>
-              </div>
+          <ArtSectionCard
+            class="capacity-planning-page__backlog"
+            title="未配车任务"
+            subtitle="按计划装货时间和创建时间排序，优先处理已等待较久的运单。"
+            preserve-content-structure
+          >
+            <template #actions>
               <ElTag :type="overview.backlogCount ? 'warning' : 'success'" effect="plain" round>
                 {{ overview.backlogCount }} 单待安排
               </ElTag>
-            </header></template
-          >
-          <ElAlert
-            v-if="overview.truncated"
-            type="warning"
-            show-icon
-            :closable="false"
-            :title="`待配车任务较多，当前展示 ${overview.returnedBacklogCount} / ${overview.backlogCount} 单`"
-          />
-          <ArtEmptyState
-            v-if="!overview.backlog.length"
-            title="当前没有未配车任务"
-            description="新的待调度订单出现后，会在此显示。"
-            size="compact"
-            :visual-size="72"
-          />
-          <ol v-else>
-            <li v-for="item in overview.backlog.slice(0, 30)" :key="item.id">
-              <div class="capacity-planning-page__waybill">
-                <BusinessRecordLink
-                  :label="item.waybillNo"
-                  :description="routeLabel(item)"
-                  :title="`查看运单 ${item.waybillNo} 详情`"
-                  :to="canViewWaybill ? `/tms/waybill-management/detail/${item.id}` : undefined"
-                  compact
-                />
-              </div>
-              <div>
-                <span>计划装货</span>
-                <strong>{{
-                  item.plannedLoadTime ? formatWithDayjs(item.plannedLoadTime) : '尚未排期'
-                }}</strong>
-              </div>
-              <div>
-                <span>货重</span>
-                <strong>{{
-                  item.cargoWeightTon == null
-                    ? '--'
-                    : `${formatNumberValue(item.cargoWeightTon)} 吨`
-                }}</strong>
-              </div>
-              <ElTag :type="item.waitingHours >= 24 ? 'danger' : 'warning'" effect="light" round>
-                已等待 {{ formatNumberValue(item.waitingHours) }}h
-              </ElTag>
-            </li>
-          </ol>
-        </ArtSectionCard>
-      </template>
+            </template>
+            <ElAlert
+              v-if="overview.truncated"
+              type="warning"
+              show-icon
+              :closable="false"
+              :title="`待配车任务较多，当前展示 ${overview.returnedBacklogCount} / ${overview.backlogCount} 单`"
+            />
+            <ArtAsyncState
+              :empty="!overview.backlog.length"
+              empty-text="当前没有未配车任务"
+              empty-description="新的待调度订单出现后，会在此显示。"
+              size="compact"
+              :empty-image-size="72"
+            >
+              <ol>
+                <li v-for="item in overview.backlog.slice(0, 30)" :key="item.id">
+                  <div class="capacity-planning-page__waybill">
+                    <BusinessRecordLink
+                      :label="item.waybillNo"
+                      :description="routeLabel(item)"
+                      :title="`查看运单 ${item.waybillNo} 详情`"
+                      :to="canViewWaybill ? `/tms/waybill-management/detail/${item.id}` : undefined"
+                      compact
+                    />
+                  </div>
+                  <div>
+                    <span>计划装货</span>
+                    <strong>{{
+                      item.plannedLoadTime ? formatWithDayjs(item.plannedLoadTime) : '尚未排期'
+                    }}</strong>
+                  </div>
+                  <div>
+                    <span>货重</span>
+                    <strong>{{
+                      item.cargoWeightTon == null
+                        ? '--'
+                        : `${formatNumberValue(item.cargoWeightTon)} 吨`
+                    }}</strong>
+                  </div>
+                  <ElTag
+                    :type="item.waitingHours >= 24 ? 'danger' : 'warning'"
+                    effect="light"
+                    round
+                  >
+                    已等待 {{ formatNumberValue(item.waitingHours) }}h
+                  </ElTag>
+                </li>
+              </ol>
+            </ArtAsyncState>
+          </ArtSectionCard>
+        </template>
+      </ArtAsyncState>
     </div>
   </ArtPermissionGuard>
 </template>
@@ -156,12 +160,12 @@
 <script setup lang="ts">
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
-  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
+  import { useAsyncState } from '@vueuse/core'
   import BusinessRecordLink from '@/components/business/business-record-link/index.vue'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
-  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import { useAuth } from '@/hooks/core/useAuth'
   import { formatWithDayjs } from '@/utils/time'
   import { formatNumberValue } from '@/utils/ui'
@@ -174,10 +178,19 @@
   type BacklogWaybill = Api.Tms.CapacityPlanning.BacklogWaybill
 
   const { hasAnyAuth } = useAuth()
-  const loading = ref(false)
-  const errorMessage = ref('')
   const periodDays = ref<PeriodDays>(14)
-  const overview = ref<Api.Tms.CapacityPlanning.Overview | null>(null)
+  const request = useAsyncState(fetchCapacityPlanning, null, {
+    immediate: false,
+    // Recoverable failures are shown by the workspace state.
+    onError: () => undefined
+  })
+  const overview = request.state
+  const loading = request.isLoading
+  const errorMessage = computed(() =>
+    request.error.value
+      ? getFriendlySupabaseErrorMessage(request.error.value, '运力容量数据加载失败，请稍后重试')
+      : ''
+  )
   const canViewWaybill = computed(() =>
     hasAnyAuth(['TmsPendingWaybillList:View', 'TmsLoadedWaybillList:View'])
   )
@@ -269,18 +282,7 @@
     return `${item.originCity || '未标注起点'} → ${item.destinationCity || '未标注终点'}`
   }
   async function loadOverview(): Promise<void> {
-    loading.value = true
-    errorMessage.value = ''
-    try {
-      overview.value = await fetchCapacityPlanning(periodDays.value)
-    } catch (error) {
-      errorMessage.value = getFriendlySupabaseErrorMessage(
-        error,
-        '运力容量数据加载失败，请稍后重试'
-      )
-    } finally {
-      loading.value = false
-    }
+    await request.executeImmediate(periodDays.value)
   }
 
   watch(periodDays, () => void loadOverview())
@@ -289,28 +291,10 @@
 
 <style scoped lang="scss">
   .capacity-planning-page {
-    > :deep(.el-alert) {
-      flex: 0 0 auto;
-    }
-
     &__timeline,
     &__backlog {
       min-width: 0;
       padding: 18px;
-    }
-
-    section > header {
-      display: flex;
-      gap: 16px;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 16px;
-
-      p {
-        margin: 5px 0 0;
-        font-size: 12px;
-        color: var(--art-gray-500);
-      }
     }
 
     &__days {
@@ -452,10 +436,6 @@
 
   @media only screen and (width <= 560px) {
     .capacity-planning-page {
-      section > header {
-        flex-direction: column;
-      }
-
       &__days {
         grid-template-columns: 1fr;
       }

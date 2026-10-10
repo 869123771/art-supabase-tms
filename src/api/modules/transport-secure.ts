@@ -1,9 +1,9 @@
 import { buildSupabaseRpcRange } from '@/utils/supabase'
 import { toDateStartTimestamp, toDateEndTimestamp } from '@/utils/time/date-boundary'
 import { normalizeNullableText } from '@/utils/form/normalize'
-import { useSupabase } from '@/hooks'
+import { useSupabase } from '@/hooks/core/useSupabase'
 import { withRequestOptions } from '@/api/providers/supabase/query'
-import type { ApiRequestOptions } from '@/types/api/request'
+import type { ApiRequestOptions, ApiFeedbackOptions } from '@/types/api/request'
 
 export type WaybillListScope = 'pending_waybill_list' | 'loaded_waybill_list'
 export type WaybillExportScope = 'pending_waybill_export' | 'loaded_waybill_export'
@@ -79,7 +79,7 @@ const createOrderRpcParams = (params: TransportOrderParams, scope: TransportOrde
 export async function fetchSecureOrders<TRecord extends Api.Tms.Order.OrderRecord>(
   params: TransportOrderParams,
   scope: TransportOrderScope,
-  options?: ApiRequestOptions
+  options?: ApiRequestOptions & ApiFeedbackOptions
 ) {
   const result = await responseHandle<
     SecureTransportPayload<TRecord, Api.Tms.Order.OrderFieldAccessMap>
@@ -89,7 +89,7 @@ export async function fetchSecureOrders<TRecord extends Api.Tms.Order.OrderRecor
         supabase.rpc('tms_list_orders_secure', createOrderRpcParams(params, scope)),
         options
       ),
-    { showErrorMessage: true }
+    { showErrorMessage: options?.showErrorMessage ?? true }
   )
   return {
     data: result.data?.records ?? [],
@@ -101,21 +101,29 @@ export async function fetchSecureOrders<TRecord extends Api.Tms.Order.OrderRecor
   }
 }
 
-export async function fetchSecureInTransitWaybills(params: {
-  from?: number
-  to?: number
-  statuses?: string[]
-  keyword?: string
-}) {
+export async function fetchSecureInTransitWaybills(
+  params: {
+    from?: number
+    to?: number
+    statuses?: string[]
+    keyword?: string
+  },
+  options?: ApiRequestOptions & ApiFeedbackOptions
+) {
   const result = await responseHandle<
     SecureTransportPayload<Api.Tms.InTransit.MonitorRecord, Api.Tms.Waybill.WaybillFieldAccessMap>
-  >(() =>
-    supabase.rpc('tms_list_waybills_secure', {
-      p_scope: 'in_transit',
-      ...buildSupabaseRpcRange(params.from ?? 0, params.to ?? 199),
-      p_statuses: params.statuses?.length ? params.statuses : null,
-      p_keyword: normalizeNullableText(String(params.keyword ?? ''))
-    })
+  >(
+    () =>
+      withRequestOptions(
+        supabase.rpc('tms_list_waybills_secure', {
+          p_scope: 'in_transit',
+          ...buildSupabaseRpcRange(params.from ?? 0, params.to ?? 199),
+          p_statuses: params.statuses?.length ? params.statuses : null,
+          p_keyword: normalizeNullableText(String(params.keyword ?? ''))
+        }),
+        options
+      ),
+    { showErrorMessage: options?.showErrorMessage ?? false }
   )
   return {
     data: result.data?.records ?? [],

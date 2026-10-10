@@ -75,6 +75,7 @@
 </template>
 
 <script setup lang="tsx">
+  import BusinessAttachmentRowActions from '@/components/business/business-attachment-row-actions/index.vue'
   import { normalizeNullableText } from '@/utils/form/normalize'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
@@ -91,7 +92,6 @@
   import { useTenantScopeFormPolicy } from '@/hooks/core/useTenantScopeFormPolicy'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtTable from '@/components/core/tables/art-table/index.vue'
-  import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
   import { attachmentTableLink } from '@/components/core/media/art-file-viewer/table-link'
   import type { ColumnOption } from '@/types'
   import { formatNameCodeOption } from '@/utils/form'
@@ -104,7 +104,7 @@
     submitContractForApproval
   } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'
-  import { downloadAttachment, getFileExtension, viewAttachment } from '@/utils/file'
+  import { getFileExtension } from '@/utils/file'
   import { canEditField, canViewField, getFieldAccess } from '@/utils/field-permission'
   import { usesCarrierParty } from './contract-business-type'
   import ContractTransportDetails from './contract-transport-details.vue'
@@ -616,24 +616,15 @@
     {
       prop: 'operation',
       label: '操作',
-      width: canEditSensitiveField('attachments') ? 120 : 80,
+      width: canEditSensitiveField('attachments') ? 144 : 104,
+      fixed: 'right',
       formatter: (row) => (
-        <div class="flex items-center">
-          <ArtIconButton icon="ri:eye-line" label="查看附件" onClick={() => viewAttachment(row)} />
-          <ArtIconButton
-            icon="ri:download-2-line"
-            label="下载附件"
-            onClick={() => downloadAttachment(row)}
-          />
-          {canEditSensitiveField('attachments') ? (
-            <ArtIconButton
-              icon="ri:delete-bin-5-line"
-              label="移除附件"
-              tone="danger"
-              onClick={() => void removeAttachment(row)}
-            />
-          ) : null}
-        </div>
+        <BusinessAttachmentRowActions
+          file={row}
+          removable={canEditSensitiveField('attachments')}
+          removeLabel="移除附件"
+          onRemove={() => void removeAttachment(row)}
+        />
       )
     }
   ])

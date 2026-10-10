@@ -7,16 +7,16 @@
       </div>
       <div class="summary-grid">
         <div>
-          <strong>{{ overview.todayCount }}</strong>
+          <strong>{{ overview.orderCount }}</strong>
           <span>监控运单</span>
         </div>
         <div>
-          <strong>{{ overview.onTimeRate }}%</strong>
+          <strong>{{ formatPercentValue(overview.onTimeRate, { fractionDigits: 0 }) }}</strong>
           <span>准时到达率</span>
         </div>
         <div>
-          <strong>{{ averageProgress }}%</strong>
-          <span>平均完成率</span>
+          <strong>{{ formatPercentValue(averageProgress, { fractionDigits: 0 }) }}</strong>
+          <span>平均进度（含估算）</span>
         </div>
       </div>
       <ElInput
@@ -96,6 +96,8 @@
 </template>
 
 <script setup lang="ts">
+  import { getAverageProgress } from './monitor-utils'
+  import { formatPercentValue } from '@/utils/ui/format'
   import { Search, Tickets } from '@element-plus/icons-vue'
   import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import MonitorRouteCard from './monitor-route-card.vue'
@@ -133,12 +135,7 @@
     )
   })
 
-  const averageProgress = computed(() => {
-    if (!props.orders.length) return 0
-    return Math.round(
-      props.orders.reduce((sum, item) => sum + item.progress, 0) / props.orders.length
-    )
-  })
+  const averageProgress = computed(() => getAverageProgress(props.orders))
 
   function withAlpha(color: string, alpha: number): string {
     if (/^#[\da-f]{6}$/i.test(color)) {

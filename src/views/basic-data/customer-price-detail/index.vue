@@ -120,6 +120,7 @@
 </template>
 
 <script setup lang="ts">
+  import { formatCoordinateValue } from '@/utils/ui/coordinates'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtDescriptions from '@/components/core/base/art-descriptions/index.vue'
   import type { ArtDescriptionItem } from '@/components/core/base/art-descriptions/types'
@@ -204,7 +205,7 @@
             key: 'shippingCoordinate',
             label: '经纬度',
             value: (data: Partial<CustomerPrice>) =>
-              formatCoordinate(data.shippingLongitude, data.shippingLatitude)
+              formatCoordinateValue(data.shippingLongitude, data.shippingLatitude)
           } satisfies ArtDescriptionItem<Partial<CustomerPrice>>
         ]
       : [])
@@ -233,7 +234,7 @@
             key: 'receivingCoordinate',
             label: '经纬度',
             value: (data: Partial<CustomerPrice>) =>
-              formatCoordinate(data.receivingLongitude, data.receivingLatitude)
+              formatCoordinateValue(data.receivingLongitude, data.receivingLatitude)
           } satisfies ArtDescriptionItem<Partial<CustomerPrice>>
         ]
       : [])
@@ -362,17 +363,6 @@
       (option) => option.value === value || option.label === value
     )
     return item?.label || item?.name || value
-  }
-  function formatCoordinate(
-    longitude?: number | string | null,
-    latitude?: number | string | null
-  ): string {
-    return longitude !== null &&
-      longitude !== undefined &&
-      latitude !== null &&
-      latitude !== undefined
-      ? `${longitude}, ${latitude}`
-      : '--'
   }
   function createMoneyItems(
     entries: Array<[keyof CustomerPrice, string]>

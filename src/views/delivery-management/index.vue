@@ -1,7 +1,8 @@
 <template>
   <div class="business-workspace-page art-full-height delivery-list">
     <MasterDeleteProcessingNotice
-      action-hint="关联异常工单已自动打开并精确过滤；请完成处置后返回。"
+      :table="tableQueryRef"
+      action-hint="请核对关联异常工单；请完成处置后返回。"
     />
     <BusinessWorkspaceHeader
       eyebrow="DELIVERY CONTROL"

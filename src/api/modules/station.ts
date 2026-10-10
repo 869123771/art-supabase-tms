@@ -2,7 +2,7 @@ import { buildOrIlikeFilter } from '@/utils/supabase/search'
 import { fetchAllRangePages } from '@/utils/supabase/pagination'
 import { loadAllDocumentPages } from '@/utils/business/document-detail-list'
 import type { QueryResult } from '@/types/api/response'
-import { useSupabase } from '@/hooks'
+import { useSupabase } from '@/hooks/core/useSupabase'
 import type { MasterDataDeleteDependencyDetail } from '@/api/master-data-delete'
 import {
   applyCreateTimeRange,

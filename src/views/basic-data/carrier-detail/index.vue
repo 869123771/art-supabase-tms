@@ -27,7 +27,12 @@
 
     <div class="carrier-detail__content">
       <ArtSectionCard class="carrier-detail__section" preserve-content-structure title="基础信息">
-        <ArtDescriptions :data="descriptionData" :items="basicItems" :columns="4">
+        <ArtDescriptions
+          :label-width="132"
+          :data="descriptionData"
+          :items="basicItems"
+          :columns="4"
+        >
           <template #item-businessLicenseUrl>
             <ElImage
               v-if="detail.data?.businessLicenseUrl"
@@ -63,15 +68,30 @@
       </ArtSectionCard>
 
       <ArtSectionCard class="carrier-detail__section" preserve-content-structure title="联系人信息">
-        <ArtDescriptions :data="descriptionData" :items="contactItems" :columns="4" />
+        <ArtDescriptions
+          :label-width="132"
+          :data="descriptionData"
+          :items="contactItems"
+          :columns="4"
+        />
       </ArtSectionCard>
 
       <ArtSectionCard class="carrier-detail__section" preserve-content-structure title="财务信息">
-        <ArtDescriptions :data="descriptionData" :items="financeItems" :columns="4" />
+        <ArtDescriptions
+          :label-width="132"
+          :data="descriptionData"
+          :items="financeItems"
+          :columns="4"
+        />
       </ArtSectionCard>
 
       <ArtSectionCard class="carrier-detail__section" preserve-content-structure title="合同信息">
-        <ArtDescriptions :data="descriptionData" :items="contractItems" :columns="2">
+        <ArtDescriptions
+          :label-width="132"
+          :data="descriptionData"
+          :items="contractItems"
+          :columns="2"
+        >
           <template #item-contractAttachmentUrl>
             <ArtAttachmentLink
               v-if="detail.data?.contractAttachmentUrl"
@@ -534,11 +554,6 @@
 
     &__link-value {
       padding: 0;
-      font-weight: 600;
-    }
-
-    :deep(.art-descriptions .el-descriptions__label) {
-      width: 132px;
       font-weight: 600;
     }
 

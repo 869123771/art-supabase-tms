@@ -77,16 +77,14 @@
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { normalizeNullableText } from '@/utils/form/normalize'
+  import { normalizeCoordinatePair } from '@/utils/geo'
   import type { FormRules } from 'element-plus'
   import { cloneDeep, omit } from 'lodash-es'
   import { storeToRefs } from 'pinia'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
   import ArtForm, { type FormItem } from '@/components/core/forms/art-form/index.vue'
-  import {
-    useAmapDrivingEstimate,
-    type AmapRouteCoordinate
-  } from '@/hooks/core/useAmapDrivingEstimate'
+  import { useAmapDrivingEstimate } from '@/hooks/core/useAmapDrivingEstimate'
   import {
     addFavoriteRoute,
     editFavoriteRoute,
@@ -157,7 +155,13 @@
     addressOptions.destination.find((item) => item.id === form.destinationAddressId)
   )
   const canEstimate = computed(() =>
-    Boolean(toRouteCoordinate(originAddress.value) && toRouteCoordinate(destinationAddress.value))
+    Boolean(
+      normalizeCoordinatePair(originAddress.value?.longitude, originAddress.value?.latitude) &&
+      normalizeCoordinatePair(
+        destinationAddress.value?.longitude,
+        destinationAddress.value?.latitude
+      )
+    )
   )
   const estimateNote = computed(() => {
     if (!form.originAddressId || !form.destinationAddressId) return ''
@@ -416,8 +420,14 @@
   }
 
   const calculateRouteEstimate = async (): Promise<void> => {
-    const origin = toRouteCoordinate(originAddress.value)
-    const destination = toRouteCoordinate(destinationAddress.value)
+    const origin = normalizeCoordinatePair(
+      originAddress.value?.longitude,
+      originAddress.value?.latitude
+    )
+    const destination = normalizeCoordinatePair(
+      destinationAddress.value?.longitude,
+      destinationAddress.value?.latitude
+    )
     if (!origin || !destination) {
       estimate.status = 'idle'
       return
@@ -433,22 +443,6 @@
     } catch {
       if (requestId === estimateRequestId) estimate.status = 'unavailable'
     }
-  }
-
-  const toRouteCoordinate = (address?: CustomerAddress): AmapRouteCoordinate | null => {
-    const longitude = Number(address?.longitude)
-    const latitude = Number(address?.latitude)
-    if (
-      !Number.isFinite(longitude) ||
-      !Number.isFinite(latitude) ||
-      longitude < -180 ||
-      longitude > 180 ||
-      latitude < -90 ||
-      latitude > 90
-    ) {
-      return null
-    }
-    return { longitude, latitude }
   }
 
   const buildPayload = (): FavoriteRoute => {

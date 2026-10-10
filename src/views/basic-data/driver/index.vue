@@ -1,10 +1,11 @@
 <template>
   <div class="business-workspace-page art-full-height">
     <MasterDeleteProcessingNotice
+      :table="tableQueryRef"
       v-if="deleteContext.active"
       :customer-id="deleteContext.customerId"
       :customer-name="deleteContext.customerName"
-      action-hint="已自动定位关联司机；请先调整归属或处理司机资料。"
+      action-hint="请核对关联司机；请先调整归属或处理司机资料。"
     />
     <BusinessWorkspaceHeader
       eyebrow="DRIVER ROSTER"
@@ -98,16 +99,6 @@
   const deleteGuardRef = ref<MasterDataDeleteGuardExpose>()
   const driverFieldAccess = ref<Api.Tms.BasicData.DriverFieldAccessMap>({})
 
-  watch(
-    () => [
-      canViewField(driverFieldAccess.value, 'contactPhone'),
-      canViewField(driverFieldAccess.value, 'homeAddress')
-    ],
-    (nextVisibility, previousVisibility) => {
-      if (nextVisibility.every((value, index) => value === previousVisibility?.[index])) return
-      void nextTick(() => tableQueryRef.value?.resetColumns())
-    }
-  )
   const initialCarrierId = String(route.query.carrierId || '')
   const initialRecordId = String(route.query.recordId || '')
   const tableImmediate = !initialCarrierId && !initialRecordId

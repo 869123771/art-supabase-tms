@@ -30,7 +30,9 @@
       </article>
       <article v-if="canViewSensitiveField('contractAmount')">
         <span>合同金额</span>
-        <strong>{{ formatMoney(detail.data?.contractAmount, '¥ ') }}</strong>
+        <strong>{{
+          formatSensitiveNumberWithAffix(detail.data?.contractAmount, { prefix: '¥ ' })
+        }}</strong>
       </article>
       <article>
         <span>合同相对方</span>
@@ -44,7 +46,12 @@
 
     <div class="contract-detail__content">
       <ArtSectionCard class="contract-detail__section" preserve-content-structure title="基础信息">
-        <ArtDescriptions :data="descriptionData" :items="baseDescriptionItems" :columns="4">
+        <ArtDescriptions
+          :label-width="132"
+          :data="descriptionData"
+          :items="baseDescriptionItems"
+          :columns="4"
+        >
           <template #item-contractStatus>
             <ElTag
               v-if="detail.data?.contractStatus"
@@ -63,6 +70,7 @@
         title="计费与履约"
       >
         <ArtDescriptions
+          :label-width="132"
           :data="descriptionData"
           :items="fulfillmentDescriptionItems"
           :columns="4"
@@ -89,7 +97,12 @@
         preserve-content-structure
         title="运输路线与合同约定"
       >
-        <ArtDescriptions :data="descriptionData" :items="termsDescriptionItems" :columns="4" />
+        <ArtDescriptions
+          :label-width="132"
+          :data="descriptionData"
+          :items="termsDescriptionItems"
+          :columns="4"
+        />
       </ArtSectionCard>
 
       <ArtSectionCard
@@ -213,8 +226,8 @@
             key: 'contractAmount',
             label: '合同金额',
             field: 'contractAmount',
-            formatter: (value: unknown) =>
-              formatMoney(value as Api.Tms.BasicData.SensitiveNumber | undefined)
+            formatter: (_value: unknown, data: Partial<Contract>) =>
+              formatSensitiveNumberWithAffix(data.contractAmount)
           }
         ]
       : []),
@@ -224,8 +237,8 @@
             key: 'transportUnitPrice',
             label: '运输单价',
             field: 'transportUnitPrice',
-            formatter: (value: unknown) =>
-              formatMoney(value as Api.Tms.BasicData.SensitiveNumber | undefined)
+            formatter: (_value: unknown, data: Partial<Contract>) =>
+              formatSensitiveNumberWithAffix(data.transportUnitPrice)
           }
         ]
       : []),
@@ -235,8 +248,11 @@
             key: 'roadConsumptionRate',
             label: '路耗标准',
             field: 'roadConsumptionRate',
-            formatter: (value: unknown) =>
-              formatRate(value as Api.Tms.BasicData.SensitiveNumber | undefined)
+            formatter: (_value: unknown, data: Partial<Contract>) =>
+              formatSensitiveNumberWithAffix(data.roadConsumptionRate, {
+                suffix: '%',
+                numberFormat: { maximumFractionDigits: 4 }
+              })
           }
         ]
       : []),
@@ -246,8 +262,8 @@
             key: 'lossDeductionPrice',
             label: '亏扣价',
             field: 'lossDeductionPrice',
-            formatter: (value: unknown) =>
-              formatMoney(value as Api.Tms.BasicData.SensitiveNumber | undefined)
+            formatter: (_value: unknown, data: Partial<Contract>) =>
+              formatSensitiveNumberWithAffix(data.lossDeductionPrice)
           }
         ]
       : []),
@@ -319,14 +335,15 @@
             minWidth: 140,
             align: 'right' as const,
             formatter: (row: Api.Tms.BasicData.ContractTransportDetail) =>
-              formatMoney(row.transportUnitPrice)
+              formatSensitiveNumberWithAffix(row.transportUnitPrice)
           },
           {
             prop: 'freight',
             label: '运费(元)',
             minWidth: 130,
             align: 'right' as const,
-            formatter: (row: Api.Tms.BasicData.ContractTransportDetail) => formatMoney(row.freight)
+            formatter: (row: Api.Tms.BasicData.ContractTransportDetail) =>
+              formatSensitiveNumberWithAffix(row.freight)
           }
         ]
       : [])
@@ -357,17 +374,6 @@
 
   const goBack = (): void => {
     void router.push('/tms/basic-data/contract')
-  }
-
-  const formatMoney = (value?: Api.Tms.BasicData.SensitiveNumber, prefix = ''): string => {
-    return formatSensitiveNumberWithAffix(value, { prefix })
-  }
-
-  const formatRate = (value?: Api.Tms.BasicData.SensitiveNumber): string => {
-    return formatSensitiveNumberWithAffix(value, {
-      suffix: '%',
-      numberFormat: { maximumFractionDigits: 4 }
-    })
   }
 </script>
 
@@ -428,11 +434,6 @@
       display: flex;
       flex-wrap: wrap;
       gap: 10px 16px;
-    }
-
-    :deep(.art-descriptions .el-descriptions__label) {
-      width: 132px;
-      font-weight: 600;
     }
 
     @media (width <= 768px) {

@@ -1,5 +1,5 @@
 import { buildOrIlikeFilter } from '@/utils/supabase/search'
-import { useSupabase } from '@/hooks'
+import { useSupabase } from '@/hooks/core/useSupabase'
 import { loadAllDocumentPages } from '@/utils/business/document-detail-list'
 import {
   applyCreateTimeRange,

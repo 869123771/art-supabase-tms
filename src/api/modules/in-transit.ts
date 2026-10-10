@@ -1,5 +1,6 @@
-import { useSupabase } from '@/hooks'
+import { useSupabase } from '@/hooks/core/useSupabase'
 import type { QueryResult } from '@/types/api/response'
+import type { ApiFeedbackOptions } from '@/types/api/request'
 import { createDriverWaybillPayload } from '@tms/api/modules/waybill-shared'
 import { fetchSecureInTransitWaybills, fetchSecureOrders } from '@tms/api/modules/transport-secure'
 import { normalizeSupabaseFunctionError } from '@/utils/supabase'
@@ -75,7 +76,8 @@ const isMonitoredTransportRow = (row: InTransitMonitorRecord): boolean => {
 
 const fetchInTransitOrderMonitorRows = async (
   params: InTransitMonitorSearchParams,
-  existingWaybillNos: Set<string>
+  existingWaybillNos: Set<string>,
+  options?: ApiFeedbackOptions
 ): Promise<InTransitMonitorRecord[]> => {
   const { keyword, to = 199 } = params
   const result = await fetchSecureOrders<Api.Tms.Order.OrderRecord>(
@@ -86,8 +88,11 @@ const fetchInTransitOrderMonitorRows = async (
       cargoKeyword: keyword,
       vehicleKeyword: keyword
     },
-    'in_transit'
+    'in_transit',
+    options
   )
+
+  if (result.error) throw result.error
 
   return result.data
     .filter((order) => !existingWaybillNos.has(String(order.orderNo)))
@@ -105,14 +110,17 @@ const fetchInTransitOrderMonitorRows = async (
 }
 
 export async function fetchInTransitMonitorList(
-  params: InTransitMonitorSearchParams = { from: 0, to: 199 }
+  params: InTransitMonitorSearchParams = { from: 0, to: 199 },
+  options?: ApiFeedbackOptions
 ) {
   const { from = 0, to = 199, keyword, statuses = MONITORED_WAYBILL_STATUSES } = params
-  const result = await fetchSecureInTransitWaybills({ from, to, keyword, statuses })
+  const result = await fetchSecureInTransitWaybills({ from, to, keyword, statuses }, options)
+  if (result.error) return result
   const rows = result.data
   const fallbackRows = await fetchInTransitOrderMonitorRows(
     params,
-    new Set(rows.map((row) => String(row.waybillNo)))
+    new Set(rows.map((row) => String(row.waybillNo))),
+    options
   )
   const monitorRows = [...rows, ...fallbackRows]
   if (!monitorRows.length) return { ...result, data: [] }

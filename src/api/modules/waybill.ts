@@ -1,5 +1,6 @@
 import { normalizeNullableText } from '@/utils/form/normalize'
-import { useSupabase } from '@/hooks'
+import { normalizeCoordinatePair } from '@/utils/geo'
+import { useSupabase } from '@/hooks/core/useSupabase'
 import type { QueryResult } from '@/types/api/response'
 import type { WaybillExportScope, WaybillListScope } from '@tms/api/modules/transport-secure'
 import {
@@ -87,9 +88,12 @@ function normalizeWaybillRoutePoints(value: unknown): Api.Tms.Waybill.WaybillRou
   if (!Array.isArray(value)) return []
   return value.flatMap((item) => {
     if (!isPlainObject(item)) return []
-    const longitude = Number(item.longitude ?? item.lng)
-    const latitude = Number(item.latitude ?? item.lat)
-    if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) return []
+    const coordinate = normalizeCoordinatePair(
+      item.longitude ?? item.lng,
+      item.latitude ?? item.lat
+    )
+    if (!coordinate) return []
+    const { longitude, latitude } = coordinate
     const speedKmh = Number(item.speedKmh ?? item.speed ?? item.velocity)
     return [
       {
@@ -117,8 +121,7 @@ function normalizeExpenseLocations(
   records: WaybillExpenseLocationQueryRecord[]
 ): WaybillExpenseLocationRecord[] {
   return records.flatMap((record) => {
-    const longitude = Number(record.expenseLongitude)
-    const latitude = Number(record.expenseLatitude)
+    const coordinate = normalizeCoordinatePair(record.expenseLongitude, record.expenseLatitude)
     const category = String(
       record.expenseItem?.businessCategory || record.costType || ''
     ).toLowerCase()
@@ -128,7 +131,10 @@ function normalizeExpenseLocations(
       ENERGY_COST_TYPES.has(category) ||
       /(fuel|gas|charging|energy|加油|燃油|充电|能源)/i.test(label)
 
-    if (!isEnergyExpense || !isValidCoordinate(longitude, latitude)) return []
+    if (!isEnergyExpense || !coordinate) return []
+    const { longitude, latitude } = coordinate
+    // Expense evidence uses the origin pair as an unset-location sentinel.
+    if (longitude === 0 && latitude === 0) return []
     return [
       {
         id: record.id,
@@ -149,18 +155,6 @@ function getFirstString(record: Record<string, unknown>, keys: string[]): string
     if (typeof value === 'string' && value.trim()) return value.trim()
   }
   return null
-}
-
-function isValidCoordinate(longitude: number, latitude: number): boolean {
-  return (
-    Number.isFinite(longitude) &&
-    Number.isFinite(latitude) &&
-    longitude >= -180 &&
-    longitude <= 180 &&
-    latitude >= -90 &&
-    latitude <= 90 &&
-    !(longitude === 0 && latitude === 0)
-  )
 }
 
 function normalizeUrlList(value: unknown): string[] {

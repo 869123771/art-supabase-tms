@@ -1,10 +1,11 @@
 <template>
   <div class="business-workspace-page art-full-height carrier-price">
     <MasterDeleteProcessingNotice
+      :table="tableQueryRef"
       v-if="deleteContext.active"
       :customer-id="deleteContext.customerId"
       :customer-name="deleteContext.customerName"
-      action-hint="已自动定位关联报价；处理完成后可返回原主数据页面继续删除。"
+      action-hint="请核对关联报价；处理完成后可返回原主数据页面继续删除。"
     />
     <BusinessWorkspaceHeader
       eyebrow="CARRIER RATE CARD"
@@ -64,7 +65,7 @@
   } from '@tms/api'
   import { useUserStore } from '@/store/modules/user'
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
-  import { formatWithDayjs } from '@/utils/time'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
   import MasterDeleteProcessingNotice from '@/components/business/master-delete-processing-notice/index.vue'
@@ -401,13 +402,10 @@
       from,
       to
     })
-    const previousVisibility = getSensitiveColumnVisibility()
+
     carrierPriceFieldAccess.value = result.fieldAccess
     currentRows.value = result.data
-    if (previousVisibility !== getSensitiveColumnVisibility()) {
-      await nextTick()
-      tableQueryRef.value?.resetColumns()
-    }
+
     return result
   }
 
@@ -417,10 +415,6 @@
       ...currentRows.value.map((row) => row.fieldAccess)
     )
     return canViewField(merged, field)
-  }
-
-  function getSensitiveColumnVisibility(): string {
-    return [canViewListField('contactPhones'), canViewListField('costAmounts')].join(':')
   }
 
   function openEditPage(row?: CarrierPrice): void {
@@ -479,9 +473,12 @@
     return item?.label || text
   }
 
-  function formatDateTime(value?: string | null): string {
-    return value ? (formatWithDayjs(value, 'YYYY-MM-DD HH:mm:ss') ?? '-') : '-'
-  }
+  const formatDateTime = createDateTimeFormatter({
+    format: 'YYYY-MM-DD HH:mm:ss',
+    emptyText: '-',
+    invalidText: '-',
+    allowTimeOnly: false
+  })
 
   function syncMasterDeleteRoute(forceRefresh = false): void {
     const carrierId = typeof route.query.carrierId === 'string' ? route.query.carrierId : ''

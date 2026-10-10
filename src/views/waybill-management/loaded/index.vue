@@ -1,10 +1,11 @@
 <template>
   <div class="business-workspace-page art-full-height waybill-list">
     <MasterDeleteProcessingNotice
+      :table="tableQueryRef"
       v-if="deleteContext.active"
       :customer-id="deleteContext.customerId"
       :customer-name="deleteContext.customerName"
-      action-hint="已按运单号精确定位；运单属于履约历史，请保留记录并返回停用主数据。"
+      action-hint="请核对关联运单；运单属于履约历史，请保留记录并返回停用主数据。"
     />
     <BusinessWorkspaceHeader
       eyebrow="WAYBILL EXECUTION"

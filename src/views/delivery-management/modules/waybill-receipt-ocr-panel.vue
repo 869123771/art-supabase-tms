@@ -150,7 +150,7 @@
   import { normalizeNullableText } from '@/utils/form/normalize'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
-  import dayjs from 'dayjs'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
   import { ElMessage } from 'element-plus'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import ArtUploadImage from '@/components/core/forms/art-upload-image/index.vue'
@@ -244,9 +244,12 @@
     ]
   })
 
-  function formatDateTime(value?: string | null): string {
-    return value && dayjs(value).isValid() ? dayjs(value).format('YYYY-MM-DD HH:mm') : '未识别'
-  }
+  const formatDateTime = createDateTimeFormatter({
+    format: 'YYYY-MM-DD HH:mm',
+    emptyText: '未识别',
+    invalidText: '未识别',
+    allowTimeOnly: false
+  })
 
   async function handleAnalyze(): Promise<void> {
     if (!imageUrls.value.length || analyzing.value) return

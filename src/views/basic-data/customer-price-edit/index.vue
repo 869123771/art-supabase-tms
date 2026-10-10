@@ -375,6 +375,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { formatCoordinateValue } from '@/utils/ui/coordinates'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import { cloneDeep } from 'lodash-es'
@@ -1301,24 +1302,8 @@
     return String(addressDetail ?? '').trim()
   }
 
-  function hasCoordinate(longitude?: number | string | null, latitude?: number | string | null) {
-    return (
-      longitude !== null &&
-      longitude !== undefined &&
-      longitude !== '' &&
-      latitude !== null &&
-      latitude !== undefined &&
-      latitude !== ''
-    )
-  }
-
-  function formatCoordinate(address: CustomerAddress): string {
-    if (!hasCoordinate(address.longitude, address.latitude)) return ''
-    return `${address.longitude}, ${address.latitude}`
-  }
-
   function formatCoordinateColumn(row: DataSelectRecord): string {
-    return formatCoordinate(row as CustomerAddress) || '缺少经纬度'
+    return formatCoordinateValue(row.longitude, row.latitude, { emptyText: '缺少经纬度' })
   }
 
   function getAddressLabel(row: DataSelectRecord): string {
@@ -1337,8 +1322,7 @@
     const longitude =
       mode === 'shipping' ? form.data.shippingLongitude : form.data.receivingLongitude
     const latitude = mode === 'shipping' ? form.data.shippingLatitude : form.data.receivingLatitude
-    if (!hasCoordinate(longitude, latitude)) return ''
-    return `${longitude}, ${latitude}`
+    return formatCoordinateValue(longitude, latitude, { emptyText: '' })
   }
 
   function getAddressEmptyText(mode: AddressMode): string {

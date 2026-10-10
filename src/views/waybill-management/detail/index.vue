@@ -150,7 +150,7 @@
   import ArtPageHeader from '@/components/core/layouts/art-page-header/index.vue'
   import ArtPageShell from '@/components/core/layouts/art-page-shell/index.vue'
   import { fetchWaybillDetail } from '@tms/api'
-  import { formatWithDayjs } from '@/utils/time'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
   import { canViewField } from '@/utils/field-permission'
   import WaybillDocumentPanel from './modules/waybill-document-panel.vue'
   import WaybillFeePanel from './modules/waybill-fee-panel.vue'
@@ -427,9 +427,12 @@
     void router.back()
   }
 
-  function formatDateTime(value?: string | null): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD HH:mm') || '-'
-  }
+  const formatDateTime = createDateTimeFormatter({
+    format: 'YYYY-MM-DD HH:mm',
+    emptyText: '-',
+    invalidText: '-',
+    allowTimeOnly: false
+  })
 </script>
 
 <style scoped lang="scss">

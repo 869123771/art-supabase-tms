@@ -8,41 +8,40 @@ export type GeoCoord = [number, number]
 
 export interface MonitorOrder {
   actualTrackPath: GeoCoord[]
-  arrivalDelayed: boolean
+  arrivalDelayed: boolean | null
   arrivalText: string
-  cargoBoxes: number
   cargoSummary: Array<{ label: string; value: string }>
-  completedKm: number
+  completedKm: number | null
   currentLabel: string
   delayed: boolean
   delayText: string
   destination: string
-  destinationGeo: GeoCoord
+  destinationGeo?: GeoCoord
   driverName: string
   driverPhone: string
   driverPhoneVisible: boolean
   id: string
-  latitude: number
-  longitude: number
+  currentGeo?: GeoCoord
   orderNo: string
   origin: string
-  originGeo: GeoCoord
+  originGeo?: GeoCoord
   plateNo: string
   plannedArrivalTime?: string | null
   plannedDepartureTime?: string | null
   passedPath: GeoCoord[]
-  progress: number
-  remainingKm: number
+  progress: number | null
+  progressLabel: string
+  remainingKm: number | null
   remainingPath: GeoCoord[]
   routePath: GeoCoord[]
   routeName: string
   source: InTransitRecord
-  speed: number
+  speed: number | null
   status: TransitStatus
   statusColor: string
   statusLabel: string
-  totalKm: number
-  trackSource: 'gps' | 'planned'
+  totalKm: number | null
+  trackSource: 'gps' | 'planned' | 'unknown'
   trackSourceLabel: string
   vehicleType: string
   vehicleTypeCode: string
@@ -51,12 +50,11 @@ export interface MonitorOrder {
 }
 
 export interface MonitorOverview {
-  cargoCount: number
   delayedCount: number
-  growthRate: number
-  onTimeRate: number
+  onTimeRate: number | null
+  arrivalCount: number
   routeCount: number
-  todayCount: number
+  orderCount: number
   transporting: number
   vehicleCount: number
 }

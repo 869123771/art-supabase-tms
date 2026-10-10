@@ -625,6 +625,7 @@
 
 <script setup lang="tsx">
   import { normalizeNullableNumber } from '@/utils/form/normalize'
+  import { normalizeCoordinatePair } from '@/utils/geo'
 
   import { getScrollBehavior } from '@/utils/ui/scroll'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
@@ -914,14 +915,8 @@
   const orderNumberRule = computed(() => numberRules.value['tms.order'])
   const canEstimateDistance = computed(
     () =>
-      isValidCoordinate(
-        normalizeNullableNumber(form.data.shippingLongitude),
-        normalizeNullableNumber(form.data.shippingLatitude)
-      ) &&
-      isValidCoordinate(
-        normalizeNullableNumber(form.data.receivingLongitude),
-        normalizeNullableNumber(form.data.receivingLatitude)
-      )
+      normalizeCoordinatePair(form.data.shippingLongitude, form.data.shippingLatitude) !== null &&
+      normalizeCoordinatePair(form.data.receivingLongitude, form.data.receivingLatitude) !== null
   )
 
   const moneyProps = {
@@ -1471,23 +1466,20 @@
   )
 
   async function calculateDistance(): Promise<void> {
-    const shippingLongitude = normalizeNullableNumber(form.data.shippingLongitude)
-    const shippingLatitude = normalizeNullableNumber(form.data.shippingLatitude)
-    const receivingLongitude = normalizeNullableNumber(form.data.receivingLongitude)
-    const receivingLatitude = normalizeNullableNumber(form.data.receivingLatitude)
-    if (
-      !isValidCoordinate(shippingLongitude, shippingLatitude) ||
-      !isValidCoordinate(receivingLongitude, receivingLatitude)
+    const shipping = normalizeCoordinatePair(
+      form.data.shippingLongitude,
+      form.data.shippingLatitude
     )
-      return
+    const receiving = normalizeCoordinatePair(
+      form.data.receivingLongitude,
+      form.data.receivingLatitude
+    )
+    if (!shipping || !receiving) return
     const requestId = ++distanceRequestId
     distanceLoading.value = true
     distanceStatus.value = '正在估算驾车距离…'
     try {
-      const result = await estimateDrivingRoute(
-        { longitude: shippingLongitude, latitude: shippingLatitude! },
-        { longitude: receivingLongitude, latitude: receivingLatitude! }
-      )
+      const result = await estimateDrivingRoute(shipping, receiving)
       if (requestId !== distanceRequestId) return
       form.data.distanceKm = result.distanceKm
       distanceStatus.value = '高德地图估算距离'
@@ -2001,11 +1993,15 @@
     const normalizedAddress = textValue(address)
     if (!normalizedAddress) return { patch: {}, failed: false }
 
-    const longitude = normalizeNullableNumber(reference.longitude)
-    const latitude = normalizeNullableNumber(reference.latitude)
-    if (isValidCoordinate(longitude, latitude)) {
+    const coordinate = normalizeCoordinatePair(reference.longitude, reference.latitude)
+    if (coordinate) {
       return {
-        patch: createCoordinatePatch(mode, reference.id ?? null, longitude, latitude),
+        patch: createCoordinatePatch(
+          mode,
+          reference.id ?? null,
+          coordinate.longitude,
+          coordinate.latitude
+        ),
         failed: false
       }
     }
@@ -2045,20 +2041,6 @@
           receivingLongitude: longitude,
           receivingLatitude: latitude
         }
-  }
-
-  function isValidCoordinate(
-    longitude: number | null,
-    latitude: number | null
-  ): longitude is number {
-    return (
-      !isNil(longitude) &&
-      !isNil(latitude) &&
-      longitude >= -180 &&
-      longitude <= 180 &&
-      latitude >= -90 &&
-      latitude <= 90
-    )
   }
 
   function applyDraftTextFields(

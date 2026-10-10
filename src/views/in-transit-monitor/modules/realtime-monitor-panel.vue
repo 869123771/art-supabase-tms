@@ -26,15 +26,15 @@
       </ElSelect>
       <div class="monitor-metrics">
         <div class="monitor-metric">
-          <span>今日运输量</span>
-          <strong>{{ overview.todayCount }}</strong>
-          <em>较昨日 +{{ overview.growthRate }}%</em>
+          <span>当前运单量</span>
+          <strong>{{ overview.orderCount }}</strong>
+          <em>当前查询范围</em>
         </div>
         <div class="monitor-metric">
           <span>准时到达率</span>
-          <strong>{{ overview.onTimeRate }}%</strong>
-          <em :class="{ 'is-warning': overview.delayedCount > 0 }">
-            延误 {{ overview.delayedCount }} 单
+          <strong>{{ formatPercentValue(overview.onTimeRate, { fractionDigits: 0 }) }}</strong>
+          <em title="根据实际卸货或签收时间，与计划到达时间比较">
+            {{ overview.arrivalCount ? `${overview.arrivalCount} 条到达记录` : '暂无实际到达记录' }}
           </em>
         </div>
       </div>
@@ -42,9 +42,9 @@
 
     <section class="monitor-panel monitor-panel--list">
       <div class="monitor-panel__title">
-        <strong>在线车辆（{{ orders.length }}/{{ totalCount }}）</strong>
+        <strong>在途记录（{{ orders.length }}/{{ totalCount }}）</strong>
         <span :class="{ 'is-warning': overview.delayedCount > 0 }">
-          {{ overview.delayedCount ? `${overview.delayedCount} 辆需关注` : '运行正常' }}
+          {{ overview.delayedCount ? `${overview.delayedCount} 单需关注` : '暂无超时记录' }}
         </span>
       </div>
       <ElScrollbar class="vehicle-list">
@@ -99,12 +99,12 @@
                 </span>
               </span>
               <span class="vehicle-card__progress-value">
-                <small>运输进度</small>
-                <strong>{{ item.progress }}%</strong>
+                <small>{{ item.progressLabel }}</small>
+                <strong>{{ formatPercentValue(item.progress, { fractionDigits: 0 }) }}</strong>
               </span>
             </div>
             <div class="vehicle-card__progress-track" aria-hidden="true">
-              <i :style="{ width: `${item.progress}%` }" />
+              <i :style="{ width: `${item.progress ?? 0}%` }" />
             </div>
 
             <div class="vehicle-card__geo">
@@ -137,10 +137,13 @@
               <span
                 v-if="item.status === 'arrived'"
                 class="vehicle-card__arrival"
-                :class="{ 'is-delayed': item.arrivalDelayed }"
+                :class="{
+                  'is-delayed': item.arrivalDelayed,
+                  'text-[var(--transit-text-muted)]! bg-transparent!': item.arrivalDelayed === null
+                }"
               >
                 <ElIcon>
-                  <Clock v-if="item.arrivalDelayed" />
+                  <Clock v-if="item.arrivalDelayed !== false" />
                   <CircleCheckFilled v-else />
                 </ElIcon>
                 {{ item.arrivalText }}
@@ -148,8 +151,14 @@
               <em v-else-if="item.delayed"
                 ><ElIcon><Clock /></ElIcon>延误{{ item.delayText }}</em
               >
-              <em v-else class="is-normal"
-                ><ElIcon><CircleCheckFilled /></ElIcon>进度正常</em
+              <em
+                v-else
+                class="is-normal"
+                :class="{
+                  'text-[var(--transit-text-muted)]! bg-transparent!': item.progress === null
+                }"
+                ><ElIcon><Clock v-if="item.progress === null" /><CircleCheckFilled v-else /></ElIcon
+                >{{ item.progress === null ? '暂无进度' : '未超时' }}</em
               >
             </div>
           </button>
@@ -171,6 +180,7 @@
   } from '@element-plus/icons-vue'
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
+  import { formatPercentValue } from '@/utils/ui/format'
   import type { MonitorOrder, MonitorOverview, RegionOption, TransitStatus } from './monitor-types'
 
   defineOptions({ name: 'TmsRealtimeMonitorPanel' })

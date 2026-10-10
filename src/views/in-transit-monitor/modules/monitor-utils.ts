@@ -1,45 +1,21 @@
 import dayjs from 'dayjs'
-import { clamp, escape, uniqBy } from 'lodash-es'
+import { clamp, escape, meanBy, uniqBy } from 'lodash-es'
+import { normalizeNullableNumber } from '@/utils/form/normalize'
+import { normalizeCoordinatePair } from '@/utils/geo'
+import { isValidDateTimeValue } from '@/utils/time'
 import { createDateTimeFormatter } from '@/utils/ui/format'
-import type { GeoCoord, InTransitRecord, TransitStatus } from './monitor-types'
-import { INITIAL_MAP_CENTER, stationGeoPositions } from './monitor-geo-config'
+import type { GeoCoord, InTransitRecord, MonitorOrder, TransitStatus } from './monitor-types'
+import { stationGeoPositions } from './monitor-geo-config'
 
 export const getMonitorRecordId = (row: InTransitRecord): string => String(row.id || row.waybillNo)
 
-export const getRoutePosition = (path: GeoCoord[], progress: number): { coord: GeoCoord } => {
-  if (path.length === 0) return { coord: INITIAL_MAP_CENTER }
-  if (path.length === 1) return { coord: path[0] }
-
-  const targetIndex = clamp(Math.round((progress / 100) * (path.length - 1)), 0, path.length - 1)
-
-  return {
-    coord: path[targetIndex]
-  }
-}
-
-export const splitRoutePath = (
-  routePath: GeoCoord[],
-  current: GeoCoord,
-  progress: number
-): { passedPath: GeoCoord[]; remainingPath: GeoCoord[] } => {
-  if (routePath.length <= 1) {
-    return {
-      passedPath: [current],
-      remainingPath: [current]
-    }
-  }
-
-  const segmentIndex = clamp(
-    Math.floor((progress / 100) * (routePath.length - 1)),
-    0,
-    routePath.length - 2
-  )
-
-  return {
-    passedPath: dedupeGeoPath([...routePath.slice(0, segmentIndex + 1), current]),
-    remainingPath: dedupeGeoPath([current, ...routePath.slice(segmentIndex + 1)])
-  }
-}
+/** Cached routes belong to their endpoint pair, not just to the business record. */
+export const getDrivingRouteKey = (
+  order: Pick<MonitorOrder, 'id' | 'originGeo' | 'destinationGeo'>
+): string | undefined =>
+  order.originGeo && order.destinationGeo
+    ? `${order.id}:${order.originGeo.join(',')}:${order.destinationGeo.join(',')}`
+    : undefined
 
 export const resolveEndpointGeo = (
   row: InTransitRecord,
@@ -47,7 +23,7 @@ export const resolveEndpointGeo = (
   longitude: number | string | null | undefined,
   latitude: number | string | null | undefined,
   fallbackText: string
-): GeoCoord => {
+): GeoCoord | undefined => {
   const directGeo = toGeoCoord(longitude, latitude)
   if (directGeo) return directGeo
 
@@ -61,26 +37,22 @@ export const toGeoCoord = (
   longitude: number | string | null | undefined,
   latitude: number | string | null | undefined
 ): GeoCoord | undefined => {
-  const lng = Number(longitude)
-  const lat = Number(latitude)
-  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return undefined
-  if (Math.abs(lng) > 180 || Math.abs(lat) > 90) return undefined
-  return [Number(lng.toFixed(6)), Number(lat.toFixed(6))]
+  const coordinate = normalizeCoordinatePair(longitude, latitude)
+  if (!coordinate) return undefined
+  return [Number(coordinate.longitude.toFixed(6)), Number(coordinate.latitude.toFixed(6))]
 }
 
 export const resolveActualTrackPath = (row: InTransitRecord): GeoCoord[] => {
   const routePoints = Array.isArray(row.routePoints) ? row.routePoints : []
-  const hasGpsEvidence = routePoints.some((point) => {
+  const gpsPoints = routePoints.filter((point) => {
     const sourceText = `${point.type || ''} ${point.source || ''}`.toLowerCase()
     return (
       Boolean(point.capturedAt || point.timestamp || point.recordedAt) ||
       /(gps|track|trajectory|telemetry|location)/.test(sourceText)
     )
   })
-  if (!hasGpsEvidence) return []
-
   return dedupeGeoPath(
-    routePoints.flatMap((point) => {
+    gpsPoints.flatMap((point) => {
       const coordinate = toGeoCoord(point.longitude ?? point.lng, point.latitude ?? point.lat)
       return coordinate ? [coordinate] : []
     })
@@ -89,31 +61,32 @@ export const resolveActualTrackPath = (row: InTransitRecord): GeoCoord[] => {
 
 export const resolveProgress = (
   row: InTransitRecord,
-  seed: string,
   status: TransitStatus,
-  liveTick: number
-): number => {
+  now: number = Date.now()
+): number | null => {
   if (status === 'pending') return 0
   if (status === 'arrived') return 100
 
-  const departure = dayjs(row.loadedAt || row.plannedLoadTime || row.order?.plannedDepartureTime)
-  const arrival = dayjs(row.plannedUnloadTime || row.order?.plannedArrivalTime)
-  if (departure.isValid() && arrival.isValid() && arrival.isAfter(departure)) {
+  const departureValue =
+    row.departedAt || row.loadedAt || row.plannedLoadTime || row.order?.plannedDepartureTime
+  const arrivalValue = row.plannedUnloadTime || row.order?.plannedArrivalTime
+  if (!isValidDateTimeValue(departureValue, false) || !isValidDateTimeValue(arrivalValue, false))
+    return null
+  const departure = dayjs(departureValue)
+  const arrival = dayjs(arrivalValue)
+  if (arrival.isAfter(departure) && Number.isFinite(now)) {
     const total = arrival.diff(departure)
-    const elapsed = dayjs().diff(departure)
-    const liveOffset = ((liveTick + hashText(seed)) % 8) * 0.45
-    return clamp(Math.round((elapsed / total) * 100 + liveOffset), 32, 94)
+    const elapsed = dayjs(now).diff(departure)
+    return clamp(Math.round((elapsed / total) * 100), 0, 99)
   }
 
-  return clamp(48 + (hashText(row.waybillNo) % 36) + (liveTick % 6), 32, 94)
+  return null
 }
 
-export const resolveCurrentLabel = (row: InTransitRecord, progress: number): string => {
+export const resolveCurrentLabel = (row: InTransitRecord): string => {
   const status = resolveTransitStatus(row, isDelayed(row))
   if (status === 'pending') return row.originCity || '待处理'
   if (status === 'arrived') return row.destinationCity || '已到达'
-  if (progress > 80) return row.destinationCity || '目的地附近'
-  if (progress > 48 && row.order?.transferStation) return row.order.transferStation
   return '在途'
 }
 
@@ -134,18 +107,22 @@ export const isDelayed = (row: InTransitRecord): boolean => {
 }
 
 export const getDelayText = (value?: string | null): string => {
+  if (!isValidDateTimeValue(value, false)) return ''
   const arrival = dayjs(value)
-  if (!arrival.isValid()) return ''
+  if (!dayjs().isAfter(arrival)) return ''
   const hours = Math.max(1, dayjs().diff(arrival, 'hour'))
   return `${hours}h`
 }
 
 export const resolveArrivalPerformance = (
   row: InTransitRecord
-): { delayed: boolean; text: string } => {
-  const planned = dayjs(row.plannedUnloadTime || row.order?.plannedArrivalTime)
-  const actual = dayjs(row.unloadedAt || row.order?.signedAt || row.updateTime)
-  if (!planned.isValid() || !actual.isValid()) return { delayed: false, text: '准时' }
+): { delayed: boolean | null; text: string } => {
+  const plannedValue = row.plannedUnloadTime || row.order?.plannedArrivalTime
+  const actualValue = row.unloadedAt || row.order?.signedAt
+  if (!isValidDateTimeValue(plannedValue, false) || !isValidDateTimeValue(actualValue, false))
+    return { delayed: null, text: '暂无到达时间' }
+  const planned = dayjs(plannedValue)
+  const actual = dayjs(actualValue)
 
   const delayedMinutes = actual.diff(planned, 'minute')
   if (delayedMinutes <= 0) return { delayed: false, text: '准时' }
@@ -180,10 +157,17 @@ export const resolveTransitStatus = (row: InTransitRecord, delayed: boolean): Tr
 export const isRouteVisibleStatus = (status: TransitStatus): boolean =>
   ['transporting', 'delayed'].includes(status)
 
-export const resolveSpeed = (row: InTransitRecord, status: TransitStatus, seed: string): number => {
-  const speed = Number(row.speedKmh)
-  if (Number.isFinite(speed) && speed >= 0) return Math.round(speed)
-  return ['transporting', 'delayed'].includes(status) ? 58 + (hashText(seed) % 28) : 0
+export const resolveSpeed = (row: InTransitRecord): number | null => {
+  const speed = normalizeNullableNumber(row.speedKmh)
+  return speed !== null && speed >= 0 ? Math.round(speed) : null
+}
+
+/** Missing progress is excluded rather than treated as zero completion. */
+export const getAverageProgress = (
+  orders: readonly Pick<MonitorOrder, 'progress'>[]
+): number | null => {
+  const known = orders.filter((order) => order.progress !== null)
+  return known.length ? Math.round(meanBy(known, 'progress')) : null
 }
 
 export const estimateDistanceKm = (origin: GeoCoord, destination: GeoCoord): number => {
@@ -196,7 +180,7 @@ export const estimateDistanceKm = (origin: GeoCoord, destination: GeoCoord): num
   const factor =
     Math.sin(latDiff / 2) ** 2 + Math.cos(startLat) * Math.cos(endLat) * Math.sin(lngDiff / 2) ** 2
 
-  return Math.max(30, Math.round(radius * 2 * Math.atan2(Math.sqrt(factor), Math.sqrt(1 - factor))))
+  return Math.round(radius * 2 * Math.atan2(Math.sqrt(factor), Math.sqrt(1 - factor)))
 }
 
 export const formatDateTime = createDateTimeFormatter({ format: 'HH:mm' })
@@ -219,9 +203,6 @@ export const escapeHtml = escape
 export const percentOf = (value: number, total: number): number =>
   total > 0 ? clamp(Math.round((value / total) * 100), 0, 100) : 0
 
-export const hashText = (value?: string | number | null): number =>
-  Array.from(String(value ?? '')).reduce((hash, char) => hash + char.charCodeAt(0), 0)
-
 const getRoutePointGeo = (
   row: InTransitRecord,
   endpoint: 'origin' | 'destination'
@@ -235,13 +216,12 @@ const getRoutePointGeo = (
   return toGeoCoord(point.longitude ?? point.lng, point.latitude ?? point.lat)
 }
 
-const resolveStationGeo = (text: string): GeoCoord => {
+const resolveStationGeo = (text: string): GeoCoord | undefined => {
   const normalized = text.trim()
   const matched = stationGeoPositions.find((item) =>
     item.keywords.some((keyword) => normalized.includes(keyword))
   )
   if (matched) return matched.coord
 
-  const hash = hashText(normalized)
-  return [86 + (hash % 36), 22 + ((hash >> 3) % 20)]
+  return undefined
 }

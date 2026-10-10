@@ -1,0 +1,1 @@
+import{Yr as e,br as t,kr as n}from"./scroll-C-j15EuY.js";import{t as r}from"./art-permission-guard-DScIVLeE.js";var i=n({name:`Exception403`,__name:`index`,setup(n){return(n,i)=>(e(),t(r,{"force-denied":``,"resource-name":`目标页面`,"show-relogin":``,"viewport-centered":``}))}});export{i as default};

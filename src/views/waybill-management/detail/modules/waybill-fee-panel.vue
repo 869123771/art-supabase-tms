@@ -10,12 +10,18 @@
       <div class="waybill-fee-panel__totals">
         <div v-if="canViewFreight" class="waybill-fee-panel__total is-primary">
           <span>执行运费</span>
-          <strong>{{ money(waybill.freightAmount ?? waybill.order?.totalFee) }}</strong>
+          <strong>{{
+            formatSensitiveNumberWithAffix(waybill.freightAmount ?? waybill.order?.totalFee, {
+              prefix: '¥'
+            })
+          }}</strong>
           <small>{{ isAllocated ? '按原始运输单分摊' : '当前运单运费' }}</small>
         </div>
         <div v-if="canViewSettlement" class="waybill-fee-panel__total">
           <span>应收 / 付款合计</span>
-          <strong>{{ money(waybill.order?.paymentTotal) }}</strong>
+          <strong>{{
+            formatSensitiveNumberWithAffix(waybill.order?.paymentTotal, { prefix: '¥' })
+          }}</strong>
           <small>{{ waybill.order ? '关联订单收款口径' : '当前执行单无独立收款单' }}</small>
         </div>
       </div>
@@ -33,7 +39,9 @@
             <span :title="source.customerName || undefined">{{
               source.customerName || '未关联客户'
             }}</span>
-            <strong>{{ money(source.freightAmount) }}</strong>
+            <strong>{{
+              formatSensitiveNumberWithAffix(source.freightAmount, { prefix: '¥' })
+            }}</strong>
           </div>
         </div>
       </template>
@@ -42,11 +50,13 @@
         <dl class="waybill-fee-panel__charge-grid">
           <div v-for="item in chargeItems" :key="item.label">
             <dt>{{ item.label }}</dt>
-            <dd>{{ money(item.value) }}</dd>
+            <dd>{{ formatSensitiveNumberWithAffix(item.value, { prefix: '¥' }) }}</dd>
           </div>
         </dl>
         <p v-if="waybill.order.declaredValue != null" class="waybill-fee-panel__hint">
-          声明货值 {{ money(waybill.order.declaredValue) }} 为保价依据，不计入收费合计。
+          声明货值
+          {{ formatSensitiveNumberWithAffix(waybill.order.declaredValue, { prefix: '¥' }) }}
+          为保价依据，不计入收费合计。
         </p>
       </template>
 
@@ -55,7 +65,7 @@
         <dl class="waybill-fee-panel__charge-grid">
           <div v-for="item in paymentItems" :key="item.label">
             <dt>{{ item.label }}</dt>
-            <dd>{{ money(item.value) }}</dd>
+            <dd>{{ formatSensitiveNumberWithAffix(item.value, { prefix: '¥' }) }}</dd>
           </div>
         </dl>
       </template>
@@ -84,9 +94,21 @@
           </div>
           <div>
             <span>申报金额合计</span>
-            <strong>{{ costTotal === null ? '***' : money(costTotal) }}</strong>
+            <strong>{{
+              costTotal === null
+                ? costAmountsProtected
+                  ? '***'
+                  : '--'
+                : formatSensitiveNumberWithAffix(costTotal, { prefix: '¥' })
+            }}</strong>
           </div>
-          <p v-if="costTotal === null">部分费用金额受字段权限保护，合计不予展示。</p>
+          <p v-if="costTotal === null">
+            {{
+              costAmountsProtected
+                ? '部分费用金额受字段权限保护，合计不予展示。'
+                : '部分费用金额缺失或无效，暂无法计算合计。请核对费用记录。'
+            }}
+          </p>
         </div>
 
         <ol class="waybill-fee-panel__cost-list">
@@ -117,8 +139,11 @@
                   <p>{{ cost.costNo || '暂无费用单号' }} · {{ date(cost.occurredOn) }}</p>
                 </div>
               </div>
-              <div class="waybill-fee-panel__cost-status">
-                <strong v-if="canViewField(cost.fieldAccess, 'costAmounts')">
+              <div class="waybill-fee-panel__cost-status max-w-full">
+                <strong
+                  v-if="canViewField(cost.fieldAccess, 'costAmounts')"
+                  class="min-w-0 max-w-full wrap-anywhere"
+                >
                   {{ costAmount(cost) }}
                 </strong>
                 <ArtDictDisplay
@@ -175,9 +200,16 @@
   import ArtDictDisplay from '@/components/core/base/art-dict-display/index.vue'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
-  import { isReadableFieldAccess, canViewField, getFieldAccess } from '@/utils/field-permission'
-  import { formatWithDayjs } from '@/utils/time'
-  import { formatSensitiveNumber, formatSensitiveNumberWithAffix } from '@/utils/field-permission'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
+  import {
+    isReadableFieldAccess,
+    canViewField,
+    getFieldAccess,
+    formatSensitiveNumber,
+    formatSensitiveNumberWithAffix,
+    isMaskedValue,
+    parseReadableSensitiveNumber
+  } from '@/utils/field-permission'
 
   defineOptions({ name: 'TmsWaybillFeePanel' })
 
@@ -208,15 +240,22 @@
   const otherCostCount = computed(
     () => props.waybill.costs.length - driverCostCount.value - webCostCount.value
   )
+  const costAmountsProtected = computed(() =>
+    props.waybill.costs.some(
+      (cost) =>
+        !isReadableFieldAccess(getFieldAccess(cost.fieldAccess, 'costAmounts')) ||
+        isMaskedValue(cost.amount)
+    )
+  )
   const costTotal = computed<number | null>(() => {
+    if (costAmountsProtected.value) return null
     let total = 0
     for (const cost of props.waybill.costs) {
-      if (!isReadableFieldAccess(getFieldAccess(cost.fieldAccess, 'costAmounts'))) return null
-      const amount = Number(cost.amount)
-      if (!Number.isFinite(amount)) return null
+      const amount = parseReadableSensitiveNumber(cost.amount)
+      if (amount === undefined) return null
       total += amount
     }
-    return total
+    return Number.isFinite(total) ? total : null
   })
 
   const chargeItems = computed<AmountLine[]>(() => [
@@ -252,11 +291,15 @@
           ? null
           : amountAccess === 'masked'
             ? '***'
-            : optionalNumber(cost.quantity)
+            : formatSensitiveNumber(cost.quantity, { maximumFractionDigits: 4 })
       )
       add(
         '单价',
-        cost.unitPrice == null ? null : amountAccess === 'masked' ? '***' : money(cost.unitPrice)
+        cost.unitPrice == null
+          ? null
+          : amountAccess === 'masked'
+            ? '***'
+            : formatSensitiveNumberWithAffix(cost.unitPrice, { prefix: '¥' })
       )
     }
     if (canViewField(cost.fieldAccess, 'paymentDetails')) {
@@ -282,7 +325,9 @@
   }
 
   function costAmount(cost: Cost): string {
-    return getFieldAccess(cost.fieldAccess, 'costAmounts') === 'masked' ? '***' : money(cost.amount)
+    return getFieldAccess(cost.fieldAccess, 'costAmounts') === 'masked'
+      ? '***'
+      : formatSensitiveNumberWithAffix(cost.amount, { prefix: '¥' })
   }
 
   function sourceLabel(sourceType?: string | null): string {
@@ -291,21 +336,18 @@
     return '其他来源'
   }
 
-  function money(value?: number | string | null): string {
-    return formatSensitiveNumberWithAffix(value, { prefix: '¥' })
-  }
-
-  function optionalNumber(value?: number | string | null): string | null {
-    return value == null ? null : formatSensitiveNumber(value, { maximumFractionDigits: 4 })
-  }
-
-  function date(value?: string | null): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD') || '--'
-  }
-
-  function dateTime(value?: string | null): string | null {
-    return formatWithDayjs(value, 'YYYY-MM-DD HH:mm') || null
-  }
+  const date = createDateTimeFormatter({
+    format: 'YYYY-MM-DD',
+    emptyText: '--',
+    invalidText: '--',
+    allowTimeOnly: false
+  })
+  const dateTime = createDateTimeFormatter({
+    format: 'YYYY-MM-DD HH:mm',
+    emptyText: '',
+    invalidText: '',
+    allowTimeOnly: false
+  })
 </script>
 
 <style scoped lang="scss">

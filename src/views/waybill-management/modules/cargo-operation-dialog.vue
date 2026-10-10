@@ -128,6 +128,7 @@
 </template>
 
 <script setup lang="ts">
+  import { formatSensitiveCountValue } from '@/utils/ui/format'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { normalizeNullableText } from '@/utils/form/normalize'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
@@ -246,7 +247,7 @@
   const policyDescription = computed(() => {
     if (!context.value) return ''
     const automatic = context.value.autoCheckIn ? '围栏内支持自动打卡' : '围栏内仍需手动打卡'
-    return `围栏半径 ${context.value.radiusM.toLocaleString()} 米；${automatic}。围栏外打卡会记录异常原因。`
+    return `围栏半径 ${formatSensitiveCountValue(context.value.radiusM)} 米；${automatic}。围栏外打卡会记录异常原因。`
   })
   const checkinTimeText = computed(
     () => formatWithDayjs(context.value?.operation?.checkinTime) || '--'
@@ -366,7 +367,7 @@
       throw new Error(`当前不在${operationTitle.value}地围栏内，请到达现场后重新打卡`)
     }
     return await promptReason(
-      `当前距${operationTitle.value}地约 ${Math.round(distance).toLocaleString()} 米，请说明围栏外打卡原因。`,
+      `当前距${operationTitle.value}地约 ${formatSensitiveCountValue(Math.round(distance))} 米，请说明围栏外打卡原因。`,
       '围栏外打卡确认',
       {
         confirmButtonText: '确认打卡',

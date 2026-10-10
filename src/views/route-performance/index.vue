@@ -17,19 +17,31 @@
         :refresh-loading="loading"
         @refresh="loadOverview"
       />
-      <ArtSectionCard class="route-performance-page__workspace" preserve-content-structure>
-        <template #header>
-          <header class="route-performance-page__toolbar">
-            <div
-              ><ArtSectionTitle :show-line="false">线路排行榜</ArtSectionTitle
-              ><p>按完成趟次排序，更新时间 {{ generatedAt }}</p></div
-            >
-            <ElRadioGroup v-model="periodDays" size="small" @change="loadOverview">
-              <ElRadioButton :value="30">近 30 天</ElRadioButton>
-              <ElRadioButton :value="90">近 90 天</ElRadioButton>
-              <ElRadioButton :value="180">近 180 天</ElRadioButton>
-            </ElRadioGroup>
-          </header>
+      <ArtSectionCard
+        class="route-performance-page__workspace"
+        title="线路排行榜"
+        :subtitle="`按完成趟次排序，更新时间 ${generatedAt}`"
+        :loading="loading"
+        :skeleton-rows="7"
+        :error="errorMessage"
+        error-title="线路效能加载失败"
+        :empty="!overview?.records.length"
+        empty-title="当前周期暂无可分析的线路数据"
+        empty-description="调整统计周期，或等待线路产生新的运单数据。"
+        preserve-content-structure
+        @retry="loadOverview"
+      >
+        <template #actions>
+          <ElRadioGroup
+            v-model="periodDays"
+            size="small"
+            aria-label="线路统计周期"
+            @change="loadOverview"
+          >
+            <ElRadioButton :value="30">近 30 天</ElRadioButton>
+            <ElRadioButton :value="90">近 90 天</ElRadioButton>
+            <ElRadioButton :value="180">近 180 天</ElRadioButton>
+          </ElRadioGroup>
         </template>
         <ElAlert
           v-if="overview?.truncated"
@@ -40,19 +52,7 @@
           :title="`线路数量较大，当前展示 ${overview.returnedRecords} / ${overview.totalRecords} 条`"
           description="排行榜和汇总指标基于当前返回的高频线路。"
         />
-        <ElAlert v-if="errorMessage" type="error" show-icon :closable="false" :title="errorMessage">
-          <template #default
-            ><ElButton type="primary" link @click="loadOverview">重新加载</ElButton></template
-          >
-        </ElAlert>
-        <ElSkeleton v-else-if="loading && !overview" :rows="7" animated />
-        <ArtEmptyState
-          v-else-if="!overview?.records.length"
-          title="当前周期暂无可分析的线路数据"
-          description="调整统计周期，或等待线路产生新的运单数据。"
-          :visual-size="96"
-        />
-        <ol v-else class="route-performance-page__list">
+        <ol v-if="overview" class="route-performance-page__list">
           <li v-for="(record, index) in overview.records" :key="record.id">
             <span class="route-performance-page__rank">{{ index + 1 }}</span>
             <div class="route-performance-page__route">
@@ -97,11 +97,10 @@
 <script setup lang="ts">
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
-  import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
+  import { useAsyncState } from '@vueuse/core'
   import BusinessWorkspaceHeader, {
     type BusinessWorkspaceMetric
   } from '@/components/business/business-workspace-header/index.vue'
-  import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import { formatNumberValue } from '@/utils/ui'
   import { formatWithDayjs } from '@/utils/time'
@@ -109,9 +108,18 @@
 
   defineOptions({ name: 'TmsRoutePerformance' })
   const periodDays = ref(90)
-  const loading = ref(false)
-  const errorMessage = ref('')
-  const overview = ref<Api.Tms.RoutePerformance.Overview | null>(null)
+  const request = useAsyncState(fetchRoutePerformance, null, {
+    immediate: false,
+    // Recoverable failures are shown by the section card.
+    onError: () => undefined
+  })
+  const overview = request.state
+  const loading = request.isLoading
+  const errorMessage = computed(() =>
+    request.error.value
+      ? getFriendlySupabaseErrorMessage(request.error.value, '线路效能加载失败')
+      : ''
+  )
   const generatedAt = computed(() =>
     overview.value ? formatWithDayjs(overview.value.generatedAt) : '--'
   )
@@ -156,15 +164,7 @@
     }
   ])
   async function loadOverview(): Promise<void> {
-    loading.value = true
-    errorMessage.value = ''
-    try {
-      overview.value = await fetchRoutePerformance(periodDays.value)
-    } catch (error) {
-      errorMessage.value = getFriendlySupabaseErrorMessage(error, '线路效能加载失败')
-    } finally {
-      loading.value = false
-    }
+    await request.executeImmediate(periodDays.value)
   }
   onMounted(() => void loadOverview())
 </script>
@@ -174,20 +174,6 @@
     &__workspace {
       min-width: 0;
       padding: 18px;
-    }
-
-    &__toolbar {
-      display: flex;
-      gap: 16px;
-      align-items: flex-end;
-      justify-content: space-between;
-      margin-bottom: 16px;
-    }
-
-    &__toolbar p {
-      margin: 5px 0 0;
-      font-size: 12px;
-      color: var(--art-gray-500);
     }
 
     &__list {
@@ -286,16 +272,6 @@
 
   @media only screen and (width <= 767px) {
     .route-performance-page {
-      &__toolbar {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      &__toolbar :deep(.el-radio-group) {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
       &__list li {
         grid-template-columns: 34px minmax(0, 1fr);
       }

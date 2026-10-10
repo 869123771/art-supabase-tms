@@ -1,4 +1,4 @@
-import { useSupabase } from '@/hooks'
+import { useSupabase } from '@/hooks/core/useSupabase'
 import { buildSupabasePageRange } from '@/utils/supabase/pagination'
 import { fetchDispatchWorkbench } from '@tms/api/modules/dispatch-execution'
 

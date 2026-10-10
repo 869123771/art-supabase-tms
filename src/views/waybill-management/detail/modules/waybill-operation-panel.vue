@@ -35,13 +35,34 @@
                 ><dt>签到方式</dt><dd>{{ checkinMode(card.record.checkinMode) }}</dd></div
               >
               <div
-                ><dt>作业净重</dt><dd>{{ weight(card.record.weightTon) }}</dd></div
+                ><dt>作业净重</dt
+                ><dd>{{
+                  formatSensitiveNumberWithAffix(card.record.weightTon, {
+                    suffix: ' t',
+                    emptyText: '-',
+                    numberFormat: measurementNumberFormat
+                  })
+                }}</dd></div
               >
               <div v-if="canView('routeCoordinates')"
-                ><dt>定位精度</dt><dd>{{ distance(card.record.locationAccuracyM) }}</dd></div
+                ><dt>定位精度</dt
+                ><dd>{{
+                  formatSensitiveNumberWithAffix(card.record.locationAccuracyM, {
+                    suffix: ' m',
+                    emptyText: '-',
+                    numberFormat: measurementNumberFormat
+                  })
+                }}</dd></div
               >
               <div v-if="canView('routeCoordinates')"
-                ><dt>围栏距离</dt><dd>{{ distance(card.record.distanceM) }}</dd></div
+                ><dt>围栏距离</dt
+                ><dd>{{
+                  formatSensitiveNumberWithAffix(card.record.distanceM, {
+                    suffix: ' m',
+                    emptyText: '-',
+                    numberFormat: measurementNumberFormat
+                  })
+                }}</dd></div
               >
               <div v-if="canView('routeCoordinates')">
                 <dt>电子围栏</dt>
@@ -57,8 +78,19 @@
               <div>
                 <strong>{{ card.record.locationText || '未记录位置名称' }}</strong>
                 <small>
-                  {{ coordinates(card.record.longitude, card.record.latitude) }} · 围栏半径
-                  {{ distance(card.record.geofenceRadiusM) }}
+                  {{
+                    formatCoordinateValue(card.record.longitude, card.record.latitude, {
+                      fractionDigits: 6
+                    })
+                  }}
+                  · 围栏半径
+                  {{
+                    formatSensitiveNumberWithAffix(card.record.geofenceRadiusM, {
+                      suffix: ' m',
+                      emptyText: '-',
+                      numberFormat: measurementNumberFormat
+                    })
+                  }}
                 </small>
               </div>
             </div>
@@ -107,7 +139,7 @@
         type="warning"
         :closable="false"
         show-icon
-        title="运单已显示完成，但回场档案缺失。请由原司机或具备完成权限的调度人员补录回场时间、里程和照片。"
+        title="运单已显示完成，但司机执行档案缺失或存在无效数据。请由具备相应权限的人员核对并补齐发车、签收和回场记录。"
       />
       <div v-if="waybill.execution" class="waybill-operation-panel__execution-grid">
         <article v-for="stage in executionStages" :key="stage.key">
@@ -118,10 +150,10 @@
             <div>
               <strong>{{ stage.title }}</strong>
               <ElTag
-                :type="stage.time ? 'success' : stage.key === 'return' ? 'warning' : 'info'"
+                :type="stage.recorded ? 'success' : stage.key === 'return' ? 'warning' : 'info'"
                 size="small"
               >
-                {{ stage.time ? '已记录' : '待补录' }}
+                {{ stage.recorded ? '已记录' : '待补录' }}
               </ElTag>
             </div>
             <dl>
@@ -177,12 +209,23 @@
 </template>
 
 <script setup lang="ts">
+  import { formatCoordinateValue } from '@/utils/ui/coordinates'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtEmptyState from '@/components/core/feedback/art-empty-state/index.vue'
-  import { formatWithDayjs } from '@/utils/time'
-  import { canViewField } from '@/utils/field-permission'
+  import { createDateTimeFormatter } from '@/utils/ui/format'
+  import { isValidDateTimeValue } from '@/utils/time'
+  import {
+    canViewField,
+    formatSensitiveNumberWithAffix,
+    parseReadableSensitiveNumber
+  } from '@/utils/field-permission'
 
   defineOptions({ name: 'TmsWaybillOperationPanel' })
+
+  const measurementNumberFormat: Intl.NumberFormatOptions = {
+    useGrouping: false,
+    maximumFractionDigits: 20
+  }
 
   type OperationType = Api.Tms.Waybill.CargoOperationType
   const props = defineProps<{ waybill: Api.Tms.Waybill.WaybillDetailRecord }>()
@@ -203,7 +246,11 @@
         icon: 'ri:inbox-unarchive-line',
         fallbackTime: props.waybill.unloadedAt
       }
-    ].map((item) => ({ ...item, record: findOperation(item.type) }))
+    ].map((item) => ({
+      ...item,
+      fallbackTime: isValidDateTimeValue(item.fallbackTime, false) ? item.fallbackTime : null,
+      record: findOperation(item.type)
+    }))
   )
 
   const executionStages = computed(() => {
@@ -218,7 +265,11 @@
         recordedAt: record.departureRecordedAt,
         operator: record.departureOperatorName,
         metricLabel: '发车里程',
-        metric: odometer(record.departureOdometerKm),
+        metric: formatSensitiveNumberWithAffix(record.departureOdometerKm, {
+          suffix: ' km',
+          emptyText: '-',
+          numberFormat: measurementNumberFormat
+        }),
         remark: record.departureRemark,
         imageCount: record.departurePhotoUrls.length
       },
@@ -242,27 +293,38 @@
         recordedAt: record.completionRecordedAt,
         operator: record.completionOperatorName,
         metricLabel: '回场里程',
-        metric: odometer(record.returnOdometerKm),
+        metric: formatSensitiveNumberWithAffix(record.returnOdometerKm, {
+          suffix: ' km',
+          emptyText: '-',
+          numberFormat: measurementNumberFormat
+        }),
         remark: record.completionRemark,
         imageCount: record.returnPhotoUrls.length
       }
-    ]
+    ].map((stage) => ({ ...stage, recorded: isValidDateTimeValue(stage.time, false) }))
   })
 
   const executionArchiveComplete = computed(() => {
     const record = props.waybill.execution
+    if (!record) return false
+    const validTimes = [
+      record.departureTime,
+      record.signedAt,
+      record.returnTime,
+      record.completionRecordedAt
+    ].every((value) => isValidDateTimeValue(value, false))
+    const validMileage = [record.departureOdometerKm, record.returnOdometerKm].every((value) => {
+      const mileage = parseReadableSensitiveNumber(value)
+      return mileage !== undefined && mileage >= 0
+    })
     return Boolean(
-      record?.departureTime &&
-      record.departureOdometerKm != null &&
+      validTimes &&
+      validMileage &&
       record.departurePhotoUrls.length &&
-      record.signedAt &&
-      record.signerName &&
+      record.signerName?.trim() &&
       record.receiptUrls.length &&
       record.signatureUrls.length &&
-      record.returnTime &&
-      record.returnOdometerKm != null &&
-      record.returnPhotoUrls.length &&
-      record.completionRecordedAt
+      record.returnPhotoUrls.length
     )
   })
 
@@ -275,22 +337,26 @@
       label: '装货作业档案',
       complete: Boolean(findOperation('loading')),
       description: findOperation('loading')
-        ? '签到与称重信息已归档'
-        : '流程节点存在，结构化作业记录待补齐'
+        ? '作业记录已归档'
+        : isValidDateTimeValue(props.waybill.loadedAt, false)
+          ? '流程节点存在，结构化作业记录待补齐'
+          : '暂无装货作业记录，完成现场作业后同步归档'
     },
     {
       label: '卸货作业档案',
       complete: Boolean(findOperation('unloading')),
       description: findOperation('unloading')
-        ? '签到与称重信息已归档'
-        : '流程节点存在，结构化作业记录待补齐'
+        ? '作业记录已归档'
+        : isValidDateTimeValue(props.waybill.unloadedAt, false)
+          ? '流程节点存在，结构化作业记录待补齐'
+          : '暂无卸货作业记录，完成现场作业后同步归档'
     },
     {
       label: '司机执行档案',
       complete: executionArchiveComplete.value,
       description: executionArchiveComplete.value
         ? '发车、签收、回场与里程字段均已归档'
-        : '发车、签收或回场档案仍有缺失，请按节点补齐'
+        : '发车、签收或回场档案缺失或存在无效数据，请核对并补齐'
     },
     {
       label: '流程事件审计',
@@ -317,25 +383,12 @@
     return { manual: '手动签到', automatic: '自动签到', admin: '后台补录' }[mode]
   }
 
-  function coordinates(longitude: number, latitude: number): string {
-    return `${longitude.toFixed(6)}, ${latitude.toFixed(6)}`
-  }
-
-  function distance(value?: number | null): string {
-    return value == null ? '-' : `${value} m`
-  }
-
-  function weight(value?: number | null): string {
-    return value == null ? '-' : `${value} t`
-  }
-
-  function odometer(value?: number | null): string {
-    return value == null ? '-' : `${value} km`
-  }
-
-  function date(value?: string | null): string {
-    return formatWithDayjs(value, 'YYYY-MM-DD HH:mm') || '-'
-  }
+  const date = createDateTimeFormatter({
+    format: 'YYYY-MM-DD HH:mm',
+    emptyText: '-',
+    invalidText: '-',
+    allowTimeOnly: false
+  })
 
   function canView(field: Api.Tms.Waybill.WaybillFieldKey): boolean {
     return canViewField(props.waybill.fieldAccess, field)

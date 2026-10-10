@@ -3,7 +3,7 @@
     <section class="monitor-panel monitor-panel--summary">
       <div class="monitor-panel__title">
         <strong>车辆监控</strong>
-        <span>定位已连接</span>
+        <span>以最新定位记录为准</span>
       </div>
       <div class="summary-grid">
         <div>
@@ -11,12 +11,12 @@
           <span>监控车辆</span>
         </div>
         <div>
-          <strong>{{ overview.onTimeRate }}%</strong>
-          <span>准时运输</span>
+          <strong>{{ formatPercentValue(overview.onTimeRate, { fractionDigits: 0 }) }}</strong>
+          <span>到达准时率</span>
         </div>
         <div>
-          <strong>{{ averageProgress }}%</strong>
-          <span>运输完成率</span>
+          <strong>{{ formatPercentValue(averageProgress, { fractionDigits: 0 }) }}</strong>
+          <span>平均进度（含估算）</span>
         </div>
       </div>
       <ElInput
@@ -31,7 +31,9 @@
     <section class="monitor-panel monitor-panel--list">
       <div class="monitor-panel__title">
         <strong>车辆列表（{{ filteredOrders.length }}）</strong>
-        <span>{{ overview.delayedCount ? `${overview.delayedCount} 辆需关注` : '运行正常' }}</span>
+        <span>{{
+          overview.delayedCount ? `${overview.delayedCount} 单需关注` : '暂无超时记录'
+        }}</span>
       </div>
       <ElScrollbar class="monitor-list">
         <ArtAsyncState
@@ -90,6 +92,8 @@
 </template>
 
 <script setup lang="ts">
+  import { getAverageProgress } from './monitor-utils'
+  import { formatPercentValue } from '@/utils/ui/format'
   import { Search, Van } from '@element-plus/icons-vue'
   import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import MonitorRouteCard from './monitor-route-card.vue'
@@ -139,12 +143,7 @@
     )
   })
 
-  const averageProgress = computed(() => {
-    if (!vehicleOrders.value.length) return 0
-    return Math.round(
-      vehicleOrders.value.reduce((sum, item) => sum + item.progress, 0) / vehicleOrders.value.length
-    )
-  })
+  const averageProgress = computed(() => getAverageProgress(vehicleOrders.value))
 
   function getVehicleOrderPriority(item: MonitorOrder): number {
     if (item.status === 'delayed') return 4
