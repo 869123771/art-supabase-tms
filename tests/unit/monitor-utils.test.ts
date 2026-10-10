@@ -3,7 +3,6 @@ import test from 'node:test'
 import type { InTransitRecord } from '../../src/views/in-transit-monitor/modules/monitor-types'
 import {
   dedupeGeoPath,
-  escapeHtml,
   estimateDistanceKm,
   getAverageProgress,
   getDrivingRouteKey,
@@ -49,9 +48,8 @@ test('resolveTransitStatus follows delayed, completed, and running precedence', 
   assert.equal(resolveTransitStatus({ status: 'created' } as InTransitRecord, false), 'pending')
 })
 
-test('distance and marker escaping stay safe at external map boundaries', () => {
+test('distance estimation retains kilometer units at external map boundaries', () => {
   assert.ok(estimateDistanceKm([120, 30], [121, 30]) > 90)
-  assert.equal(escapeHtml('<img title="x">'), '&lt;img title=&quot;x&quot;&gt;')
 })
 
 test('missing telemetry never becomes zero or generated coordinates and speeds', () => {

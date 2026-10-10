@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import QrcodeVue from 'qrcode.vue'
 import { escape, uniq } from 'lodash-es'
 import { formatCompactNumberValue, formatDateTimeValue } from '@/utils/ui/format'
+import { printHtmlDocument } from '@/utils/file/print-document'
 import defaultLogoUrl from '@/assets/images/common/logo.webp?url'
 import printStyles from './waybill-print.css?inline'
 
@@ -238,38 +239,10 @@ function loadedSheet(waybill: WaybillRecord, options: WaybillPrintOptions): stri
 }
 
 function openPrintWindow(title: string, sheets: string, landscape: boolean): boolean {
-  const printWindow = window.open('', '_blank')
-  if (!printWindow) return false
-  printWindow.opener = null
-  printWindow.addEventListener(
-    'load',
-    () => {
-      const images = Array.from(printWindow.document.images)
-      void Promise.all(
-        images.map(
-          (image) =>
-            new Promise<void>((resolve) => {
-              if (image.complete) return resolve()
-              image.addEventListener('load', () => resolve(), { once: true })
-              image.addEventListener('error', () => resolve(), { once: true })
-            })
-        )
-      ).then(() => {
-        void printWindow.document.fonts.ready.then(() => {
-          printWindow.focus()
-          printWindow.print()
-        })
-      })
-    },
-    { once: true }
-  )
-  printWindow.document.open()
-  printWindow.document.write(`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8" />
+  return printHtmlDocument(`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>${text(title)}</title><style>@page { size: A4 ${landscape ? 'landscape' : 'portrait'}; margin: 10mm; }
     ${printStyles}</style></head><body class="${landscape ? 'landscape' : 'portrait'}">${sheets}</body></html>`)
-  printWindow.document.close()
-  return true
 }
 
 export function printOrderWaybill(order: OrderRecord, options: WaybillPrintOptions): boolean {

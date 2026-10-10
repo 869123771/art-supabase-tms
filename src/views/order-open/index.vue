@@ -2257,7 +2257,7 @@
           window.location.href
         ).href
       : undefined
-    const opened = printOrderWaybill(
+    printOrderWaybill(
       { ...order, id: orderId || undefined },
       {
         brandName: brandName.value,
@@ -2268,7 +2268,6 @@
           userStore.getDictItemByValue(dictCode, value ?? undefined)?.label || value || ''
       }
     )
-    if (!opened) ElMessage.warning('浏览器拦截了打印窗口，请允许弹出窗口后重试')
   }
 
   function normalizePayload(): OrderRecord {

@@ -1,1 +1,0 @@
-import{C as e,T as t,a as n}from"./_baseForOwn-C3BVcox0.js";import{d as r,t as i}from"./_baseSet-Zq-4AgOn.js";function a(n,r,a){for(var o=-1,s=r.length,c={};++o<s;){var l=r[o],u=e(n,l);a(u,l)&&i(c,t(l,n),u)}return c}function o(e,t){return a(e,t,function(t,r){return n(e,r)})}var s=r(function(e,t){return e==null?{}:o(e,t)});export{a as n,s as t};

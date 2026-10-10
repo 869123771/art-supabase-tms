@@ -1,1 +1,0 @@
-import{nt as e}from"./_baseForOwn-C3BVcox0.js";var t=function(){return e.Date.now()};export{t};

@@ -1,1 +1,0 @@
-import{$ as e,X as t,et as n}from"./_baseForOwn-C3BVcox0.js";var r=`[object String]`;function i(i){return typeof i==`string`||!t(i)&&e(i)&&n(i)==r}export{i as t};

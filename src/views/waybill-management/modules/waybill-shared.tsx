@@ -934,14 +934,13 @@ function handlePrint(context: WaybillListContext, row: WaybillRecord): void {
       ).href
     : undefined
   const userStore = useUserStore()
-  const opened = printLoadedWaybill(row, {
+  printLoadedWaybill(row, {
     brandName: brandName.value,
     logoUrl: websiteConfig.value.logoUrl,
     detailUrl,
     label: (dictCode, value) =>
       userStore.getDictItemByValue(dictCode, value ?? undefined)?.label || value || ''
   })
-  if (!opened) ElMessage.warning('浏览器拦截了打印窗口，请允许弹出窗口后重试')
 }
 
 function formatRoute(row: WaybillRecord): string {

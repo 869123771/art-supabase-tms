@@ -232,7 +232,7 @@
     useIntervalFn,
     useResizeObserver
   } from '@vueuse/core'
-  import { noop } from 'lodash-es'
+  import { escape, noop } from 'lodash-es'
   import MonitorDetailPanel from './modules/monitor-detail-panel.vue'
   import RealtimeMonitorPanel from './modules/realtime-monitor-panel.vue'
   import TransportAnomalyAdvisorDrawer from './modules/transport-anomaly-advisor-drawer.vue'
@@ -273,7 +273,6 @@
   import {
     dedupeGeoPath,
     getDrivingRouteKey,
-    escapeHtml,
     formatRefreshTime,
     getMonitorRecordId,
     isRouteVisibleStatus,
@@ -847,8 +846,8 @@
 
     const markerClass = options.selected ? ' is-selected' : ''
     const content = options.image
-      ? `<div class="transit-vehicle-marker${markerClass}" style="--marker-color:${color}"><i></i><img src="${options.image}" alt="${escapeHtml(options.subtitle || title)}" width="42" height="28" /><span>${escapeHtml(title)}</span></div>`
-      : `<div class="transit-amap-marker" style="--marker-color:${color}"><b>${escapeHtml(label)}</b><span>${escapeHtml(title)}</span>${options.subtitle ? `<em>${escapeHtml(options.subtitle)}</em>` : ''}</div>`
+      ? `<div class="transit-vehicle-marker${markerClass}" style="--marker-color:${color}"><i></i><img src="${options.image}" alt="${escape(options.subtitle || title)}" width="42" height="28" /><span>${escape(title)}</span></div>`
+      : `<div class="transit-amap-marker" style="--marker-color:${color}"><b>${escape(label)}</b><span>${escape(title)}</span>${options.subtitle ? `<em>${escape(options.subtitle)}</em>` : ''}</div>`
     if (!marker) {
       const nextMarker = new AMap.Marker({
         anchor: 'center',

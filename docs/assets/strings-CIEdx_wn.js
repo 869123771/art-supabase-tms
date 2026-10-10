@@ -1,0 +1,1 @@
+import{Zi as e}from"./scroll-CHZtoI6m.js";var t=(e=``)=>e.replace(/[|\\{}()[\]^$+*?.]/g,`\\$&`).replace(/-/g,`\\x2d`),n=t=>e(t);export{t as n,n as t};

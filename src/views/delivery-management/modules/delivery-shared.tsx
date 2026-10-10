@@ -1,5 +1,5 @@
 import { computed, type ComputedRef, type Ref } from 'vue'
-import { ElLink, ElMessage } from 'element-plus'
+import { ElLink } from 'element-plus'
 import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
 import type {
   ArtTableQueryExcelColumn,
@@ -365,14 +365,13 @@ function printDeliveryWaybill(context: DeliveryListContext, row: DeliveryRecord)
         window.location.href
       ).href
     : undefined
-  const opened = printLoadedWaybill(row, {
+  printLoadedWaybill(row, {
     brandName: brandName.value,
     logoUrl: websiteConfig.value.logoUrl,
     detailUrl,
     label: (dictCode, value) =>
       userStore.getDictItemByValue(dictCode, value ?? undefined)?.label || value || ''
   })
-  if (!opened) ElMessage.warning('浏览器拦截了打印窗口，请允许弹出窗口后重试')
 }
 
 function isDeliveryColumnVisible(context: DeliveryListContext, key: string): boolean {

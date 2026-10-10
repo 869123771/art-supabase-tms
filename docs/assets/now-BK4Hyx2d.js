@@ -1,0 +1,1 @@
+import{rt as e}from"./_baseForOwn-Bs6skvRV.js";var t=function(){return e.Date.now()};export{t};

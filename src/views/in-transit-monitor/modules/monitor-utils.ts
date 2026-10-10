@@ -1,5 +1,5 @@
 import dayjs from 'dayjs'
-import { clamp, escape, meanBy, uniqBy } from 'lodash-es'
+import { clamp, meanBy, uniqBy } from 'lodash-es'
 import { normalizeNullableNumber } from '@/utils/form/normalize'
 import { normalizeCoordinatePair } from '@/utils/geo'
 import { isValidDateTimeValue } from '@/utils/time'
@@ -197,8 +197,6 @@ export const normalizeVehicleTypeCode = (value?: string | number | null): string
 
 export const dedupeGeoPath = (path: GeoCoord[]): GeoCoord[] =>
   uniqBy(path, ([longitude, latitude]) => `${longitude},${latitude}`)
-
-export const escapeHtml = escape
 
 export const percentOf = (value: number, total: number): number =>
   total > 0 ? clamp(Math.round((value / total) * 100), 0, 100) : 0
