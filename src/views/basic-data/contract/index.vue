@@ -40,11 +40,14 @@
     />
 
     <ContractDialog ref="dialogRef" @success="handleSaveSuccess" />
+    <MasterDataDeleteGuard ref="deleteGuardRef" />
   </div>
 </template>
 
 <script setup lang="tsx">
-  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
+  import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
+  import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
   import { ElMessage, ElTag } from 'element-plus'
   import { RouterLink } from 'vue-router'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
@@ -81,7 +84,10 @@
 
   defineOptions({ name: 'TmsContract' })
 
-  const { confirmAction } = useArtFeedback()
+  const { deleteGuardRef, deleteRecord, deleteRecords } = useRecordDeleteGuard(
+    'tms_contract',
+    '运输合同'
+  )
 
   type Contract = Api.Tms.BasicData.Contract
   type ContractStatus = Api.Tms.BasicData.ContractStatus
@@ -423,11 +429,21 @@
     {
       permission: 'TmsContract:Delete',
       type: 'delete',
-      content: ({ selectedCount }: { selectedCount: number }) =>
-        `确定删除选中的 ${selectedCount} 条合同吗？删除后无法恢复。`,
+      confirm: false,
       onClick: async ({ selectedRows }) => {
-        await deleteContractBatch(selectedRows.map((row) => String(row.id)).filter(Boolean))
-        await tableQueryRef.value?.refreshRemove()
+        const rows = selectedRows as Contract[]
+        const ids = rows.map((row) => String(row.id)).filter(Boolean)
+        await deleteRecords({
+          resources: rows.map((row) => ({
+            id: String(row.id),
+            label: row.contractName || row.contractNo || '运输合同'
+          })),
+          permission: 'TmsContract:Delete',
+          remove: () => deleteContractBatch(ids),
+          onDeleted: async () => {
+            await tableQueryRef.value?.refreshRemove()
+          }
+        })
       }
     },
     {
@@ -668,19 +684,16 @@
   }
 
   const handleDelete = async (row: Contract): Promise<void> => {
-    if (!row.id) return
-    try {
-      await confirmAction(`确定删除合同“${row.contractName}”吗？删除后无法恢复。`, '删除确认', {
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        type: 'warning',
-        confirmButtonType: 'danger'
-      })
-      await deleteContract(row.id)
-      await tableQueryRef.value?.refreshRemove()
-    } catch {
-      // 用户取消删除时无需提示。
-    }
+    const id = row.id
+    if (!id) return
+    await deleteRecord({
+      resource: { id, label: row.contractName || row.contractNo || '运输合同' },
+      permission: 'TmsContract:Delete',
+      remove: () => deleteContract(id),
+      onDeleted: async () => {
+        await tableQueryRef.value?.refreshRemove()
+      }
+    })
   }
 
   const syncMasterDeleteRoute = (forceRefresh = false): void => {

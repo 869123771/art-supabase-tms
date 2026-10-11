@@ -311,11 +311,14 @@
     {
       permission: 'TmsCustomerAddress:Delete',
       type: 'delete',
-      content: ({ selectedCount }: { selectedCount: number }) =>
-        `确定删除选中的 ${selectedCount} 条地址吗？`,
+      confirm: false,
       onClick: async ({ selectedRows }) => {
         const rows = selectedRows as CustomerAddress[]
         if (await inspectDeleteDependencies(rows)) return
+        await confirmAction(`确定删除选中的 ${rows.length} 条地址吗？`, '删除确认', {
+          confirmButtonText: '删除',
+          confirmButtonType: 'danger'
+        })
         await deleteCustomerAddressBatch(rows.map((row) => String(row.id)).filter(Boolean))
         await tableQueryRef.value?.refreshRemove()
       }

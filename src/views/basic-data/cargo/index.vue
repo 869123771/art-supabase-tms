@@ -364,11 +364,18 @@
     {
       type: 'delete',
       permission: 'TmsCargo:Delete',
-      content: ({ selectedCount }: { selectedCount: number }) =>
-        `确定删除选中的 ${selectedCount} 条货物资料吗？删除后无法恢复。`,
+      confirm: false,
       onClick: async ({ selectedRows }) => {
         const rows = selectedRows as Cargo[]
         if (await inspectDeleteDependencies(rows)) return
+        await confirmAction(
+          `确定删除选中的 ${rows.length} 条货物资料吗？删除后无法恢复。`,
+          '删除确认',
+          {
+            confirmButtonText: '删除',
+            confirmButtonType: 'danger'
+          }
+        )
         await deleteCargoBatch(rows.map((row) => String(row.id)).filter(Boolean))
         await tableQueryRef.value?.refreshRemove()
       }

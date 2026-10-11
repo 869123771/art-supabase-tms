@@ -243,14 +243,26 @@ export async function editContract(params: Contract) {
 export async function deleteContract(id: string) {
   return await responseHandle<boolean>(
     () => supabase.rpc('tms_delete_contract_secure', { p_id: id }),
-    { showMessage: true, breakReturn: true }
+    {
+      showMessage: true,
+      showErrorMessage: false,
+      breakReturn: true,
+      requireAffected: true,
+      noAffectedMessage: '合同已不存在或当前账号无权删除，请刷新列表后重试。'
+    }
   )
 }
 
 export async function deleteContractBatch(ids: string[]) {
   return await responseHandle<number>(
     () => supabase.rpc('tms_delete_contracts_secure', { p_ids: ids }),
-    { showMessage: true, breakReturn: true }
+    {
+      showMessage: true,
+      showErrorMessage: false,
+      breakReturn: true,
+      requireAffected: true,
+      noAffectedMessage: '合同已不存在或当前账号无权删除，请刷新列表后重试。'
+    }
   )
 }
 
