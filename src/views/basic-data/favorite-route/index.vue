@@ -232,7 +232,7 @@
       label: '状态',
       width: 90,
       formatter: (row) => (
-        <ArtDictDisplay dictCode="commonBoolean" value={String(row.enabled)} display="tag" />
+        <ArtDictDisplay dictCode="commonBoolean" value={String(row.enabled ?? '')} display="tag" />
       )
     },
     {

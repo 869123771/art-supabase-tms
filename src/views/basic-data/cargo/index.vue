@@ -61,7 +61,8 @@
 </template>
 
 <script setup lang="tsx">
-  import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
+  import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
   import { ElMessage } from 'element-plus'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
@@ -100,7 +101,7 @@
 
   defineOptions({ name: 'TmsCargo' })
 
-  const { confirmAction } = useArtFeedback()
+  const { deleteRecords } = useRecordDeleteGuard('mdm_cargo', '货物')
 
   type Cargo = Api.Tms.BasicData.Cargo
   type SearchParams = Api.Tms.BasicData.CargoSearchParams
@@ -295,7 +296,7 @@
       prop: 'enabled',
       label: '状态',
       width: 90,
-      dict: { code: 'commonBoolean', display: 'tag', value: (row) => String(row.enabled) }
+      dict: { code: 'commonBoolean', display: 'tag', value: (row) => String(row.enabled ?? '') }
     },
     {
       prop: 'createTime',
@@ -365,20 +366,7 @@
       type: 'delete',
       permission: 'TmsCargo:Delete',
       confirm: false,
-      onClick: async ({ selectedRows }) => {
-        const rows = selectedRows as Cargo[]
-        if (await inspectDeleteDependencies(rows)) return
-        await confirmAction(
-          `确定删除选中的 ${rows.length} 条货物资料吗？删除后无法恢复。`,
-          '删除确认',
-          {
-            confirmButtonText: '删除',
-            confirmButtonType: 'danger'
-          }
-        )
-        await deleteCargoBatch(rows.map((row) => String(row.id)).filter(Boolean))
-        await tableQueryRef.value?.refreshRemove()
-      }
+      onClick: ({ selectedRows }) => handleDeleteRows(selectedRows as Cargo[])
     }
   ])
 
@@ -449,20 +437,6 @@
       : tableQueryRef.value?.refreshUpdate())
   }
 
-  const inspectDeleteDependencies = async (rows: Cargo[]): Promise<boolean> => {
-    const resources = rows
-      .filter((item) => item.id)
-      .map((item) => ({ id: String(item.id), label: item.cargoName }))
-    if (!resources.length) return false
-    return (
-      (await deleteGuardRef.value?.inspect({
-        resourceType: 'cargo',
-        resourceLabel: '货物',
-        resources
-      })) ?? false
-    )
-  }
-
   const handleDeleteGuardCleared = (): void => {
     void tableQueryRef.value?.getData()
   }
@@ -485,22 +459,31 @@
   )
   onActivated(() => syncMasterDeleteReturn(true))
 
-  const handleDelete = async (row: Cargo): Promise<void> => {
-    if (!row.id) return
-    try {
-      if (await inspectDeleteDependencies([row])) return
-      await confirmAction(`确定删除货物“${row.cargoName}”吗？删除后无法恢复。`, '删除确认', {
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        type: 'warning',
-        confirmButtonType: 'danger'
-      })
-      await deleteCargo(row.id)
-      await tableQueryRef.value?.refreshRemove()
-    } catch {
-      // 用户取消删除时无需提示。
-    }
+  const handleDeleteRows = async (rows: Cargo[]): Promise<void> => {
+    const resources = rows.map((row) => ({
+      id: row.id ? String(row.id) : '',
+      label: row.cargoName || row.cargoCode || '未命名货物'
+    }))
+    const ids = resources.map((item) => item.id)
+    await deleteRecords({
+      resources,
+      permission: 'TmsCargo:Delete',
+      inspectReferences: async (snapshot) => {
+        if (!deleteGuardRef.value) throw new Error('删除检查尚未就绪，请刷新列表后重试。')
+        return deleteGuardRef.value.inspect({
+          resourceType: 'cargo',
+          resourceLabel: '货物',
+          resources: snapshot
+        })
+      },
+      remove: () => (ids.length === 1 ? deleteCargo(ids[0]) : deleteCargoBatch(ids)),
+      onDeleted: async () => {
+        await tableQueryRef.value?.refreshRemove()
+      }
+    })
   }
+
+  const handleDelete = (row: Cargo): Promise<void> => handleDeleteRows([row])
 </script>
 
 <style scoped lang="scss">

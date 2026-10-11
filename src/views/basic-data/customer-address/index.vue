@@ -41,7 +41,7 @@
 
 <script setup lang="tsx">
   import { ElTag } from 'element-plus'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
     ArtTableQueryExpose,
@@ -69,7 +69,7 @@
 
   defineOptions({ name: 'TmsCustomerAddress' })
 
-  const { confirmAction } = useArtFeedback()
+  const { deleteRecords } = useRecordDeleteGuard('mdm_customer_address', '客户地址')
 
   type CustomerAddress = Api.Tms.BasicData.CustomerAddress
   type SearchParams = Api.Tms.BasicData.CustomerAddressSearchParams
@@ -241,7 +241,7 @@
       prop: 'isDefault',
       label: '默认',
       width: 90,
-      dict: { code: 'commonBoolean', display: 'tag', value: (row) => String(row.isDefault) }
+      dict: { code: 'commonBoolean', display: 'tag', value: (row) => String(row.isDefault ?? '') }
     },
     {
       prop: 'geofenceEnabled',
@@ -312,16 +312,7 @@
       permission: 'TmsCustomerAddress:Delete',
       type: 'delete',
       confirm: false,
-      onClick: async ({ selectedRows }) => {
-        const rows = selectedRows as CustomerAddress[]
-        if (await inspectDeleteDependencies(rows)) return
-        await confirmAction(`确定删除选中的 ${rows.length} 条地址吗？`, '删除确认', {
-          confirmButtonText: '删除',
-          confirmButtonType: 'danger'
-        })
-        await deleteCustomerAddressBatch(rows.map((row) => String(row.id)).filter(Boolean))
-        await tableQueryRef.value?.refreshRemove()
-      }
+      onClick: ({ selectedRows }) => handleDeleteRows(selectedRows as CustomerAddress[])
     }
   ])
 
@@ -368,23 +359,6 @@
     void tableQueryRef.value?.refreshUpdate()
   }
 
-  const inspectDeleteDependencies = async (rows: CustomerAddress[]): Promise<boolean> => {
-    const resources = rows
-      .filter((item) => item.id)
-      .map((item) => ({
-        id: String(item.id),
-        label: [item.region, item.addressDetail].filter(Boolean).join(' ') || '未命名地址'
-      }))
-    if (!resources.length) return false
-    return (
-      (await deleteGuardRef.value?.inspect({
-        resourceType: 'customer_address',
-        resourceLabel: '客户地址',
-        resources
-      })) ?? false
-    )
-  }
-
   const handleDeleteGuardCleared = (): void => {
     void tableQueryRef.value?.getData()
   }
@@ -407,24 +381,30 @@
   )
   onActivated(() => syncMasterDeleteReturn(true))
 
-  const handleDelete = async (row: CustomerAddress): Promise<void> => {
-    if (!row.id) return
-    try {
-      if (await inspectDeleteDependencies([row])) return
-      await confirmAction(
-        `确定删除“${[row.region, row.addressDetail].filter(Boolean).join(' ')}”吗？`,
-        '删除确认',
-        {
-          confirmButtonText: '删除',
-          cancelButtonText: '取消',
-          type: 'warning',
-          confirmButtonType: 'danger'
-        }
-      )
-      await deleteCustomerAddress(row.id)
-      await tableQueryRef.value?.refreshRemove()
-    } catch {
-      // 用户取消删除时无需提示。
-    }
+  const handleDeleteRows = async (rows: CustomerAddress[]): Promise<void> => {
+    const resources = rows.map((row) => ({
+      id: row.id ? String(row.id) : '',
+      label: [row.region, row.addressDetail].filter(Boolean).join(' ') || '未命名地址'
+    }))
+    const ids = resources.map((item) => item.id)
+    await deleteRecords({
+      resources,
+      permission: 'TmsCustomerAddress:Delete',
+      inspectReferences: async (snapshot) => {
+        if (!deleteGuardRef.value) throw new Error('删除检查尚未就绪，请刷新列表后重试。')
+        return deleteGuardRef.value.inspect({
+          resourceType: 'customer_address',
+          resourceLabel: '客户地址',
+          resources: snapshot
+        })
+      },
+      remove: () =>
+        ids.length === 1 ? deleteCustomerAddress(ids[0]) : deleteCustomerAddressBatch(ids),
+      onDeleted: async () => {
+        await tableQueryRef.value?.refreshRemove()
+      }
+    })
   }
+
+  const handleDelete = (row: CustomerAddress): Promise<void> => handleDeleteRows([row])
 </script>

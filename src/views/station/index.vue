@@ -270,7 +270,11 @@
             onChange={(value) => handleStatusChange(row, previous, Boolean(value))}
           />
         ) : (
-          <ArtDictDisplay dictCode="commonBoolean" value={String(row.enabled)} display="tag" />
+          <ArtDictDisplay
+            dictCode="commonBoolean"
+            value={String(row.enabled ?? '')}
+            display="tag"
+          />
         )
       }
     },

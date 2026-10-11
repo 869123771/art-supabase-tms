@@ -253,13 +253,13 @@ export async function editDriver(params: Driver) {
 export async function deleteDriver(id: string) {
   return await responseHandle<boolean>(
     () => supabase.rpc('tms_delete_driver_secure', { p_id: id }),
-    { showMessage: true, breakReturn: true }
+    { showMessage: true, showErrorMessage: false, breakReturn: true, requireAffected: true }
   )
 }
 
 export async function deleteDriverBatch(ids: string[]) {
   return await responseHandle<number>(
     () => supabase.rpc('tms_delete_drivers_secure', { p_ids: ids }),
-    { showMessage: true, breakReturn: true }
+    { showMessage: true, showErrorMessage: false, breakReturn: true, requireAffected: true }
   )
 }

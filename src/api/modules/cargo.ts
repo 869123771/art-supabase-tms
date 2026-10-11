@@ -138,14 +138,14 @@ export async function editCargo(params: Cargo) {
 export async function deleteCargo(id: string) {
   return await responseHandle(
     () => supabase.from('mdm_cargo').delete({ count: 'exact' }).eq('id', id),
-    { showMessage: true, breakReturn: true, requireAffected: true }
+    { showMessage: true, showErrorMessage: false, breakReturn: true, requireAffected: true }
   )
 }
 
 export async function deleteCargoBatch(ids: string[]) {
   return await responseHandle(
     () => supabase.from('mdm_cargo').delete({ count: 'exact' }).in('id', ids),
-    { showMessage: true, breakReturn: true, requireAffected: true }
+    { showMessage: true, showErrorMessage: false, breakReturn: true, requireAffected: true }
   )
 }
 

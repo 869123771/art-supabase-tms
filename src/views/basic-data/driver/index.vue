@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
     ArtTableQueryExpose,
@@ -76,7 +76,7 @@
 
   defineOptions({ name: 'TmsDriver' })
 
-  const { confirmAction } = useArtFeedback()
+  const { deleteRecords } = useRecordDeleteGuard('mdm_driver', '司机')
 
   type Driver = Api.Tms.BasicData.Driver
   type CarrierOption = Api.Tms.BasicData.CarrierOption
@@ -311,7 +311,7 @@
       prop: 'enabled',
       label: '状态',
       width: 90,
-      dict: { code: 'commonBoolean', display: 'tag', value: (row) => String(row.enabled) }
+      dict: { code: 'commonBoolean', display: 'tag', value: (row) => String(row.enabled ?? '') }
     },
     {
       prop: 'createTime',
@@ -342,14 +342,8 @@
     {
       permission: 'TmsDriver:Delete',
       type: 'delete',
-      content: ({ selectedCount }: { selectedCount: number }) =>
-        `确定删除选中的 ${selectedCount} 个司机吗？删除后无法恢复。`,
-      onClick: async ({ selectedRows }) => {
-        const rows = selectedRows as Driver[]
-        if (await inspectDeleteDependencies(rows)) return
-        await deleteDriverBatch(rows.map((row) => String(row.id)).filter(Boolean))
-        await tableQueryRef.value?.refreshRemove()
-      }
+      confirm: false,
+      onClick: ({ selectedRows }) => handleDeleteRows(selectedRows as Driver[])
     }
   ])
 
@@ -401,40 +395,34 @@
       : tableQueryRef.value?.refreshUpdate())
   }
 
-  const inspectDeleteDependencies = async (rows: Driver[]): Promise<boolean> => {
-    const resources = rows
-      .filter((item) => item.id)
-      .map((item) => ({ id: String(item.id), label: item.driverName }))
-    if (!resources.length) return false
-    return (
-      (await deleteGuardRef.value?.inspect({
-        resourceType: 'driver',
-        resourceLabel: '司机',
-        resources
-      })) ?? false
-    )
-  }
-
   const handleDeleteGuardCleared = (): void => {
     void tableQueryRef.value?.getData()
   }
 
-  const handleDelete = async (row: Driver): Promise<void> => {
-    if (!row.id) return
-    try {
-      if (await inspectDeleteDependencies([row])) return
-      await confirmAction(`确定删除司机“${row.driverName}”吗？删除后无法恢复。`, '删除确认', {
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        type: 'warning',
-        confirmButtonType: 'danger'
-      })
-      await deleteDriver(row.id)
-      await tableQueryRef.value?.refreshRemove()
-    } catch {
-      // 用户取消删除时无需提示
-    }
+  const handleDeleteRows = async (rows: Driver[]): Promise<void> => {
+    const resources = rows.map((row) => ({
+      id: row.id ? String(row.id) : '',
+      label: row.driverName || '未命名司机'
+    }))
+    const ids = resources.map((item) => item.id)
+    await deleteRecords({
+      resources,
+      permission: 'TmsDriver:Delete',
+      inspectReferences: async (snapshot) => {
+        if (!deleteGuardRef.value) throw new Error('删除检查尚未就绪，请刷新列表后重试。')
+        return deleteGuardRef.value.inspect({
+          resourceType: 'driver',
+          resourceLabel: '司机',
+          resources: snapshot
+        })
+      },
+      remove: () => (ids.length === 1 ? deleteDriver(ids[0]) : deleteDriverBatch(ids)),
+      onDeleted: async () => {
+        await tableQueryRef.value?.refreshRemove()
+      }
+    })
   }
+  const handleDelete = (row: Driver): Promise<void> => handleDeleteRows([row])
 </script>
 
 <style lang="scss">

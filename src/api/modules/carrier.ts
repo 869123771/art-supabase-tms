@@ -203,14 +203,14 @@ export async function editCarrier(params: Carrier) {
 export async function deleteCarrier(id: string) {
   return await responseHandle<boolean>(
     () => supabase.rpc('tms_delete_carrier_secure', { p_id: id }),
-    { showMessage: true, breakReturn: true }
+    { showMessage: true, showErrorMessage: false, breakReturn: true, requireAffected: true }
   )
 }
 
 export async function deleteCarrierBatch(ids: string[]) {
   return await responseHandle<number>(
     () => supabase.rpc('tms_delete_carriers_secure', { p_ids: ids }),
-    { showMessage: true, breakReturn: true }
+    { showMessage: true, showErrorMessage: false, breakReturn: true, requireAffected: true }
   )
 }
 
