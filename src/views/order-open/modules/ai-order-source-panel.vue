@@ -68,7 +68,7 @@
     />
 
     <div class="ai-order-source__actions">
-      <span>
+      <span class="art-icon-label">
         <ArtSvgIcon icon="ri:shield-check-line" />
         识别结果仅生成订单草稿
       </span>

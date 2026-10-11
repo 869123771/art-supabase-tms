@@ -303,7 +303,7 @@
         filterable: true,
         clearable: true,
         class: 'favorite-route-dialog__address-select',
-        popperClass: 'favorite-route-address-popper',
+        popperClass: 'favorite-route-address-popper art-select-rich-options',
         onChange: handleEndpointChange,
         noDataText: '暂无可用装货地址',
         placeholder: '请选择发货地址'
@@ -326,7 +326,7 @@
         filterable: true,
         clearable: true,
         class: 'favorite-route-dialog__address-select',
-        popperClass: 'favorite-route-address-popper',
+        popperClass: 'favorite-route-address-popper art-select-rich-options',
         onChange: handleEndpointChange,
         noDataText: '暂无可用卸货地址',
         placeholder: '请选择收货地址'
@@ -678,10 +678,10 @@
   }
 
   :global(.favorite-route-address-popper .el-select-dropdown__item) {
-    height: auto;
-    min-height: 84px;
+    height: auto !important;
+    min-height: 72px;
     padding: 0 12px;
-    line-height: normal;
+    line-height: 20px !important;
     white-space: normal;
   }
 

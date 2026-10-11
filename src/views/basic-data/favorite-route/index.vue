@@ -32,6 +32,7 @@
       focusable
     />
 
+    <MasterDataDeleteGuard ref="deleteGuardRef" />
     <FavoriteRouteDialog ref="dialogRef" @success="handleSaveSuccess" />
   </div>
 </template>
@@ -39,7 +40,6 @@
 <script setup lang="tsx">
   import { formatTenantLabel as resolveTenantLabel } from '@/utils/tenant-display'
 
-  import { ElMessage } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import type {
@@ -51,7 +51,8 @@
   import ArtSvgIcon from '@/components/core/base/art-svg-icon/index.vue'
   import BusinessWorkspaceHeader from '@/components/business/business-workspace-header/index.vue'
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
+  import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
+  import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
   import { useUserStore } from '@/store/modules/user'
   import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { ColumnOption, DialogType } from '@/types'
@@ -82,10 +83,13 @@
     handleOpen: (row?: FavoriteRoute, tenantId?: string) => Promise<void>
   }
 
-  const { confirmAction } = useArtFeedback()
   const { isPlatformSuper } = storeToRefs(useUserStore())
   const statusOptions = useDictionaryOptions('commonEnabledStatus', (value) => value === 'enabled')
   const tableQueryRef = ref<ArtTableQueryExpose>()
+  const { deleteGuardRef, deleteRecord, deleteRecords } = useRecordDeleteGuard(
+    'tms_favorite_route',
+    '常用线路'
+  )
   const dialogRef = ref<DialogExpose>()
   const tenantOptions = ref<Array<{ label: string; value: string }>>([])
   const table = reactive<TableGroup>({
@@ -269,18 +273,18 @@
     {
       permission: 'TmsFavoriteRoute:Delete',
       type: 'delete',
-      content: ({ selectedCount }: { selectedCount: number }) =>
-        `确定删除选中的 ${selectedCount} 条常用线路吗？`,
+      label: '批量删除',
+      confirm: false,
       onClick: async ({ selectedRows }) => {
-        const ids = (selectedRows as FavoriteRoute[])
-          .map((row) => String(row.id ?? ''))
-          .filter(Boolean)
-        if (!ids.length) {
-          ElMessage.warning('请选择要删除的线路')
-          return
-        }
-        await deleteFavoriteRouteBatch(ids)
-        await tableQueryRef.value?.refreshRemove()
+        const rows = selectedRows as FavoriteRoute[]
+        await deleteRecords({
+          resources: rows.map(toDeleteResource),
+          permission: 'TmsFavoriteRoute:Delete',
+          remove: () => deleteFavoriteRouteBatch(rows.map((row) => row.id ?? '')),
+          onDeleted: async () => {
+            await tableQueryRef.value?.refreshRemove()
+          }
+        })
       }
     }
   ])
@@ -300,21 +304,21 @@
       : tableQueryRef.value?.refreshUpdate())
   }
 
+  const toDeleteResource = (row: FavoriteRoute) => ({
+    id: row.id ?? '',
+    label: isPlatformSuper.value ? `${row.routeName}（${resolveTenantLabel(row)}）` : row.routeName
+  })
+
   const handleDelete = async (row: FavoriteRoute): Promise<void> => {
-    if (!row.id) return
-    const tenantContext = isPlatformSuper.value ? `所属租户：${resolveTenantLabel(row)}。` : ''
-    try {
-      await confirmAction(`确定删除常用线路“${row.routeName}”吗？${tenantContext}`, '删除确认', {
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        type: 'warning',
-        confirmButtonType: 'danger'
-      })
-      await deleteFavoriteRoute(row.id)
-      await tableQueryRef.value?.refreshRemove()
-    } catch {
-      // 用户取消删除时无需提示。
-    }
+    const id = row.id ?? ''
+    await deleteRecord({
+      resource: toDeleteResource(row),
+      permission: 'TmsFavoriteRoute:Delete',
+      remove: () => deleteFavoriteRoute(id),
+      onDeleted: async () => {
+        await tableQueryRef.value?.refreshRemove()
+      }
+    })
   }
 
   const loadTenantOptions = async (): Promise<void> => {

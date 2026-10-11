@@ -163,7 +163,7 @@
                 >
               </div>
               <div class="carrier-advisor__reasons">
-                <span v-for="reason in waybill.reasons" :key="reason">
+                <span class="art-icon-label" v-for="reason in waybill.reasons" :key="reason">
                   <ArtSvgIcon icon="ri:error-warning-line" />{{ reason }}
                 </span>
               </div>
@@ -203,9 +203,15 @@
         </div>
 
         <footer class="carrier-advisor__meta">
-          <span><ArtSvgIcon icon="ri:git-commit-line" />{{ state.data!.ruleVersion }}</span>
-          <span><ArtSvgIcon icon="ri:time-line" />{{ formatTime(state.data!.generatedAt) }}</span>
-          <span> <ArtSvgIcon icon="ri:lock-2-line" />只读评估，不会自动修改承运商或业务状态 </span>
+          <span class="art-icon-label"
+            ><ArtSvgIcon icon="ri:git-commit-line" />{{ state.data!.ruleVersion }}</span
+          >
+          <span class="art-icon-label"
+            ><ArtSvgIcon icon="ri:time-line" />{{ formatTime(state.data!.generatedAt) }}</span
+          >
+          <span class="art-icon-label">
+            <ArtSvgIcon icon="ri:lock-2-line" />只读评估，不会自动修改承运商或业务状态
+          </span>
         </footer>
       </template>
 

@@ -25,17 +25,17 @@
       </template>
       <template #meta>
         <div v-if="detail.data" class="waybill-detail__header-meta">
-          <span
+          <span class="art-icon-label"
             ><ArtSvgIcon icon="ri:steering-2-line" aria-hidden="true" />{{
               detail.data.driver?.driverName || '未分配司机'
             }}</span
           >
-          <span
+          <span class="art-icon-label"
             ><ArtSvgIcon icon="ri:truck-line" aria-hidden="true" />{{
               detail.data.vehicle?.plateNo || '未分配车辆'
             }}</span
           >
-          <span
+          <span class="art-icon-label"
             ><ArtSvgIcon icon="ri:time-line" aria-hidden="true" />更新于
             {{ formatDateTime(detail.data.updateTime) }}</span
           >

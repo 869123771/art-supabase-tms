@@ -152,13 +152,13 @@ export async function editCustomerPrice(params: CustomerPrice) {
 export async function deleteCustomerPrice(id: string) {
   return await responseHandle<boolean>(
     () => supabase.rpc('tms_delete_customer_price_secure', { p_id: id }),
-    { showMessage: true, breakReturn: true }
+    { showMessage: true, showErrorMessage: false, breakReturn: true, requireAffected: true }
   )
 }
 
 export async function deleteCustomerPriceBatch(ids: string[]) {
   return await responseHandle<number>(
     () => supabase.rpc('tms_delete_customer_prices_secure', { p_ids: ids }),
-    { showMessage: true, breakReturn: true }
+    { showMessage: true, showErrorMessage: false, breakReturn: true, requireAffected: true }
   )
 }

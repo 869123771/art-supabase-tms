@@ -40,12 +40,12 @@
       }"
       focusable
     />
+    <MasterDataDeleteGuard ref="deleteGuardRef" />
   </div>
 </template>
 
 <script setup lang="tsx">
   import { normalizePriceRegionSearch } from '../modules/price-form-utils'
-  import { useArtFeedback } from '@/hooks/core/useArtFeedback'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import type { SearchFormItem } from '@/components/core/forms/art-search-bar/index.vue'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
@@ -70,6 +70,8 @@
   import BusinessTableWorkspaceActions from '@/components/business/business-table-workspace-actions/index.vue'
   import MasterDeleteProcessingNotice from '@/components/business/master-delete-processing-notice/index.vue'
   import { useMasterDataDeleteProcessingContext } from '@/hooks/core/useMasterDataDeleteProcessing'
+  import MasterDataDeleteGuard from '@/components/business/master-data-delete-guard/index.vue'
+  import { useRecordDeleteGuard } from '@/hooks/core/useRecordDeleteGuard'
   import { useAuth } from '@/hooks/core/useAuth'
   import {
     canViewField,
@@ -78,8 +80,6 @@
   } from '@/utils/field-permission'
 
   defineOptions({ name: 'TmsCarrierPrice' })
-
-  const { confirmAction } = useArtFeedback()
 
   type CarrierPrice = Api.Tms.BasicData.CarrierPrice
   type CarrierPriceFieldKey = Api.Tms.BasicData.CarrierPriceFieldKey
@@ -107,6 +107,10 @@
   const { hasAuth } = useAuth()
   const { getDictMap } = storeToRefs(useUserStore())
   const tableQueryRef = ref<ArtTableQueryExpose>()
+  const { deleteGuardRef, deleteRecord, deleteRecords } = useRecordDeleteGuard(
+    'tms_carrier_price',
+    '承运商报价'
+  )
   const carrierPriceFieldAccess = ref<CarrierPriceFieldAccessMap>({})
   const currentRows = ref<CarrierPrice[]>([])
 
@@ -270,12 +274,21 @@
       {
         permission: 'TmsCarrierPrice:Delete',
         type: 'delete',
-        label: '批量操作',
-        content: ({ selectedCount }: { selectedCount: number }) =>
-          `确定删除选中的 ${selectedCount} 条承运商价格吗？删除后无法恢复。`,
+        label: '批量删除',
+        confirm: false,
         onClick: async ({ selectedRows }) => {
-          await deleteCarrierPriceBatch(selectedRows.map((row) => String(row.id)).filter(Boolean))
-          await tableQueryRef.value?.refreshRemove()
+          const rows = selectedRows as CarrierPrice[]
+          await deleteRecords({
+            resources: rows.map((row) => ({
+              id: row.id ?? '',
+              label: `${row.quoteNo} · ${row.carrier?.companyName || '承运商报价'}`
+            })),
+            permission: 'TmsCarrierPrice:Delete',
+            remove: () => deleteCarrierPriceBatch(rows.map((row) => row.id ?? '')),
+            onDeleted: async () => {
+              await tableQueryRef.value?.refreshRemove()
+            }
+          })
         }
       },
       {
@@ -431,23 +444,17 @@
   }
 
   async function handleDelete(row: CarrierPrice): Promise<void> {
-    if (!row.id) return
-    try {
-      await confirmAction(
-        `确定删除「${row.carrier?.companyName || '承运商价格'}」这条价格吗？`,
-        '删除确认',
-        {
-          confirmButtonText: '删除',
-          cancelButtonText: '取消',
-          type: 'warning',
-          confirmButtonType: 'danger'
-        }
-      )
-      await deleteCarrierPrice(row.id)
-      await tableQueryRef.value?.refreshRemove()
-    } catch {
-      // 用户取消删除时无需提示。
-    }
+    await deleteRecord({
+      resource: {
+        id: row.id ?? '',
+        label: `${row.quoteNo} · ${row.carrier?.companyName || '承运商报价'}`
+      },
+      permission: 'TmsCarrierPrice:Delete',
+      remove: () => deleteCarrierPrice(row.id ?? ''),
+      onDeleted: async () => {
+        await tableQueryRef.value?.refreshRemove()
+      }
+    })
   }
 
   function formatTransportMode(value: unknown): string {

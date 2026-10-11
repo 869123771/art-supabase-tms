@@ -78,7 +78,7 @@
                 <ElButton type="primary" link @click="applyRecommendation(item)">采用</ElButton>
               </div>
               <div class="dispatch-dialog__recommendation-reasons">
-                <span v-for="reason in item.reasons" :key="reason">
+                <span class="art-icon-label" v-for="reason in item.reasons" :key="reason">
                   <ArtSvgIcon icon="ri:checkbox-circle-line" />{{ reason }}
                 </span>
                 <span v-for="warning in item.warnings" :key="warning" class="is-warning">

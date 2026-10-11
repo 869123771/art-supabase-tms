@@ -142,13 +142,13 @@ export async function editCarrierPrice(params: CarrierPrice) {
 export async function deleteCarrierPrice(id: string) {
   return await responseHandle<boolean>(
     () => supabase.rpc('tms_delete_carrier_price_secure', { p_id: id }),
-    { showMessage: true, breakReturn: true }
+    { showMessage: true, showErrorMessage: false, breakReturn: true, requireAffected: true }
   )
 }
 
 export async function deleteCarrierPriceBatch(ids: string[]) {
   return await responseHandle<number>(
     () => supabase.rpc('tms_delete_carrier_prices_secure', { p_ids: ids }),
-    { showMessage: true, breakReturn: true }
+    { showMessage: true, showErrorMessage: false, breakReturn: true, requireAffected: true }
   )
 }

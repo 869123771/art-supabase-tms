@@ -6,11 +6,11 @@
     </div>
 
     <div class="favorite-route-address-option__contact">
-      <span>
+      <span class="art-icon-label">
         <ArtSvgIcon icon="ri:user-3-line" aria-hidden="true" />
         {{ option.contactName || '未维护联系人' }}
       </span>
-      <span>
+      <span class="art-icon-label">
         <ArtSvgIcon icon="ri:phone-line" aria-hidden="true" />
         {{ option.contactPhone || '未维护联系电话' }}
       </span>
@@ -43,9 +43,10 @@
 <style scoped lang="scss">
   .favorite-route-address-option {
     display: grid;
-    gap: 6px;
+    gap: 3px;
     min-width: 0;
-    padding: 10px 2px;
+    padding: 6px 2px;
+    line-height: 20px;
 
     &__heading {
       display: flex;
@@ -73,6 +74,7 @@
       gap: 6px 16px;
       min-width: 0;
       font-size: 12px;
+      line-height: 16px;
       color: var(--el-text-color-secondary);
 
       span {
@@ -106,7 +108,7 @@
       span {
         display: -webkit-box;
         overflow: hidden;
-        -webkit-line-clamp: 2;
+        -webkit-line-clamp: 1;
         overflow-wrap: anywhere;
         -webkit-box-orient: vertical;
       }

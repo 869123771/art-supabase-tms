@@ -28,7 +28,7 @@
                   {{ node.sourceLabel }}
                 </ElTag>
               </div>
-              <span
+              <span class="art-icon-label"
                 ><ArtSvgIcon icon="ri:user-3-line" aria-hidden="true" />{{ node.operator }}</span
               >
             </header>
@@ -60,7 +60,9 @@
 
             <div v-if="node.images.length" class="waybill-tracking__evidence">
               <div class="waybill-tracking__evidence-title">
-                <span><ArtSvgIcon icon="ri:image-line" aria-hidden="true" />现场凭证</span>
+                <span class="art-icon-label"
+                  ><ArtSvgIcon icon="ri:image-line" aria-hidden="true" />现场凭证</span
+                >
                 <small>{{ node.images.length }} 张</small>
               </div>
               <div class="waybill-tracking__images">

@@ -526,13 +526,13 @@ export async function editFavoriteRoute(params: FavoriteRoute) {
 export async function deleteFavoriteRoute(id: string) {
   return await responseHandle(
     () => supabase.from('tms_favorite_route').delete({ count: 'exact' }).eq('id', id),
-    { showMessage: true, breakReturn: true, requireAffected: true }
+    { showMessage: true, showErrorMessage: false, breakReturn: true, requireAffected: true }
   )
 }
 
 export async function deleteFavoriteRouteBatch(ids: string[]) {
   return await responseHandle(
     () => supabase.from('tms_favorite_route').delete({ count: 'exact' }).in('id', ids),
-    { showMessage: true, breakReturn: true, requireAffected: true }
+    { showMessage: true, showErrorMessage: false, breakReturn: true, requireAffected: true }
   )
 }

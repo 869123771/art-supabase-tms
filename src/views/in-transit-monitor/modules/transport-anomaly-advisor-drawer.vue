@@ -155,9 +155,13 @@
           <ArtAiFeedback :run-id="state.data.runId" context-label="AI 运输异常研判" />
 
           <footer class="transport-advisor__meta">
-            <span><ArtSvgIcon icon="ri:git-commit-line" />{{ state.data.ruleVersion }}</span>
-            <span><ArtSvgIcon icon="ri:time-line" />{{ formatTime(state.data.generatedAt) }}</span>
-            <span>
+            <span class="art-icon-label"
+              ><ArtSvgIcon icon="ri:git-commit-line" />{{ state.data.ruleVersion }}</span
+            >
+            <span class="art-icon-label"
+              ><ArtSvgIcon icon="ri:time-line" />{{ formatTime(state.data.generatedAt) }}</span
+            >
+            <span class="art-icon-label">
               <ArtSvgIcon icon="ri:shield-check-line" />本次结果只提供建议，不会自动改变业务状态
             </span>
           </footer>
