@@ -106,7 +106,7 @@
 
     &__label {
       flex: 0 0 72px;
-      color: var(--art-text-gray-700);
+      color: var(--el-text-color-regular);
     }
 
     &__custom {

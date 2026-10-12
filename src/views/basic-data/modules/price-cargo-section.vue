@@ -91,7 +91,7 @@
       justify-content: space-between;
       min-height: 48px;
       padding: 0 12px;
-      color: var(--art-text-gray-600);
+      color: var(--el-text-color-secondary);
       background: var(--el-fill-color-lighter);
 
       div {

@@ -100,7 +100,7 @@
       flex-direction: column;
       align-items: center;
       min-width: 0;
-      color: var(--art-text-gray-500);
+      color: var(--el-text-color-secondary);
 
       &.is-finished,
       &.is-active {
@@ -109,7 +109,7 @@
 
       &.is-pending {
         .order-status-steps__icon {
-          color: var(--art-text-gray-400);
+          color: var(--el-text-color-secondary);
           background: var(--el-fill-color-light);
         }
 
@@ -171,7 +171,7 @@
 
     &__title {
       font-weight: 600;
-      color: var(--art-text-gray-800);
+      color: var(--el-text-color-primary);
     }
 
     &__time {

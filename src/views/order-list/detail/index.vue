@@ -682,7 +682,7 @@
   .order-detail {
     min-height: 100%;
     padding: 12px 16px 18px;
-    background: var(--art-main-bg-color);
+    background: var(--default-box-color);
 
     &__section {
       padding: 18px 20px;
@@ -877,14 +877,14 @@
       display: grid;
       gap: 12px;
       min-width: 0;
-      color: var(--art-text-gray-700);
+      color: var(--el-text-color-regular);
     }
 
     &__contact-heading {
       display: flex;
       gap: 8px;
       align-items: center;
-      color: var(--art-text-gray-800);
+      color: var(--el-text-color-primary);
     }
 
     &__contact-mark {

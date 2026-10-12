@@ -191,7 +191,7 @@
           padding: 2px 6px;
           font-size: 11px;
           color: var(--el-text-color-secondary);
-          background: var(--art-main-bg-color);
+          background: var(--default-box-color);
           border-radius: 999px;
         }
       }
@@ -223,7 +223,7 @@
       margin-top: 14px;
       line-height: 1.5;
       color: var(--el-text-color-secondary);
-      background: color-mix(in srgb, var(--theme-color) 5%, var(--art-main-bg-color));
+      background: color-mix(in srgb, var(--theme-color) 5%, var(--default-box-color));
       border-radius: var(--el-border-radius-base);
 
       svg {

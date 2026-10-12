@@ -547,12 +547,12 @@
       strong {
         margin-top: 3px;
         font-size: 17px;
-        color: var(--art-text-gray-900);
+        color: var(--el-text-color-primary);
       }
 
       p {
         margin: 4px 0 0;
-        color: var(--art-text-gray-600);
+        color: var(--el-text-color-secondary);
       }
     }
 

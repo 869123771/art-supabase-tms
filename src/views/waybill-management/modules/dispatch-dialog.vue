@@ -938,7 +938,7 @@
       flex-wrap: wrap;
       gap: 12px 24px;
       margin: 0 6px;
-      color: var(--art-text-gray-700);
+      color: var(--el-text-color-regular);
     }
 
     &__advisor {
@@ -966,7 +966,7 @@
         }
 
         strong {
-          color: var(--art-text-gray-800);
+          color: var(--el-text-color-primary);
         }
 
         small {
@@ -1092,7 +1092,7 @@
         overflow: hidden;
         text-overflow: ellipsis;
         font-weight: 600;
-        color: var(--art-text-gray-800);
+        color: var(--el-text-color-primary);
         white-space: nowrap;
       }
     }

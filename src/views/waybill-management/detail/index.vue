@@ -441,7 +441,7 @@
     padding: 12px 16px 18px;
     font-size: var(--art-font-size-body);
     line-height: var(--art-line-height-body);
-    background: var(--art-main-bg-color);
+    background: var(--default-box-color);
 
     :deep(strong) {
       font-weight: 600;

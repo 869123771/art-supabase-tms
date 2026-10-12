@@ -214,7 +214,7 @@
       display: flex;
       gap: 7px;
       align-items: center;
-      color: var(--art-text-gray-900);
+      color: var(--el-text-color-primary);
     }
 
     &__route small {
@@ -232,7 +232,7 @@
     }
 
     &__rate strong {
-      color: var(--art-text-gray-900);
+      color: var(--el-text-color-primary);
     }
 
     dl {
@@ -254,7 +254,7 @@
 
     dd {
       margin-top: 4px;
-      color: var(--art-text-gray-900);
+      color: var(--el-text-color-primary);
     }
   }
 

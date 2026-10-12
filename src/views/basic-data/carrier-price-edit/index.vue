@@ -1200,7 +1200,7 @@
   .carrier-price-edit {
     min-height: 100%;
     padding: 8px;
-    background: var(--art-main-bg-color);
+    background: var(--default-box-color);
 
     &__header {
       margin-bottom: 16px;

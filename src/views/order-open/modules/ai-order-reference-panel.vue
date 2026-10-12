@@ -135,7 +135,7 @@
       > div {
         min-width: 0;
         padding: 10px 12px;
-        background: var(--art-main-bg-color);
+        background: var(--default-box-color);
         border-radius: var(--el-border-radius-base);
       }
     }

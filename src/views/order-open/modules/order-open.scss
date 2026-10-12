@@ -459,7 +459,7 @@
     gap: 28px;
     justify-content: flex-end;
     padding: 14px 12px 0;
-    color: var(--art-text-gray-700);
+    color: var(--el-text-color-regular);
   }
 
   &__footer {
@@ -498,7 +498,7 @@
     p {
       margin: 8px 0 12px;
       line-height: 1.6;
-      color: var(--art-text-gray-500);
+      color: var(--el-text-color-secondary);
     }
 
     dl {
@@ -509,7 +509,7 @@
     }
 
     dt {
-      color: var(--art-text-gray-600);
+      color: var(--el-text-color-secondary);
     }
 
     dd {
@@ -520,7 +520,7 @@
 
   &__fee-detail-title {
     font-weight: 600;
-    color: var(--art-text-gray-800);
+    color: var(--el-text-color-primary);
   }
 
   :deep(.order-open__form) {

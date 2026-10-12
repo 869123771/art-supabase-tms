@@ -643,7 +643,7 @@
         margin: 3px 0 5px;
         font-size: 20px;
         line-height: 1.35;
-        color: var(--art-text-gray-900);
+        color: var(--el-text-color-primary);
       }
 
       p {
@@ -662,7 +662,7 @@
         align-items: center;
         padding: 8px 10px;
         color: var(--el-text-color-secondary);
-        background: var(--art-main-bg-color);
+        background: var(--default-box-color);
         border-radius: var(--el-border-radius-base);
 
         strong {

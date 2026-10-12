@@ -475,12 +475,12 @@
       }
 
       strong {
-        color: var(--art-text-gray-900);
+        color: var(--el-text-color-primary);
       }
 
       small {
         margin-top: 3px;
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
       }
     }
 
@@ -490,7 +490,7 @@
       overflow: hidden;
       background:
         radial-gradient(circle at 86% 10%, rgb(59 130 246 / 12%), transparent 28%),
-        var(--art-main-bg-color);
+        var(--default-box-color);
 
       &::before {
         position: absolute;
@@ -546,7 +546,7 @@
 
       p {
         margin: 6px 0 0;
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
       }
     }
 
@@ -591,7 +591,7 @@
       > strong {
         margin-right: 3px;
         font-size: 19px;
-        color: var(--art-text-gray-900);
+        color: var(--el-text-color-primary);
       }
     }
 
@@ -604,7 +604,7 @@
       article {
         min-width: 0;
         padding: 13px 14px;
-        background: color-mix(in srgb, var(--art-main-bg-color) 95%, var(--el-color-primary));
+        background: color-mix(in srgb, var(--default-box-color) 95%, var(--el-color-primary));
         border-radius: var(--el-border-radius-base);
 
         header {
@@ -616,12 +616,12 @@
 
         span,
         small {
-          color: var(--art-text-gray-500);
+          color: var(--el-text-color-secondary);
         }
 
         strong {
           font-size: 20px;
-          color: var(--art-text-gray-900);
+          color: var(--el-text-color-primary);
         }
 
         small {
@@ -670,7 +670,7 @@
 
         span,
         small {
-          color: var(--art-text-gray-500);
+          color: var(--el-text-color-secondary);
         }
 
         strong {
@@ -678,7 +678,7 @@
           overflow: hidden;
           text-overflow: ellipsis;
           font-size: 16px;
-          color: var(--art-text-gray-900);
+          color: var(--el-text-color-primary);
           white-space: nowrap;
         }
 
@@ -761,7 +761,7 @@
       p {
         margin: 10px 0;
         line-height: 1.65;
-        color: var(--art-text-gray-600);
+        color: var(--el-text-color-secondary);
       }
     }
 
@@ -776,7 +776,7 @@
         align-items: center;
         padding: 4px 8px;
         font-size: 11px;
-        color: var(--art-text-gray-600);
+        color: var(--el-text-color-secondary);
         background: var(--el-fill-color-lighter);
         border-radius: 999px;
       }
@@ -807,12 +807,12 @@
       }
 
       strong {
-        color: var(--art-text-gray-900);
+        color: var(--el-text-color-primary);
       }
 
       p {
         margin: 4px 0 0;
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
       }
     }
 
@@ -834,7 +834,7 @@
           }
 
           strong {
-            color: var(--art-text-gray-900);
+            color: var(--el-text-color-primary);
           }
 
           p {
@@ -845,7 +845,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             font-size: 11px;
-            color: var(--art-text-gray-500);
+            color: var(--el-text-color-secondary);
             white-space: nowrap;
           }
         }
@@ -881,7 +881,7 @@
 
       span {
         font-size: 11px;
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
       }
 
       strong {
@@ -889,7 +889,7 @@
         overflow: hidden;
         text-overflow: ellipsis;
         font-size: 12px;
-        color: var(--art-text-gray-800);
+        color: var(--el-text-color-primary);
         white-space: nowrap;
       }
     }
@@ -929,7 +929,7 @@
         p {
           margin: 0;
           line-height: 1.6;
-          color: var(--art-text-gray-700);
+          color: var(--el-text-color-regular);
         }
       }
     }
@@ -943,7 +943,7 @@
         align-items: flex-start;
         margin: 0;
         line-height: 1.6;
-        color: var(--art-text-gray-500);
+        color: var(--el-text-color-secondary);
 
         & + p {
           margin-top: 8px;
@@ -967,7 +967,7 @@
       padding: 14px 2px 2px;
       margin-top: 20px;
       font-size: 11px;
-      color: var(--art-text-gray-400);
+      color: var(--el-text-color-secondary);
       border-top: 1px dashed var(--el-border-color-lighter);
 
       span {

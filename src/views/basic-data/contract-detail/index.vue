@@ -381,7 +381,7 @@
   .contract-detail {
     min-height: 100%;
     padding: 16px;
-    background: var(--art-main-bg-color);
+    background: var(--default-box-color);
 
     &__content {
       display: flex;

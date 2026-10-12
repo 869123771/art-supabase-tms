@@ -305,7 +305,7 @@
       article {
         min-width: 0;
         padding: 13px;
-        background: var(--art-main-bg-color);
+        background: var(--default-box-color);
         border: 1px solid var(--art-border-color);
         border-radius: var(--el-border-radius-base);
 
@@ -339,7 +339,7 @@
 
       strong {
         font-size: 22px;
-        color: var(--art-text-gray-900);
+        color: var(--el-text-color-primary);
       }
 
       span {
