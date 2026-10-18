@@ -65,6 +65,11 @@
     importCarriers
   } from '@tms/api'
   import CarrierDialog from './modules/carrier-dialog.vue'
+  import {
+    carrierSelections,
+    parseCarrierSelections
+  } from '@tms/views/basic-data/carrier/modules/carrier-selection'
+  import { toDictionaryOption } from '@/utils/form/option'
   import MasterDataDeleteGuard, {
     type MasterDataDeleteGuardOpenOptions
   } from '@/components/business/master-data-delete-guard/index.vue'
@@ -117,6 +122,7 @@
     { key: 'carrierCode', title: '承运商编码' },
     { key: 'companyName', title: '公司名称', required: true },
     { key: 'carrierType', title: '承运商类型', required: true },
+    { key: 'dispatchChannel', title: '调度渠道' },
     { key: 'driverCount', title: '司机数量' },
     { key: 'vehicleCount', title: '车辆数量' },
     { key: 'region', title: '区域' },
@@ -195,14 +201,23 @@
     {
       prop: 'carrierType',
       label: '承运商类型',
-      width: 150,
-      dict: { code: 'tmsCarrierType', display: 'text' }
+      minWidth: 170,
+      showOverflowTooltip: true,
+      formatter: (row) =>
+        carrierSelections(row.carrierTypes, row.carrierType)
+          .map((value) => useUserStore().getDictLabelByValue('tmsCarrierType', value, value))
+          .join('、') || '—'
     },
     {
       prop: 'dispatchChannel',
       label: '调度渠道',
-      width: 110,
-      dict: { code: 'tmsCarrierDispatchChannel', display: 'text' }
+      minWidth: 120,
+      formatter: (row) =>
+        carrierSelections(row.dispatchChannels, row.dispatchChannel)
+          .map((value) =>
+            useUserStore().getDictLabelByValue('tmsCarrierDispatchChannel', value, value)
+          )
+          .join('、') || '—'
     },
     {
       prop: 'driverCount',
@@ -288,7 +303,35 @@
       type: 'import',
       importColumns: carrierImportColumns,
       importApi: async (rows) => {
-        await importCarriers(rows as Carrier[])
+        const userStore = useUserStore()
+        await Promise.all([
+          userStore.ensureDictLoaded('tmsCarrierType'),
+          userStore.ensureDictLoaded('tmsCarrierDispatchChannel')
+        ])
+        const typeOptions = (getDictMap.value.tmsCarrierType ?? []).map(toDictionaryOption)
+        const channelOptions = (getDictMap.value.tmsCarrierDispatchChannel ?? []).map(
+          toDictionaryOption
+        )
+        await importCarriers(
+          (rows as Carrier[]).map((row) => {
+            const carrierTypes = parseCarrierSelections(row.carrierType, typeOptions, '承运商类型')
+            const dispatchChannels = parseCarrierSelections(
+              row.dispatchChannel || 'offline',
+              channelOptions,
+              '调度渠道'
+            ) as ('online' | 'offline')[]
+            if (!carrierTypes.length || !dispatchChannels.length) {
+              throw new Error('承运商类型和调度渠道至少各选择一项')
+            }
+            return {
+              ...row,
+              carrierType: carrierTypes[0] ?? '',
+              carrierTypes,
+              dispatchChannel: dispatchChannels[0],
+              dispatchChannels
+            }
+          })
+        )
       },
       onImportSuccess: () => {
         ElMessage.success('导入成功')
@@ -310,7 +353,14 @@
           maxRows
         })
         syncCarrierFieldAccess(result)
-        return result
+        return {
+          ...result,
+          data: result.data.map((row) => ({
+            ...row,
+            carrierType: carrierSelections(row.carrierTypes, row.carrierType).join(','),
+            dispatchChannel: carrierSelections(row.dispatchChannels, row.dispatchChannel).join(',')
+          }))
+        }
       }
     },
     {

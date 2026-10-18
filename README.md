@@ -63,6 +63,12 @@ AI 智能填单只生成可复核草稿；调度推荐和异常研判只提供�
 - “保存报价”保留草稿；“提交报价”仅在系统内标记为已提交，不发送客户通知。报价独立存于 `public.tms_order_quote`，不改写订单应收费用；每单保留一份当前报价。附件最多 6 个，必须属于订单租户。
 - 读写分别经 `tms_get_order_quote_secure`、`tms_save_order_quote_secure` RPC；菜单权限 `TmsOrderList:Quote`、订单字段权限、租户范围、金额与字典值由服务端复核。2026-09-28 使用事务回滚验证了同租户草稿与提交、金额合计、零额提交拒绝及平台全量、平台选定租户、普通用户的跨租户访问边界。
 
+### 承运商多选资料
+
+- `public.mdm_carrier.carrier_types` 和 `dispatch_channels` 保存承运商支持的全部类型和调度渠道；原有 `carrier_type` 和 `dispatch_channel` 保留首选值，供旧接口继续读取。数据库触发器维护两种表示的一致性，数组不允许为空或重复，渠道仅接受 `online`、`offline`。
+- 新增和编辑通过 `tms_create_carrier_multi_secure`、`tms_update_carrier_multi_secure` 写入；原有安全 RPC 仍负责租户、业务操作及字段权限校验。列表类型筛选匹配数组内任一类型，导入支持多值，调度参选和详情回显全部渠道。
+- 2026-10-18 已回填现有 3 条记录；以已有承运商的创建者身份调用安全更新 RPC，并用事务回滚验证了双类型、双渠道写入及首选值同步，回滚后原数据保持单值。模块边界、UI、类型、Lint、样式和 71 项单元测试通过。
+
 ### 基础资料补充
 
 - “黑名单”“投诉咨询”“电子合同”“运输协议”分别存于 `tms_driver_blacklist`、`tms_service_case`、`tms_electronic_contract`、`tms_transport_agreement`。四页复用平台的查询表格、详情描述、上传控件与空状态组件。

@@ -268,7 +268,9 @@ declare global {
           carrierCode?: string
           companyName: string
           carrierType: string
+          carrierTypes?: string[]
           dispatchChannel?: 'online' | 'offline'
+          dispatchChannels?: ('online' | 'offline')[]
           businessLicenseNo?: string
           taxRegistrationNo?: string
           legalRepresentative?: string

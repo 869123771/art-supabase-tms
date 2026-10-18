@@ -202,11 +202,7 @@
 
       <div v-if="form.selectedCarrier" class="dispatch-dialog__selection art-card-xs">
         <strong>{{ form.selectedCarrier.companyName }}</strong>
-        <span
-          >类型：<ArtDictDisplay
-            dict-code="tmsCarrierDispatchChannel"
-            :value="form.selectedCarrier.dispatchChannel"
-        /></span>
+        <span>渠道：{{ formatCarrierChannels(form.selectedCarrier) }}</span>
         <span>联系人：{{ formatValue(form.selectedCarrier.contactName) }}</span>
         <span>联系电话：{{ formatValue(form.selectedCarrier.contactPhone) }}</span>
       </div>
@@ -325,6 +321,8 @@
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
   import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import { useTenantScopeStore } from '@/store/modules/tenant-scope'
+  import { useUserStore } from '@/store/modules/user'
+  import { carrierSelections } from '@tms/views/basic-data/carrier/modules/carrier-selection'
   import type { ComputedRef, UnwrapNestedRefs } from 'vue'
   import type { FormRules } from 'element-plus'
   import { trim } from 'lodash-es'
@@ -410,6 +408,16 @@
 
   const { confirmAction } = useArtFeedback()
   const tenantScopeStore = useTenantScopeStore()
+  const userStore = useUserStore()
+  const formatCarrierChannels = (carrier: {
+    dispatchChannels?: readonly string[]
+    dispatchChannel?: string
+  }): string =>
+    carrierSelections(carrier.dispatchChannels, carrier.dispatchChannel)
+      .map((channel) =>
+        userStore.getDictLabelByValue('tmsCarrierDispatchChannel', channel, channel)
+      )
+      .join('、') || '—'
   const dialogRef = ref<ArtDialogExpose<DialogOpenData>>()
   const agreementDialogRef = ref<ArtDialogExpose<DispatchAgreementDetail>>()
   const agreementDetail = ref<DispatchAgreementDetail | null>(null)
@@ -524,9 +532,9 @@
       { prop: 'companyName', label: '承运方名称', minWidth: 190 },
       {
         prop: 'dispatchChannel',
-        label: '类型',
-        width: 88,
-        dict: { code: 'tmsCarrierDispatchChannel', display: 'text' }
+        label: '支持渠道',
+        minWidth: 110,
+        formatter: (carrier) => formatCarrierChannels(carrier)
       },
       { prop: 'contactName', label: '联系人', minWidth: 110 },
       { prop: 'contactPhone', label: '联系电话', minWidth: 135 }

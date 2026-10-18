@@ -34,7 +34,9 @@ const CARRIER_PAYLOAD_KEYS = [
   'carrierCode',
   'companyName',
   'carrierType',
+  'carrierTypes',
   'dispatchChannel',
+  'dispatchChannels',
   'businessLicenseNo',
   'taxRegistrationNo',
   'legalRepresentative',
@@ -179,7 +181,7 @@ export async function fetchCarrierOptions(
 export async function addCarrier(params: Carrier) {
   const result = await responseHandle<string>(
     () =>
-      supabase.rpc('tms_create_carrier_secure', {
+      supabase.rpc('tms_create_carrier_multi_secure', {
         p_payload: keysToSnakeDeep(pickPayload(params, CARRIER_PAYLOAD_KEYS))
       }),
     { showMessage: true, breakReturn: true }
@@ -192,7 +194,7 @@ export async function editCarrier(params: Carrier) {
   if (!id) throw new Error('承运商 ID 不能为空')
   return await responseHandle<Carrier>(
     () =>
-      supabase.rpc('tms_update_carrier_secure', {
+      supabase.rpc('tms_update_carrier_multi_secure', {
         p_id: id,
         p_payload: keysToSnakeDeep(pickPayload(data, CARRIER_PAYLOAD_KEYS))
       }),

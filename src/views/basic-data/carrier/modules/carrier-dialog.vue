@@ -53,6 +53,7 @@
   import { addCarrier, editCarrier, fetchCarrierOptions } from '@tms/api'
   import { fetchRegionOptions } from '@/api/region-options'
   import { useUserStore } from '@/store/modules/user'
+  import { carrierSelections } from '@tms/views/basic-data/carrier/modules/carrier-selection'
   import {
     isReadableFieldAccess,
     canEditField,
@@ -88,7 +89,9 @@
     carrierCode: '',
     companyName: '',
     carrierType: '',
+    carrierTypes: [],
     dispatchChannel: 'offline',
+    dispatchChannels: ['offline'],
     businessLicenseNo: '',
     taxRegistrationNo: '',
     legalRepresentative: '',
@@ -139,8 +142,12 @@
       { required: true, message: '请输入公司名称', trigger: 'blur' },
       { min: 2, max: 100, message: '长度应为 2 到 100 个字符', trigger: 'blur' }
     ],
-    carrierType: [{ required: true, message: '请选择承运商类型', trigger: 'change' }],
-    dispatchChannel: [{ required: true, message: '请选择调度渠道', trigger: 'change' }],
+    carrierTypes: [
+      { type: 'array', required: true, min: 1, message: '请选择承运商类型', trigger: 'change' }
+    ],
+    dispatchChannels: [
+      { type: 'array', required: true, min: 1, message: '请选择调度渠道', trigger: 'change' }
+    ],
     carrierCode: [
       {
         validator: (_rule, value, callback) =>
@@ -190,20 +197,26 @@
     },
     {
       label: '承运商类型',
-      key: 'carrierType',
+      key: 'carrierTypes',
       type: 'select',
       props: {
         options: carrierTypeOptions.value,
+        multiple: true,
+        collapseTags: true,
+        collapseTagsTooltip: true,
         clearable: true,
         placeholder: '请选择承运商类型'
       }
     },
     {
       label: '调度渠道',
-      key: 'dispatchChannel',
+      key: 'dispatchChannels',
       type: 'select',
       props: {
         options: dispatchChannelOptions.value,
+        multiple: true,
+        collapseTags: true,
+        collapseTagsTooltip: true,
         placeholder: '请选择线上或线下'
       }
     },
@@ -446,6 +459,8 @@
       'isRecordOwner'
     ]) as Carrier
     payload.parentUnitId = payload.parentUnitId || null
+    payload.carrierType = payload.carrierTypes?.[0] ?? ''
+    payload.dispatchChannel = payload.dispatchChannels?.[0] ?? 'offline'
     if (rawPayload.region !== undefined) payload.region = regionPath.join('/')
     if (!payload.carrierCode) delete payload.carrierCode
     return payload
@@ -479,6 +494,10 @@
       replaceForm({
         ...createInitialForm(),
         ...structuredClone(toRaw(row)),
+        carrierTypes: carrierSelections(row.carrierTypes, row.carrierType),
+        dispatchChannels: carrierSelections(row.dispatchChannels, row.dispatchChannel) as (
+          'online' | 'offline'
+        )[],
         regionPath: row.region?.split('/').filter(Boolean) ?? []
       })
     }

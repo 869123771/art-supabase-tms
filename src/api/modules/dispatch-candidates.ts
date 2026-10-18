@@ -11,6 +11,7 @@ export interface DispatchCarrierCandidate {
   tenantId: string
   companyName: string
   dispatchChannel: 'online' | 'offline'
+  dispatchChannels?: ('online' | 'offline')[]
   contactName: string | null
   contactPhone: string | null
 }
