@@ -19,9 +19,12 @@
       >
         <template #actions>
           <ElRadioGroup v-model="periodDays" size="small" aria-label="运力规划周期">
-            <ElRadioButton :value="7">7 天</ElRadioButton>
-            <ElRadioButton :value="14">14 天</ElRadioButton>
-            <ElRadioButton :value="30">30 天</ElRadioButton>
+            <ElRadioButton
+              v-for="option in horizonOptions"
+              :key="option.value"
+              :value="option.value"
+              >{{ option.label }}</ElRadioButton
+            >
           </ElRadioGroup>
         </template>
       </BusinessWorkspaceHeader>
@@ -159,6 +162,7 @@
 
 <script setup lang="ts">
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import { useAsyncState } from '@vueuse/core'
@@ -179,6 +183,10 @@
 
   const { hasAnyAuth } = useAuth()
   const periodDays = ref<PeriodDays>(14)
+  const configuredHorizonOptions = useDictionaryOptions('tmsCapacityPlanningHorizonDays', Number)
+  const horizonOptions = computed(() =>
+    configuredHorizonOptions.filter((option) => [7, 14, 30].includes(option.value))
+  )
   const request = useAsyncState(fetchCapacityPlanning, null, {
     immediate: false,
     // Recoverable failures are shown by the workspace state.

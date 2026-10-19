@@ -15,9 +15,9 @@
           </span>
         </div>
         <ElRadioGroup v-model="basis" aria-label="拆单口径">
-          <ElRadioButton value="quantity">按件数</ElRadioButton>
-          <ElRadioButton value="weight">按重量</ElRadioButton>
-          <ElRadioButton value="volume">按体积</ElRadioButton>
+          <ElRadioButton v-for="option in basisOptions" :key="option.value" :value="option.value">{{
+            option.label
+          }}</ElRadioButton>
         </ElRadioGroup>
       </div>
 
@@ -147,6 +147,7 @@
 
 <script setup lang="ts">
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import type {
     DataSelectColumn,
     DataSelectFetchParams,
@@ -187,6 +188,12 @@
   const deliveryAddresses = ref<Api.Tms.BasicData.CustomerAddress[]>([])
   const parts = ref<SplitPart[]>([])
   const basis = ref<SplitBasis>('quantity')
+  const configuredBasisOptions = useDictionaryOptions('tmsWaybillSplitBasis')
+  const basisOptions = computed(() =>
+    configuredBasisOptions.filter((option) =>
+      ['quantity', 'weight', 'volume'].includes(option.value)
+    )
+  )
   const nextKey = ref(0)
   const minimumParts = computed(() => (source.value?.dispatchStatus === 'partial' ? 1 : 2))
   const cargoItems = computed(

@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { carrierSelections, parseCarrierSelections } from '../../src/views/basic-data/carrier/modules/carrier-selection'
+import {
+  carrierSelections,
+  parseCarrierSelections
+} from '../../src/views/basic-data/carrier/modules/carrier-selection'
 
 const options = [
   { value: 'truckload', label: '整车运输' },

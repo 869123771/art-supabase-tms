@@ -22,9 +22,12 @@
       <div class="dispatch-dialog__mode" role="group" aria-label="调度对象">
         <span>调度对象</span>
         <ElRadioGroup v-model="form.data.dispatchMode" @change="handleModeChange">
-          <ElRadioButton label="承运方" value="carrier" />
-          <ElRadioButton label="自营" value="self_operated" />
-          <ElRadioButton label="个体司机" value="individual_driver" />
+          <ElRadioButton
+            v-for="option in dispatchModeOptions"
+            :key="option.value"
+            :value="option.value"
+            >{{ option.label }}</ElRadioButton
+          >
         </ElRadioGroup>
       </div>
 
@@ -315,6 +318,7 @@
 
 <script setup lang="ts">
   import { buildSupabasePageRange } from '@/utils/supabase/pagination'
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import { normalizeNullableText } from '@/utils/form/normalize'
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import DOMPurify from 'dompurify'
@@ -357,6 +361,12 @@
   } from '@tms/api'
 
   defineOptions({ name: 'TmsWaybillDispatchDialog' })
+  const configuredDispatchModeOptions = useDictionaryOptions('tmsDispatchOperatorMode')
+  const dispatchModeOptions = computed(() =>
+    configuredDispatchModeOptions.filter((option) =>
+      ['carrier', 'self_operated', 'individual_driver'].includes(option.value)
+    )
+  )
 
   type WaybillRecord = Api.Tms.Waybill.WaybillRecord
   type DispatchVehicleOption = Api.Tms.Waybill.DispatchVehicleOption

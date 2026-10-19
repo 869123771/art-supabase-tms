@@ -38,9 +38,12 @@
             aria-label="线路统计周期"
             @change="loadOverview"
           >
-            <ElRadioButton :value="30">近 30 天</ElRadioButton>
-            <ElRadioButton :value="90">近 90 天</ElRadioButton>
-            <ElRadioButton :value="180">近 180 天</ElRadioButton>
+            <ElRadioButton
+              v-for="option in analysisWindowOptions"
+              :key="option.value"
+              :value="option.value"
+              >{{ option.label }}</ElRadioButton
+            >
           </ElRadioGroup>
         </template>
         <ElAlert
@@ -96,6 +99,7 @@
 
 <script setup lang="ts">
   import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
+  import { useDictionaryOptions } from '@/hooks/core/useDictionaryOptions'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
   import { useAsyncState } from '@vueuse/core'
   import BusinessWorkspaceHeader, {
@@ -108,6 +112,13 @@
 
   defineOptions({ name: 'TmsRoutePerformance' })
   const periodDays = ref(90)
+  const configuredAnalysisWindowOptions = useDictionaryOptions(
+    'tmsRoutePerformanceWindowDays',
+    Number
+  )
+  const analysisWindowOptions = computed(() =>
+    configuredAnalysisWindowOptions.filter((option) => [30, 90, 180].includes(option.value))
+  )
   const request = useAsyncState(fetchRoutePerformance, null, {
     immediate: false,
     // Recoverable failures are shown by the section card.
