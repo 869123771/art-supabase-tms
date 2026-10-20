@@ -1,3 +1,5 @@
+import { uniq } from 'lodash-es'
+
 /** Older carrier records expose only the primary value. */
 export function carrierSelections(
   values: readonly string[] | undefined,
@@ -21,5 +23,5 @@ export function parseCarrierSelections(
     if (!option) throw new Error(`${fieldName}包含无效选项：${entry}`)
     return String(option.value)
   })
-  return [...new Set(resolved)]
+  return uniq(resolved)
 }
