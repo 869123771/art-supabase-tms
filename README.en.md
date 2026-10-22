@@ -2,10 +2,10 @@
   <h1>Yiqi Workshop TMS</h1>
   <p><strong>Transportation management from master data and order entry to dispatch, execution, tracking, and proof of delivery</strong></p>
   <p>
-    <a href="https://gitee.com/wangyanghub/art-supabase-tms">Gitee</a> ·
-    <a href="https://github.com/869123771/art-supabase-tms">GitHub</a> ·
-    <a href="https://gitee.com/wangyanghub/art-supabase-pro">Platform</a> ·
-    <a href="https://gitee.com/wangyanghub/supabase-mobile-tms-driver">Driver App</a> ·
+    <a href="https://gitee.com/art-si/art-supabase-tms">Gitee</a> ·
+    <a href="https://github.com/art-si/art-supabase-tms">GitHub</a> ·
+    <a href="https://gitee.com/art-si/art-supabase-pro">Platform</a> ·
+    <a href="https://gitee.com/art-si/supabase-mobile-tms-driver">Driver App</a> ·
     <a href="./README.md">简体中文</a>
   </p>
 </div>
@@ -14,7 +14,7 @@
 
 Yiqi Workshop TMS is the transportation domain application of Yiqi Workshop. It connects customers, carriers, drivers, cargo, contracts, pricing, order entry, waybills, capacity planning, dispatch, in-transit monitoring, delivery, proof of delivery, and finance collaboration.
 
-This repository owns TMS pages, APIs, domain types, transportation rules, and dedicated Edge Functions. Authentication, tenancy, navigation, permissions, layout, shared components, stores, and the Supabase client come from [`art-supabase-pro`](https://gitee.com/wangyanghub/art-supabase-pro).
+This repository owns TMS pages, APIs, domain types, transportation rules, and dedicated Edge Functions. Authentication, tenancy, navigation, permissions, layout, shared components, stores, and the Supabase client come from [`art-supabase-pro`](https://gitee.com/art-si/art-supabase-pro).
 
 ![AI-assisted order entry](screenshots/ai-order-copilot.png)
 
@@ -31,7 +31,7 @@ This repository owns TMS pages, APIs, domain types, transportation rules, and de
 
 ## Driver Workflow
 
-The [`supabase-mobile-tms-driver`](https://gitee.com/wangyanghub/supabase-mobile-tms-driver) application lets drivers accept assignments, check in at loading and unloading locations, record departure and return mileage, upload photos and tickets, capture signatures and proof of delivery, and submit expenses. These records join the same server-controlled waybill lifecycle.
+The [`supabase-mobile-tms-driver`](https://gitee.com/art-si/supabase-mobile-tms-driver) application lets drivers accept assignments, check in at loading and unloading locations, record departure and return mileage, upload photos and tickets, capture signatures and proof of delivery, and submit expenses. These records join the same server-controlled waybill lifecycle.
 
 ## Local Development
 

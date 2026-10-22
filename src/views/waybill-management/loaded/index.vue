@@ -29,7 +29,7 @@
       :search-items="table.searchItems"
       :api-fn="fetchTableData"
       :columns-factory="table.columnsFactory"
-      :header-actions="table.headerActions"
+      :header-actions="receivableHeaderActions"
       header-actions-placement="workspace"
       :search-bar-props="{ span: 6, labelWidth: 86 }"
       :table-props="{
@@ -68,6 +68,10 @@
   } from '@/components/core/tables/art-table-query/index.vue'
   import type { ColumnOption } from '@/types'
   import { fetchWaybillStatusCounts } from '@tms/api'
+  import { createTransportEstimatedReceivables } from '@/api/receivables'
+  import { ElMessage } from 'element-plus'
+  import { financePaths } from '@/router/business-paths'
+  import { notifyFriendlyError } from '@/hooks/core/useArtFeedback'
   import { useUserStore } from '@/store/modules/user'
   import { mergeFieldAccessMaps } from '@/utils/field-permission'
   import { useAuth } from '@/hooks/core/useAuth'
@@ -214,6 +218,31 @@
       description: '已结束运输执行',
       icon: 'ri:checkbox-circle-line',
       tone: 'success'
+    }
+  ])
+
+  const receivableHeaderActions = computed<ArtTableQueryHeaderAction[]>(() => [
+    ...table.headerActions,
+    {
+      key: 'estimated-receivable',
+      label: '生成暂估应收',
+      icon: 'ri:bill-line',
+      permission: 'TmsLoadedWaybillList:GenerateReceivable',
+      hidden: !hasAuth('FinanceEstimatedReceivable:Add'),
+      selectionRequired: true,
+      disabled: (ctx) => ctx.selectedRows.length !== 1,
+      onClick: async (ctx) => {
+        try {
+          const ids = await createTransportEstimatedReceivables(String(ctx.selectedRows[0]?.id))
+          ElMessage.success(`已按客户生成 ${ids.length} 张暂估应收草稿`)
+          await router.push({
+            path: financePaths.estimatedReceivable,
+            query: ids.length === 1 ? { recordId: ids[0] } : {}
+          })
+        } catch (error) {
+          notifyFriendlyError(error, '暂估应收未生成，请核对签收状态和权限')
+        }
+      }
     }
   ])
 

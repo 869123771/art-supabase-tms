@@ -4,15 +4,15 @@
   <p>把客户委托、运输资源、履约过程、移动司机端与财务结算连接成一条可追踪的运输链路。</p>
 
   <p>
-    <a href="https://gitee.com/wangyanghub/art-supabase-tms">Gitee</a>
+    <a href="https://gitee.com/art-si/art-supabase-tms">Gitee</a>
     ·
-    <a href="https://github.com/869123771/art-supabase-tms">GitHub</a>
+    <a href="https://github.com/art-si/art-supabase-tms">GitHub</a>
     ·
-    <a href="https://gitee.com/wangyanghub/art-supabase-pro">主平台</a>
+    <a href="https://gitee.com/art-si/art-supabase-pro">主平台</a>
     ·
-    <a href="https://gitee.com/wangyanghub/supabase-mobile-tms-driver">司机端</a>
+    <a href="https://gitee.com/art-si/supabase-mobile-tms-driver">司机端</a>
     ·
-    <a href="https://869123771.github.io/art-supabase-doc/modules/tms">使用文档</a>
+    <a href="https://art-si.github.io/art-supabase-doc/modules/tms">使用文档</a>
   </p>
 </div>
 
@@ -20,7 +20,7 @@
 
 亿企工场 TMS 是亿企工场的运输管理业务应用，面向物流运输从主数据、订单和运单生成，到配载、在途、签收与财务协作的完整履约过程。
 
-本仓只维护 TMS 页面、业务 API、领域类型、运输规则与专属 Edge Functions。认证、租户、菜单、权限、布局、路由、公共组件、Store 和 Supabase 公共客户端由 [`art-supabase-pro`](https://gitee.com/wangyanghub/art-supabase-pro) 统一提供。
+本仓只维护 TMS 页面、业务 API、领域类型、运输规则与专属 Edge Functions。认证、租户、菜单、权限、布局、路由、公共组件、Store 和 Supabase 公共客户端由 [`art-supabase-pro`](https://gitee.com/art-si/art-supabase-pro) 统一提供。
 
 ![AI 智能填单](screenshots/ai-order-copilot.png)
 
@@ -79,7 +79,7 @@ AI 智能填单只生成可复核草稿；调度推荐和异常研判只提供�
 
 ## 司机端协同
 
-独立的 [`supabase-mobile-tms-driver`](https://gitee.com/wangyanghub/supabase-mobile-tms-driver) 提供 H5 与微信小程序司机工作台。司机可接单，完成装卸货定位打卡、发车、到达、签收、收车、凭证上传与费用上报；所有记录通过受控契约回流同一条 TMS 运单履约链路。
+独立的 [`supabase-mobile-tms-driver`](https://gitee.com/art-si/supabase-mobile-tms-driver) 提供 H5 与微信小程序司机工作台。司机可接单，完成装卸货定位打卡、发车、到达、签收、收车、凭证上传与费用上报；所有记录通过受控契约回流同一条 TMS 运单履约链路。
 
 ## 独立运行
 
