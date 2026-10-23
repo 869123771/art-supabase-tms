@@ -1,116 +1,134 @@
 <template>
-  <ArtDialog ref="dialogRef" size="lg">
-    <div class="cargo-operation-dialog">
-      <section class="cargo-operation-dialog__summary art-card-xs">
-        <div class="cargo-operation-dialog__summary-icon" :class="`is-${operationType}`">
-          <ArtSvgIcon
-            :icon="
-              operationType === 'loading' ? 'ri:upload-cloud-2-line' : 'ri:download-cloud-2-line'
-            "
-          />
-        </div>
-        <div class="cargo-operation-dialog__summary-copy">
-          <span>{{ operationTitle }}作业</span>
-          <strong>{{ currentRow?.orderNo || '运单' }}</strong>
-          <small>{{ operationAddress }}</small>
-        </div>
-        <ElTag :type="statusTag.type" effect="light" round>{{ statusTag.label }}</ElTag>
-      </section>
-
-      <ElAlert
-        v-if="context"
-        class="cargo-operation-dialog__policy"
-        :type="context.allowOutsideCheckIn ? 'warning' : 'info'"
-        :closable="false"
-        show-icon
-        :title="policyTitle"
-        :description="policyDescription"
-      />
-      <ElAlert
-        v-if="currentRow && !attachmentTenantId"
-        type="warning"
-        title="运单缺少租户归属，暂不能上传附件，请返回列表刷新后重试"
-        :closable="false"
-        show-icon
-      />
-
-      <ArtSectionCard
-        class="cargo-operation-dialog__checkin"
-        preserve-content-structure
-        title="定位打卡"
-      >
-        <div v-if="context?.operation" class="cargo-operation-dialog__checkin-grid">
-          <div
-            ><span>打卡时间</span><strong>{{ checkinTimeText }}</strong></div
-          >
-          <div
-            ><span>打卡方式</span><strong>{{ checkinModeText }}</strong></div
-          >
-          <div
-            ><span>围栏判定</span><strong>{{ geofenceResultText }}</strong></div
-          >
-          <div
-            ><span>定位精度</span><strong>{{ accuracyText }}</strong></div
-          >
-        </div>
-        <div v-else class="cargo-operation-dialog__locate">
-          <div>
-            <strong>请先获取当前定位并完成打卡</strong>
-            <p>系统会在服务端计算与{{ operationTitle }}地的距离，并保存坐标、精度和围栏快照。</p>
+  <ArtDialog ref="dialogRef" size="lg" @close="() => void invalidateSession()">
+    <ArtAsyncState
+      :error="state.contextError"
+      :min-height="260"
+      @retry="() => loadContext(formSession)"
+    >
+      <div class="cargo-operation-dialog">
+        <section class="cargo-operation-dialog__summary art-card-xs">
+          <div class="cargo-operation-dialog__summary-icon" :class="`is-${operationType}`">
+            <ArtSvgIcon
+              :icon="
+                operationType === 'loading' ? 'ri:upload-cloud-2-line' : 'ri:download-cloud-2-line'
+              "
+            />
           </div>
-          <ElButton type="primary" :loading="state.locating" @click="handleCheckIn">
-            <ArtSvgIcon icon="ri:map-pin-user-line" />
-            获取定位并打卡
-          </ElButton>
-        </div>
-      </ArtSectionCard>
+          <div class="cargo-operation-dialog__summary-copy">
+            <span>{{ operationTitle }}作业</span>
+            <strong>{{ currentRow?.orderNo || '运单' }}</strong>
+            <small>{{ operationAddress }}</small>
+          </div>
+          <ElTag :type="statusTag.type" effect="light" round>{{ statusTag.label }}</ElTag>
+        </section>
 
-      <ArtForm
-        v-if="!checkinOnly"
-        ref="formRef"
-        v-model="form.data"
-        :items="form.items"
-        :rules="form.rules"
-        :disabled="!context?.operation || context.operation.operationStatus === 'completed'"
-        :span="12"
-        :gutter="20"
-        label-position="top"
-        :show-reset="false"
-        :show-submit="false"
-        class="cargo-operation-dialog__form art-card-xs"
-      >
-        <template #photoUrls>
-          <ArtUploadImage
-            v-model="form.data.photoUrls"
-            :resource-tenant-id="attachmentTenantId"
-            :disabled="
-              !attachmentTenantId ||
-              !context?.operation ||
-              context.operation.operationStatus === 'completed'
-            "
-            :title="`${operationTitle}照片`"
-            :size="92"
-            :limit="5"
-            multiple
-          />
-        </template>
-        <template #weighbridgeTicketUrls>
-          <ArtUploadImage
-            v-model="form.data.weighbridgeTicketUrls"
-            :resource-tenant-id="attachmentTenantId"
-            :disabled="
-              !attachmentTenantId ||
-              !context?.operation ||
-              context.operation.operationStatus === 'completed'
-            "
-            :title="`${operationTitle}磅单`"
-            :size="92"
-            :limit="3"
-            multiple
-          />
-        </template>
-      </ArtForm>
-    </div>
+        <ElAlert
+          v-if="currentRow && !canOperate"
+          type="warning"
+          title="当前运单不在所选租户范围内或操作权限已变化，请刷新后重试"
+          :closable="false"
+          show-icon
+        />
+        <ElAlert
+          v-if="context"
+          class="cargo-operation-dialog__policy"
+          :type="context.allowOutsideCheckIn ? 'warning' : 'info'"
+          :closable="false"
+          show-icon
+          :title="policyTitle"
+          :description="policyDescription"
+        />
+        <ElAlert
+          v-if="currentRow && !attachmentTenantId"
+          type="warning"
+          title="运单缺少租户归属，暂不能上传附件，请返回列表刷新后重试"
+          :closable="false"
+          show-icon
+        />
+
+        <ArtSectionCard
+          class="cargo-operation-dialog__checkin"
+          preserve-content-structure
+          title="定位打卡"
+        >
+          <div v-if="context?.operation" class="cargo-operation-dialog__checkin-grid">
+            <div
+              ><span>打卡时间</span><strong>{{ checkinTimeText }}</strong></div
+            >
+            <div
+              ><span>打卡方式</span><strong>{{ checkinModeText }}</strong></div
+            >
+            <div
+              ><span>围栏判定</span><strong>{{ geofenceResultText }}</strong></div
+            >
+            <div
+              ><span>定位精度</span><strong>{{ accuracyText }}</strong></div
+            >
+          </div>
+          <div v-else class="cargo-operation-dialog__locate">
+            <div>
+              <strong>请先获取当前定位并完成打卡</strong>
+              <p>系统会在服务端计算与{{ operationTitle }}地的距离，并保存坐标、精度和围栏快照。</p>
+            </div>
+            <ElButton
+              type="primary"
+              :disabled="!canOperate"
+              :loading="state.locating"
+              @click="handleCheckIn"
+            >
+              <ArtSvgIcon icon="ri:map-pin-user-line" />
+              获取定位并打卡
+            </ElButton>
+          </div>
+        </ArtSectionCard>
+
+        <ArtForm
+          v-if="!checkinOnly"
+          ref="formRef"
+          v-model="form.data"
+          :items="form.items"
+          :rules="form.rules"
+          :disabled="!context?.operation || context.operation.operationStatus === 'completed'"
+          :span="12"
+          :gutter="20"
+          label-position="top"
+          :show-reset="false"
+          :show-submit="false"
+          class="cargo-operation-dialog__form art-card-xs"
+        >
+          <template #photoUrls>
+            <ArtUploadImage
+              v-model="form.data.photoUrls"
+              :resource-tenant-id="attachmentTenantId"
+              :disabled="
+                !attachmentTenantId ||
+                !context?.operation ||
+                context.operation.operationStatus === 'completed'
+              "
+              :title="`${operationTitle}照片`"
+              :size="92"
+              :limit="5"
+              multiple
+            />
+          </template>
+          <template #weighbridgeTicketUrls>
+            <ArtUploadImage
+              v-model="form.data.weighbridgeTicketUrls"
+              :resource-tenant-id="attachmentTenantId"
+              :disabled="
+                !attachmentTenantId ||
+                !context?.operation ||
+                context.operation.operationStatus === 'completed'
+              "
+              :title="`${operationTitle}磅单`"
+              :size="92"
+              :limit="3"
+              multiple
+            />
+          </template>
+        </ArtForm>
+      </div>
+    </ArtAsyncState>
 
     <template #footer="{ loading, api }">
       <ElButton @click="api.handleClose()">关闭</ElButton>
@@ -118,7 +136,7 @@
         v-if="!checkinOnly && context?.operation?.operationStatus !== 'completed'"
         type="primary"
         :loading="loading"
-        :disabled="!context?.operation"
+        :disabled="!context?.operation || !canOperate"
         @click="api.handleConfirm()"
       >
         提交{{ operationTitle }}信息
@@ -132,7 +150,9 @@
   import { validateArtFormForSubmit } from '@/utils/form/validate-art-form'
   import { normalizeNullableText } from '@/utils/form/normalize'
   import ArtSectionCard from '@/components/core/surfaces/art-section-card/index.vue'
+  import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import type { ComputedRef } from 'vue'
+  import { useArtOverlaySession } from '@/hooks/core/useArtOverlay'
   import type { FormRules } from 'element-plus'
   import ArtDialog from '@/components/core/dialogs/art-dialog/index.vue'
   import type { ArtDialogExpose } from '@/components/core/dialogs/art-dialog/types'
@@ -145,7 +165,12 @@
     fetchWaybillCargoOperationContext
   } from '@tms/api'
   import { formatWithDayjs } from '@/utils/time'
-  import { useAmapSdk, type AmapBrowserNamespace } from '@/hooks/core/useAmapSdk'
+  import { useAmapGeolocation } from '@/hooks/core/useAmapGeolocation'
+  import { useAuth } from '@/hooks/core/useAuth'
+  import { useTenantReadTarget } from '@/hooks/core/useTenantReadTarget'
+  import { createTenantScopeReadGuard } from '@/utils/tenant-scope-context'
+  import { getFriendlySupabaseErrorMessage } from '@/utils/supabase'
+  import { ElMessage } from 'element-plus'
   import { notifyFriendlyError, useArtFeedback } from '@/hooks/core/useArtFeedback'
   import type { WaybillRecord } from './waybill-shared'
 
@@ -186,20 +211,6 @@
     locationText?: string
   }
 
-  interface AmapLocationResult {
-    position?: { getLng: () => number; getLat: () => number }
-    accuracy?: number
-    formattedAddress?: string
-  }
-
-  interface AmapNamespace extends AmapBrowserNamespace {
-    Geolocation: new (options: Record<string, unknown>) => {
-      getCurrentPosition: (
-        callback: (status: string, result: AmapLocationResult | { message?: string }) => void
-      ) => void
-    }
-  }
-
   const emit = defineEmits<{ success: [] }>()
   const dialogRef = ref<ArtDialogExpose<OpenData>>()
   const formRef = ref<FormExpose>()
@@ -211,11 +222,40 @@
   const operationType = ref<OperationType>('loading')
   const checkinOnly = ref(false)
   const context = shallowRef<OperationContext>()
-  const state = reactive({ locating: false })
-  const { loadAmap } = useAmapSdk<AmapNamespace>({
-    key: import.meta.env.VITE_AMAP_KEY,
-    securityJsCode: import.meta.env.VITE_AMAP_SECURITY_JS_CODE,
-    plugins: ['AMap.Geolocation']
+  const state = reactive<{ locating: boolean; contextError: Error | null }>({
+    locating: false,
+    contextError: null
+  })
+  const { getCurrentLocation } = useAmapGeolocation({ timeoutMs: 15_000 })
+  const { hasAuth } = useAuth()
+  const {
+    version: formSession,
+    invalidate,
+    isCurrent
+  } = useArtOverlaySession(() => Boolean(unref(dialogRef.value?.visible)))
+  let locationRequest: AbortController | undefined
+  const readTenantId = useTenantReadTarget(() => currentRow.value?.tenantId)
+  const canOperate = computed(
+    () =>
+      readTenantId.value !== undefined &&
+      hasAuth(
+        checkinOnly.value
+          ? 'TmsWaybill:Arrive'
+          : operationType.value === 'loading'
+            ? 'TmsWaybill:Loading'
+            : 'TmsWaybill:Unloading'
+      )
+  )
+  function invalidateSession(): number {
+    invalidate()
+    locationRequest?.abort()
+    locationRequest = undefined
+    state.locating = false
+    return formSession.value
+  }
+  onBeforeUnmount(invalidateSession)
+  watch([() => tenantScopeStore.effectiveTenantId, canOperate], () => locationRequest?.abort(), {
+    flush: 'sync'
   })
   const { promptReason } = useArtFeedback()
 
@@ -315,37 +355,6 @@
     ])
   })
 
-  async function getCurrentLocation(): Promise<LocationResult> {
-    if (!window.isSecureContext && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-      throw new Error('浏览器仅允许在 HTTPS 页面使用精确定位')
-    }
-    const AMap = await loadAmap()
-    return await new Promise((resolve, reject) => {
-      const geolocation = new AMap.Geolocation({
-        convert: true,
-        enableHighAccuracy: true,
-        extensions: 'all',
-        needAddress: true,
-        showButton: false,
-        showCircle: false,
-        showMarker: false,
-        timeout: 15000
-      })
-      geolocation.getCurrentPosition((status, result) => {
-        if (status !== 'complete' || !('position' in result) || !result.position) {
-          reject(new Error('定位失败，请检查浏览器定位权限和系统定位服务'))
-          return
-        }
-        resolve({
-          longitude: result.position.getLng(),
-          latitude: result.position.getLat(),
-          accuracy: Number.isFinite(result.accuracy) ? Number(result.accuracy) : null,
-          locationText: result.formattedAddress || operationAddress.value
-        })
-      })
-    })
-  }
-
   function distanceMeters(location: LocationResult, target: OperationContext): number | null {
     if (target.centerLongitude == null || target.centerLatitude == null) return null
     const radians = (value: number) => (value * Math.PI) / 180
@@ -359,15 +368,19 @@
     return 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   }
 
-  async function resolveOutsideReason(location: LocationResult): Promise<string | null> {
-    if (!context.value || !context.value.geofenceEnabled) return null
-    const distance = distanceMeters(location, context.value)
-    if (distance === null || distance <= context.value.radiusM) return null
-    if (!context.value.allowOutsideCheckIn) {
-      throw new Error(`当前不在${operationTitle.value}地围栏内，请到达现场后重新打卡`)
+  async function resolveOutsideReason(
+    location: LocationResult,
+    target: OperationContext,
+    title: string
+  ): Promise<string | null> {
+    if (!target.geofenceEnabled) return null
+    const distance = distanceMeters(location, target)
+    if (distance === null || distance <= target.radiusM) return null
+    if (!target.allowOutsideCheckIn) {
+      throw new Error(`当前不在${title}地围栏内，请到达现场后重新打卡`)
     }
     return await promptReason(
-      `当前距${operationTitle.value}地约 ${formatSensitiveCountValue(Math.round(distance))} 米，请说明围栏外打卡原因。`,
+      `当前距${title}地约 ${formatSensitiveCountValue(Math.round(distance))} 米，请说明围栏外打卡原因。`,
       '围栏外打卡确认',
       {
         confirmButtonText: '确认打卡',
@@ -380,64 +393,131 @@
   }
 
   async function handleCheckIn(): Promise<void> {
-    if (!currentRow.value?.driverWaybillId || !context.value || state.locating) return
+    if (!currentRow.value?.driverWaybillId || !context.value || state.locating || !canOperate.value)
+      return
+    const session = formSession.value
+    const waybillId = currentRow.value.driverWaybillId
+    const type = operationType.value
+    const closeOnSuccess = checkinOnly.value
+    const target = context.value
+    const title = operationTitle.value
+    const address = operationAddress.value
+    const ensureScope = createTenantScopeReadGuard()
+    const request = new AbortController()
+    locationRequest = request
     state.locating = true
     try {
-      const location = await getCurrentLocation()
-      const outsideReason = await resolveOutsideReason(location)
-      const result = await checkInWaybillCargoOperation({
-        waybillId: currentRow.value.driverWaybillId,
-        operationType: operationType.value,
-        longitude: location.longitude,
-        latitude: location.latitude,
-        accuracyM: location.accuracy,
-        locationText: location.locationText || operationAddress.value,
-        outsideReason
-      })
-      if (result.data) context.value = result.data
-      if (checkinOnly.value) {
-        emit('success')
+      const result = await getCurrentLocation(request.signal)
+      if (!isCurrent(session) || request.signal.aborted || !canOperate.value) return
+      ensureScope()
+      const location: LocationResult = {
+        longitude: result.longitude,
+        latitude: result.latitude,
+        accuracy: result.accuracy,
+        locationText: result.formattedAddress || address
+      }
+      const outsideReason = await resolveOutsideReason(location, target, title)
+      if (!isCurrent(session) || request.signal.aborted || !canOperate.value) return
+      ensureScope()
+      const response = await checkInWaybillCargoOperation(
+        {
+          waybillId,
+          operationType: type,
+          longitude: location.longitude,
+          latitude: location.latitude,
+          accuracyM: location.accuracy,
+          locationText: location.locationText,
+          outsideReason
+        },
+        { showMessage: false, showErrorMessage: false }
+      )
+      if (closeOnSuccess) emit('success')
+      if (!isCurrent(session) || request.signal.aborted || !canOperate.value) return
+      if (response.data) applyContext(response.data)
+      ElMessage.success(`${title}打卡已记录`)
+      if (closeOnSuccess) {
         await dialogRef.value?.handleClose()
       }
     } catch (error) {
+      if (!isCurrent(session) || request.signal.aborted) return
       if (isMessageBoxCancelled(error)) return
       notifyFriendlyError(error, '到场签到失败，请检查定位和网络后重试')
     } finally {
-      state.locating = false
+      if (locationRequest === request) {
+        locationRequest = undefined
+        state.locating = false
+      }
     }
   }
 
   async function handleSubmit(): Promise<boolean> {
-    if (!currentRow.value?.driverWaybillId || !context.value?.operation) return false
+    if (!currentRow.value?.driverWaybillId || !context.value?.operation || !canOperate.value)
+      return false
+    const session = formSession.value
+    const waybillId = currentRow.value.driverWaybillId
+    const type = operationType.value
+    const ensureScope = createTenantScopeReadGuard()
     try {
       if (!(await validateArtFormForSubmit(formRef.value))) return false
+      if (!isCurrent(session) || !canOperate.value) return false
+      ensureScope()
     } catch (error) {
+      if (!isCurrent(session)) return false
       notifyFriendlyError(error, '表单校验未完成，请稍后重试', 'warning')
       return false
     }
     try {
-      await completeWaybillCargoOperation({
-        waybillId: currentRow.value.driverWaybillId,
-        operationType: operationType.value,
-        weightTon: Number(form.data.weightTon),
-        photoUrls: [...form.data.photoUrls],
-        weighbridgeTicketUrls: [...form.data.weighbridgeTicketUrls],
-        remark: normalizeNullableText(form.data.remark)
-      })
+      await completeWaybillCargoOperation(
+        {
+          waybillId,
+          operationType: type,
+          weightTon: Number(form.data.weightTon),
+          photoUrls: [...form.data.photoUrls],
+          weighbridgeTicketUrls: [...form.data.weighbridgeTicketUrls],
+          remark: normalizeNullableText(form.data.remark)
+        },
+        { showMessage: false, showErrorMessage: false }
+      )
       emit('success')
+      if (isCurrent(session)) ElMessage.success('装卸货资料已提交')
       return true
     } catch (error) {
+      if (!isCurrent(session)) return false
       notifyFriendlyError(error, '货物作业提交失败，请检查称重数据和网络后重试')
       return false
     }
   }
 
-  async function loadContext(): Promise<void> {
+  async function loadContext(session: number): Promise<void> {
     const waybillId = currentRow.value?.driverWaybillId
-    if (!waybillId) throw new Error('该订单尚未生成司机运单，请先完成配载')
-    const result = await fetchWaybillCargoOperationContext(waybillId, operationType.value)
-    context.value = result.data ?? undefined
-    const operation = result.data?.operation
+    if (!isCurrent(session)) return
+    state.contextError = null
+    dialogRef.value?.setLoading(true)
+    const ensureScope = createTenantScopeReadGuard()
+    try {
+      if (!waybillId) throw new Error('该订单尚未生成司机运单，请先完成配载')
+      if (!canOperate.value) throw new Error('运单超出当前租户范围或操作权限已变化，请刷新后重试')
+      const result = await fetchWaybillCargoOperationContext(waybillId, operationType.value, {
+        showErrorMessage: false
+      })
+      if (!isCurrent(session)) return
+      ensureScope()
+      if (result.error) throw result.error
+      applyContext(result.data ?? undefined)
+    } catch (error) {
+      if (isCurrent(session))
+        state.contextError = new Error(
+          getFriendlySupabaseErrorMessage(error, '装卸货信息加载失败，请重新加载后重试'),
+          { cause: error }
+        )
+    } finally {
+      if (isCurrent(session)) dialogRef.value?.setLoading(false)
+    }
+  }
+
+  function applyContext(value: OperationContext | undefined): void {
+    context.value = value
+    const operation = value?.operation
     Object.assign(form.data, createInitialForm(), {
       weightTon: operation?.weightTon ?? null,
       checkinTimeDisplay: operation?.checkinTime ? formatWithDayjs(operation.checkinTime) : '',
@@ -457,16 +537,20 @@
     return action === 'cancel' || action === 'close'
   }
 
-  async function resetForm(): Promise<void> {
+  async function resetForm(): Promise<number> {
+    const session = invalidateSession()
+    state.contextError = null
     context.value = undefined
     currentRow.value = undefined
     Object.assign(form.data, createInitialForm())
     await nextTick()
-    formRef.value?.clearValidate()
+    if (session === formSession.value) formRef.value?.clearValidate()
+    return session
   }
 
   async function handleOpen(data: OpenData): Promise<void> {
-    await resetForm()
+    const session = await resetForm()
+    if (session !== formSession.value) return
     currentRow.value = data.row
     operationType.value = data.operationType
     checkinOnly.value = data.checkinOnly === true
@@ -478,13 +562,7 @@
       confirmText: `提交${operationTitle.value}信息`,
       contentMaxHeight: '78vh',
       loading: true,
-      onOpen: async (_openData, api) => {
-        try {
-          await loadContext()
-        } finally {
-          api.setLoading(false)
-        }
-      },
+      onOpen: () => loadContext(session),
       onConfirm: handleSubmit,
       onReset: () => void resetForm(),
       dialogProps: { appendToBody: true, closeOnClickModal: false }

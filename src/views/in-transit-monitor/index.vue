@@ -87,10 +87,14 @@
                 />
                 <div class="monitor-map__heading">
                   <strong>{{ monitorHeadingTitle }}</strong>
-                  <span>{{ activeOrder?.routeName || '暂无线路' }}</span>
+                  <span :title="activeOrder?.routeName || '暂无线路'">{{
+                    activeOrder?.routeName || '暂无线路'
+                  }}</span>
                 </div>
                 <div v-if="activeOrder" class="monitor-map__track-chip">
-                  <strong>{{ activeOrder.plateNo }} · {{ activeOrder.orderNo }}</strong>
+                  <strong :title="`${activeOrder.plateNo} · ${activeOrder.orderNo}`"
+                    >{{ activeOrder.plateNo }} · {{ activeOrder.orderNo }}</strong
+                  >
                   <span :class="`is-${activeOrder.trackSource}`">
                     {{ activeOrder.trackSourceLabel }}
                   </span>
@@ -225,6 +229,8 @@
   import { useUserStore } from '@/store/modules/user'
   import { formatWithDayjs } from '@/utils/time'
   import { formatPercentValue } from '@/utils/ui/format'
+  import { mapWithConcurrency, withTimeout } from '@/utils/async'
+  import { readAmapDrivingPath } from '@/utils/amap'
   import {
     useAsyncState,
     useDebounceFn,
@@ -685,17 +691,7 @@
       if (!activeIds.has(id)) vehiclePois.delete(id)
     })
 
-    const queue = [...orders]
-    const workerCount = Math.min(INITIAL_POI_CONCURRENCY, queue.length)
-    await Promise.all(
-      Array.from({ length: workerCount }, async () => {
-        let order = queue.shift()
-        while (order) {
-          await refreshVehiclePoi(order)
-          order = queue.shift()
-        }
-      })
-    )
+    await mapWithConcurrency(orders, INITIAL_POI_CONCURRENCY, (order) => refreshVehiclePoi(order))
   }
 
   function getVehiclePoiText(order: MonitorOrder): string {
@@ -716,61 +712,67 @@
       return
     }
     const success = await refreshVehiclePoi(order, true)
-    if (!success) ElMessage.warning('当前坐标暂无 POI 信息，请稍后重试')
+    if (success === false) ElMessage.warning('当前坐标暂无 POI 信息，请稍后重试')
   }
 
-  async function refreshVehiclePoi(order: MonitorOrder, force = false): Promise<boolean> {
+  async function refreshVehiclePoi(order: MonitorOrder, force = false): Promise<boolean | null> {
     if (!order.currentGeo) return false
     const coordinateKey = getVehicleCoordinateKey(order)
     const current = vehiclePois.get(order.id)
     if (!force && current?.coordinateKey === coordinateKey)
       return current.label !== '暂未获取到 POI'
 
-    const state: VehiclePoiState = {
+    const state = reactive<VehiclePoiState>({
       coordinateKey,
       label: current?.coordinateKey === coordinateKey ? current.label : '正在获取位置...',
       loading: true
-    }
+    })
     vehiclePois.set(order.id, state)
 
     try {
       const label = await reverseGeocode(...order.currentGeo)
-      const nextState = vehiclePois.get(order.id)
-      if (nextState?.coordinateKey === coordinateKey) nextState.label = label
+      if (vehiclePois.get(order.id) !== state) return null
+      state.label = label
       return true
     } catch {
-      const nextState = vehiclePois.get(order.id)
-      if (nextState?.coordinateKey === coordinateKey) nextState.label = '暂未获取到 POI'
+      if (vehiclePois.get(order.id) !== state) return null
+      state.label = '暂未获取到 POI'
       return false
     } finally {
-      const nextState = vehiclePois.get(order.id)
-      if (nextState?.coordinateKey === coordinateKey) nextState.loading = false
+      if (vehiclePois.get(order.id) === state) state.loading = false
     }
   }
 
   async function reverseGeocode(longitude: number, latitude: number): Promise<string> {
     const AMap = await loadAmap()
 
-    return new Promise((resolve, reject) => {
-      const geocoder = new AMap.Geocoder({ extensions: 'all', radius: 1000 })
-      geocoder.getAddress([longitude, latitude], (status: string, result: ReverseGeocodeResult) => {
-        if (status !== 'complete') {
-          reject(new Error('高德逆地理编码失败'))
-          return
-        }
+    return withTimeout(
+      new Promise<string>((resolve, reject) => {
+        const geocoder = new AMap.Geocoder({ extensions: 'all', radius: 1000 })
+        geocoder.getAddress(
+          [longitude, latitude],
+          (status: string, result: ReverseGeocodeResult) => {
+            if (status !== 'complete') {
+              reject(new Error('高德逆地理编码失败'))
+              return
+            }
 
-        const regeocode = result?.regeocode
-        const poiName = regeocode?.pois?.[0]?.name
-        const address = String(
-          regeocode?.formattedAddress || regeocode?.formatted_address || poiName || ''
-        ).trim()
-        if (!address) {
-          reject(new Error('未查询到 POI'))
-          return
-        }
-        resolve(address)
-      })
-    })
+            const regeocode = result?.regeocode
+            const poiName = regeocode?.pois?.[0]?.name
+            const address = String(
+              regeocode?.formattedAddress || regeocode?.formatted_address || poiName || ''
+            ).trim()
+            if (!address) {
+              reject(new Error('未查询到 POI'))
+              return
+            }
+            resolve(address)
+          }
+        )
+      }),
+      10_000,
+      '位置查询超时，请稍后重试'
+    )
   }
 
   function getVehicleCoordinateKey(order: MonitorOrder): string {
@@ -805,31 +807,37 @@
     origin: GeoCoord,
     destination: GeoCoord
   ): Promise<GeoCoord[]> {
-    return new Promise((resolve, reject) => {
-      const driving = new AMap.Driving({
-        hideMarkers: true,
-        policy: AMap.DrivingPolicy?.LEAST_TIME,
-        showTraffic: false
-      })
-      driving.search(
-        new AMap.LngLat(origin[0], origin[1]),
-        new AMap.LngLat(destination[0], destination[1]),
-        (status: string, result) => {
-          if (status !== 'complete') {
-            reject(new Error('驾车路线规划失败'))
-            return
-          }
+    return withTimeout(
+      new Promise<GeoCoord[]>((resolve, reject) => {
+        const driving = new AMap.Driving({
+          hideMarkers: true,
+          policy: AMap.DrivingPolicy?.LEAST_TIME,
+          showTraffic: false
+        })
+        driving.search(
+          new AMap.LngLat(origin[0], origin[1]),
+          new AMap.LngLat(destination[0], destination[1]),
+          (status: string, result) => {
+            if (status !== 'complete') {
+              reject(new Error('驾车路线规划失败'))
+              return
+            }
 
-          const path = (result.routes?.[0]?.steps ?? [])
-            .flatMap((step) => step.path ?? [])
-            .map((point) =>
-              toGeoCoord(point.lng ?? point.getLng?.(), point.lat ?? point.getLat?.())
-            )
-            .filter((point: GeoCoord | undefined): point is GeoCoord => Boolean(point))
-          resolve(dedupeGeoPath([origin, ...path, destination]))
-        }
-      )
-    })
+            const path = readAmapDrivingPath(result).flatMap(([lng, lat]) => {
+              const coordinate = toGeoCoord(lng, lat)
+              return coordinate ? [coordinate] : []
+            })
+            if (path.length < 2) {
+              reject(new Error('驾车路线缺少有效道路轨迹'))
+              return
+            }
+            resolve(dedupeGeoPath([origin, ...path, destination]))
+          }
+        )
+      }),
+      10_000,
+      '路线查询超时，请稍后重试'
+    )
   }
 
   function upsertMarker(

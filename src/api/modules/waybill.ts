@@ -1,6 +1,6 @@
 import { normalizeNullableText } from '@/utils/form/normalize'
 import { normalizeCoordinatePair } from '@/utils/geo'
-import { useSupabase } from '@/hooks/core/useSupabase'
+import { useSupabase, type RunQueryOptions } from '@/hooks/core/useSupabase'
 import type { QueryResult } from '@/types/api/response'
 import type { WaybillExportScope, WaybillListScope } from '@tms/api/modules/transport-secure'
 import {
@@ -25,6 +25,7 @@ type ExecutionDeparturePayload = Api.Tms.Waybill.ExecutionDeparturePayload
 type ExecutionSignaturePayload = Api.Tms.Waybill.ExecutionSignaturePayload
 type ExecutionCompletionPayload = Api.Tms.Waybill.ExecutionCompletionPayload
 type WaybillDetailRecord = Api.Tms.Waybill.WaybillDetailRecord
+type CargoRequestFeedback = Pick<RunQueryOptions, 'showMessage' | 'showErrorMessage'>
 type WaybillExpenseLocationRecord = Api.Tms.Waybill.WaybillExpenseLocationRecord
 
 interface WaybillExpenseLocationQueryRecord extends WaybillExpenseLocationRecord {
@@ -297,7 +298,8 @@ export async function confirmWaybillAcceptance(waybillId: string) {
 
 export async function fetchWaybillCargoOperationContext(
   waybillId: string,
-  operationType: CargoOperationType
+  operationType: CargoOperationType,
+  options: CargoRequestFeedback = {}
 ) {
   return await responseHandle<CargoOperationContext>(
     () =>
@@ -305,11 +307,14 @@ export async function fetchWaybillCargoOperationContext(
         p_waybill_id: waybillId,
         p_operation_type: operationType
       }),
-    { showErrorMessage: true }
+    { showErrorMessage: true, ...options }
   )
 }
 
-export async function checkInWaybillCargoOperation(params: CargoOperationCheckinPayload) {
+export async function checkInWaybillCargoOperation(
+  params: CargoOperationCheckinPayload,
+  options: CargoRequestFeedback = {}
+) {
   return await responseHandle<CargoOperationContext>(
     () =>
       supabase.rpc('tms_check_in_waybill_cargo_operation', {
@@ -318,15 +323,18 @@ export async function checkInWaybillCargoOperation(params: CargoOperationCheckin
         p_longitude: params.longitude,
         p_latitude: params.latitude,
         p_accuracy_m: params.accuracyM ?? null,
-        p_location_text: params.locationText || null,
-        p_outside_reason: params.outsideReason || null,
+        p_location_text: normalizeNullableText(params.locationText),
+        p_outside_reason: normalizeNullableText(params.outsideReason),
         p_automatic: params.automatic === true
       }),
-    { showMessage: true, breakReturn: true }
+    { showMessage: true, breakReturn: true, ...options }
   )
 }
 
-export async function completeWaybillCargoOperation(params: CargoOperationCompletePayload) {
+export async function completeWaybillCargoOperation(
+  params: CargoOperationCompletePayload,
+  options: CargoRequestFeedback = {}
+) {
   return await responseHandle<CargoOperationContext>(
     () =>
       supabase.rpc('tms_complete_waybill_cargo_operation', {
@@ -335,9 +343,9 @@ export async function completeWaybillCargoOperation(params: CargoOperationComple
         p_weight_ton: params.weightTon,
         p_photo_urls: params.photoUrls,
         p_weighbridge_ticket_urls: params.weighbridgeTicketUrls,
-        p_remark: params.remark || null
+        p_remark: normalizeNullableText(params.remark)
       }),
-    { showMessage: true, breakReturn: true }
+    { showMessage: true, breakReturn: true, ...options }
   )
 }
 

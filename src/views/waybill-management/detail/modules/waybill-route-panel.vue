@@ -25,20 +25,27 @@
 
     <div v-if="locationPoints.length" class="waybill-route__layout">
       <div class="waybill-route__map-card">
-        <ArtAsyncState
-          class="waybill-route__map-state"
-          :loading="map.loading"
-          :error="map.error"
-          :empty="!locationPoints.length"
-          empty-text="暂无运单轨迹"
-          empty-description="运单上报定位节点后，可在地图中查看运输路线。"
-          @retry="initializeMap"
-        >
+        <div class="waybill-route__map-state relative">
           <div ref="mapRef" class="waybill-route__map" aria-label="运单节点道路轨迹地图" />
-        </ArtAsyncState>
+          <ArtAsyncState
+            v-if="map.loading || map.error"
+            class="absolute! inset-0 z-10 bg-(--default-box-color)"
+            :loading="map.loading"
+            :error="map.error"
+            full-height
+            :min-height="0"
+            @retry="initializeMap"
+          />
+        </div>
         <div class="waybill-route__map-note" :class="`is-${map.routeStatus}`">
           <ArtSvgIcon :icon="routeNote.icon" aria-hidden="true" />
           <span>{{ routeNote.text }}</span>
+          <ElButton
+            v-if="!map.error && map.routeStatus === 'unavailable' && drivingRoutePoints.length >= 2"
+            size="small"
+            @click="initializeMap"
+            >重新规划</ElButton
+          >
         </div>
       </div>
 
@@ -110,6 +117,8 @@
   import ArtSectionTitle from '@/components/core/surfaces/art-section-title/index.vue'
   import { useAmapSdk, type AmapBrowserNamespace } from '@/hooks/core/useAmapSdk'
   import { createDateTimeFormatter } from '@/utils/ui/format'
+  import { readAmapDrivingPath } from '@/utils/amap'
+  import { escape, isEqual } from 'lodash-es'
   import {
     buildDrivingRoutePoints,
     buildWaybillGpsTrackPoints,
@@ -160,6 +169,8 @@
     plugins: ['AMap.Driving']
   })
   let mapInstance: DetailAmapMap | undefined
+  let mapVersion = 0
+  let cancelRoute: (() => void) | undefined
 
   const locationPoints = computed<WaybillLocationPoint[]>(() =>
     buildWaybillLocationPoints(props.waybill)
@@ -196,49 +207,81 @@
   })
 
   watch(
-    () => props.waybill.id,
-    () => void initializeMap()
+    [() => props.waybill.id, locationPoints, gpsTrackPoints],
+    (current, previous) => {
+      if (!isEqual(current, previous)) void initializeMap()
+    },
+    { flush: 'post' }
   )
   onMounted(() => void initializeMap())
-  onBeforeUnmount(() => mapInstance?.destroy())
+  onBeforeUnmount(() => {
+    mapVersion += 1
+    destroyMap()
+  })
+
+  function destroyMap(): void {
+    cancelRoute?.()
+    cancelRoute = undefined
+    const instance = mapInstance
+    mapInstance = undefined
+    instance?.destroy()
+  }
 
   async function initializeMap(): Promise<void> {
-    if (!mapRef.value || !locationPoints.value.length) return
-    map.loading = true
+    const version = ++mapVersion
+    const element = mapRef.value
+    const points = locationPoints.value
+    const routePoints = drivingRoutePoints.value
+    const gpsPoints = gpsTrackPoints.value
+    map.loading = Boolean(element && points.length)
     map.error = null
-    map.routeStatus = 'planning'
+    map.routeStatus = map.loading ? 'planning' : 'idle'
     try {
+      destroyMap()
+      if (!element || !points.length) return
       const amap = await loadAmap()
-      mapInstance?.destroy()
-      mapInstance = new amap.Map(mapRef.value, {
+      if (version !== mapVersion || mapRef.value !== element) return
+      const instance = new amap.Map(element, {
         zoom: 10,
         resizeEnable: true,
         mapStyle: 'amap://styles/normal'
       })
-      const markers = createMarkers(amap)
-      mapInstance.add(markers)
-      const actualTrack = createActualTrack(amap)
+      mapInstance = instance
+      const markers = createMarkers(amap, points)
+      instance.add(markers)
+      const actualTrack = createTrackPolyline(
+        amap,
+        gpsPoints.map((point): [number, number] => [point.longitude, point.latitude])
+      )
       if (actualTrack) {
-        mapInstance.add(actualTrack)
-        mapInstance.setFitView([...markers, actualTrack], false, [56, 56, 56, 56])
+        instance.add(actualTrack)
+        instance.setFitView([...markers, actualTrack], false, [56, 56, 56, 56])
         map.routeStatus = 'actual'
       } else {
-        mapInstance.setFitView(markers, false, [56, 56, 56, 56])
-        map.routeStatus = await planDrivingRoute(amap)
+        instance.setFitView(markers, false, [56, 56, 56, 56])
+        const status = await planDrivingRoute(amap, instance, routePoints)
+        if (version === mapVersion) map.routeStatus = status
       }
     } catch (error) {
-      map.error = error instanceof Error ? error : new Error('地图加载失败，请稍后重试')
+      if (version !== mapVersion) return
+      destroyMap()
+      map.error = new Error('地图加载失败，请重新加载或联系管理员检查地图服务配置。', {
+        cause: error
+      })
       map.routeStatus = 'unavailable'
     } finally {
-      map.loading = false
+      if (version === mapVersion) map.loading = false
     }
   }
 
-  function createMarkers(amap: DetailAmapNamespace): DetailAmapMarker[] {
-    return locationPoints.value.map((point) => {
+  function createMarkers(
+    amap: DetailAmapNamespace,
+    points: WaybillLocationPoint[]
+  ): DetailAmapMarker[] {
+    return points.map((point) => {
       const marker = new amap.Marker({
         anchor: 'bottom-center',
-        content: `<div class="waybill-route-marker is-${point.kind}"><b>${escapeLabel(point.markerLabel)}</b><span>${escapeLabel(point.label)}</span></div>`,
+        content: `<div class="waybill-route-marker is-${point.kind}"><b>${escape(point.markerLabel)}</b><span>${escape(point.label)}</span></div>`,
         offset: new amap.Pixel(0, 0),
         position: [point.longitude, point.latitude],
         title: point.label,
@@ -248,15 +291,18 @@
     })
   }
 
-  function createActualTrack(amap: DetailAmapNamespace): DetailAmapPolyline | undefined {
-    if (gpsTrackPoints.value.length < 2) return undefined
+  function createTrackPolyline(
+    amap: DetailAmapNamespace,
+    path: Array<[number, number]>
+  ): DetailAmapPolyline | undefined {
+    if (path.length < 2) return undefined
     return new amap.Polyline({
       borderWeight: 2,
       isOutline: true,
       lineCap: 'round',
       lineJoin: 'round',
       outlineColor: '#ffffff',
-      path: gpsTrackPoints.value.map((point) => [point.longitude, point.latitude]),
+      path,
       showDir: true,
       strokeColor: '#2878ff',
       strokeOpacity: 0.95,
@@ -265,18 +311,17 @@
     })
   }
 
-  async function planDrivingRoute(amap: DetailAmapNamespace): Promise<RouteStatus> {
-    const points = drivingRoutePoints.value
-    if (!mapInstance || points.length < 2) return 'unavailable'
+  async function planDrivingRoute(
+    amap: DetailAmapNamespace,
+    instance: DetailAmapMap,
+    points: WaybillLocationPoint[]
+  ): Promise<RouteStatus> {
+    if (points.length < 2) return 'unavailable'
 
     const driving = new amap.Driving({
-      map: mapInstance,
       policy: amap.DrivingPolicy?.LEAST_TIME ?? 0,
       hideMarkers: true,
-      showTraffic: false,
-      isOutline: true,
-      outlineColor: '#ffffff',
-      autoFitView: true
+      showTraffic: false
     })
     const origin: [number, number] = [points[0].longitude, points[0].latitude]
     const destinationPoint = points.at(-1)
@@ -286,28 +331,48 @@
       .slice(1, -1)
       .map((point): [number, number] => [point.longitude, point.latitude])
 
-    return await new Promise((resolve) => {
+    return await new Promise<RouteStatus>((resolve, reject) => {
       let settled = false
       let timeoutId = 0
-      const finish = (status: RouteStatus) => {
-        if (settled) return
+      const cleanup = () => {
         settled = true
         window.clearTimeout(timeoutId)
+        if (cancelRoute === cancel) cancelRoute = undefined
+      }
+      const finish = (status: RouteStatus) => {
+        if (settled) return
+        cleanup()
         resolve(status)
       }
+      const fail = (error: unknown) => {
+        if (settled) return
+        cleanup()
+        reject(error)
+      }
+      const cancel = () => finish('unavailable')
+      cancelRoute = cancel
       timeoutId = window.setTimeout(() => finish('unavailable'), 10_000)
-      driving.search(origin, destination, { waypoints }, (status) => {
-        finish(status === 'complete' ? 'ready' : 'unavailable')
-      })
+      try {
+        driving.search(origin, destination, { waypoints }, (status, result) => {
+          if (settled) return
+          try {
+            const path = status === 'complete' ? readAmapDrivingPath(result) : []
+            const route = createTrackPolyline(amap, path)
+            if (!route) {
+              finish('unavailable')
+              return
+            }
+            instance.add(route)
+            instance.setFitView(undefined, false, [56, 56, 56, 56])
+            finish('ready')
+          } catch (error) {
+            fail(error)
+          }
+        })
+      } catch (error) {
+        fail(error)
+      }
     })
-  }
-
-  function escapeLabel(value: string): string {
-    return value.replace(
-      /[&<>'"]/g,
-      (char) =>
-        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char] || char
-    )
   }
 
   const formatDateTime = createDateTimeFormatter({ emptyText: '-' })
@@ -381,6 +446,11 @@
       color: var(--el-text-color-secondary);
       background: var(--el-fill-color-lighter);
       border-top: 1px solid var(--el-border-color-lighter);
+
+      > span {
+        flex: 1;
+        min-width: 0;
+      }
 
       &.is-ready {
         color: var(--el-color-success-dark-2);

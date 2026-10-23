@@ -44,19 +44,11 @@ export interface MonitorAmapGeocoderInstance {
   ) => void
 }
 
-export interface MonitorAmapDrivingResult {
-  routes?: Array<{
-    steps?: Array<{
-      path?: MonitorAmapLngLatLike[]
-    }>
-  }>
-}
-
 export interface MonitorAmapDrivingInstance {
   search: (
     origin: MonitorAmapLngLatLike,
     destination: MonitorAmapLngLatLike,
-    callback: (status: string, result: MonitorAmapDrivingResult) => void
+    callback: (status: string, result: unknown) => void
   ) => void
 }
 

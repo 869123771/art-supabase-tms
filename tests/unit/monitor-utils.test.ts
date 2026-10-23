@@ -38,6 +38,26 @@ test('GPS paths retain ordered unique points', () => {
   ])
 })
 
+test('GPS and road paths retain return visits while removing adjacent duplicates', () => {
+  assert.deepEqual(
+    dedupeGeoPath([
+      [100, 20],
+      [101, 21],
+      [101, 21],
+      [102, 22],
+      [101, 21],
+      [100, 20]
+    ]),
+    [
+      [100, 20],
+      [101, 21],
+      [102, 22],
+      [101, 21],
+      [100, 20]
+    ]
+  )
+})
+
 test('resolveTransitStatus follows delayed, completed, and running precedence', () => {
   assert.equal(resolveTransitStatus({ status: 'transporting' } as InTransitRecord, true), 'delayed')
   assert.equal(resolveTransitStatus({ status: 'completed' } as InTransitRecord, false), 'arrived')
