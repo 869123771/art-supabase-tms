@@ -4,19 +4,12 @@ import type { ApiFeedbackOptions } from '@/types/api/request'
 import { createDriverWaybillPayload } from '@tms/api/modules/waybill-shared'
 import { fetchSecureInTransitWaybills, fetchSecureOrders } from '@tms/api/modules/transport-secure'
 import { normalizeSupabaseFunctionError } from '@/utils/supabase'
+import { createPollingSubscription } from '@/utils/polling-subscription'
 
 type InTransitMonitorRecord = Api.Tms.InTransit.MonitorRecord
 type InTransitMonitorSearchParams = Api.Tms.InTransit.MonitorSearchParams
 
 const { supabase } = useSupabase()
-
-const createRealtimeChannelId = (): string => {
-  if (typeof globalThis.crypto?.randomUUID === 'function') {
-    return globalThis.crypto.randomUUID()
-  }
-
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`
-}
 
 // 在途监控
 const MONITORED_WAYBILL_STATUSES = [
@@ -147,16 +140,5 @@ export async function analyzeTransportAnomalyByAi(
 }
 
 export function subscribeInTransitMonitorChanges(onChange: () => void): () => void {
-  const channel = supabase
-    .channel(`tms-in-transit-monitor-${createRealtimeChannelId()}`)
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'tms_transport_change_signal' },
-      onChange
-    )
-    .subscribe()
-
-  return () => {
-    void supabase.removeChannel(channel)
-  }
+  return createPollingSubscription(onChange)
 }
