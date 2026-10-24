@@ -224,20 +224,14 @@
   import { ElMessage } from 'element-plus'
   import ArtAsyncState from '@/components/core/feedback/art-async-state/index.vue'
   import ArtIconButton from '@/components/core/widget/art-icon-button/index.vue'
-  import { fetchInTransitMonitorList, subscribeInTransitMonitorChanges } from '@tms/api'
+  import { fetchInTransitMonitorList } from '@tms/api'
   import { useAmapSdk } from '@/hooks/core/useAmapSdk'
   import { useUserStore } from '@/store/modules/user'
   import { formatWithDayjs } from '@/utils/time'
   import { formatPercentValue } from '@/utils/ui/format'
   import { mapWithConcurrency, withTimeout } from '@/utils/async'
   import { readAmapDrivingPath } from '@/utils/amap'
-  import {
-    useAsyncState,
-    useDebounceFn,
-    useEventListener,
-    useIntervalFn,
-    useResizeObserver
-  } from '@vueuse/core'
+  import { useAsyncState, useEventListener, useIntervalFn, useResizeObserver } from '@vueuse/core'
   import { escape, noop } from 'lodash-es'
   import MonitorDetailPanel from './modules/monitor-detail-panel.vue'
   import RealtimeMonitorPanel from './modules/realtime-monitor-panel.vue'
@@ -337,7 +331,6 @@
   let routeBasePolyline: MonitorAmapPolylineInstance | undefined
   let passedPolyline: MonitorAmapPolylineInstance | undefined
   let remainingPolyline: MonitorAmapPolylineInstance | undefined
-  let unsubscribeMonitorChanges: (() => void) | undefined
 
   const screen: UnwrapNestedRefs<ScreenState> = reactive<ScreenState>({
     keyword: '',
@@ -473,11 +466,9 @@
       userStore.ensureDictLoaded(MONITOR_STATUS_DICT_CODE)
     ])
     void loadMonitorData()
-    unsubscribeMonitorChanges = subscribeInTransitMonitorChanges(refreshMonitorFromRealtime)
   })
 
   onBeforeUnmount(() => {
-    unsubscribeMonitorChanges?.()
     destroyMonitorMap()
   })
 
@@ -501,10 +492,6 @@
   useIntervalFn(() => {
     currentTime.value = new Date().toISOString()
   }, 1000)
-
-  const refreshMonitorFromRealtime = useDebounceFn(() => {
-    void loadMonitorData(false)
-  }, 250)
 
   async function loadMonitorData(showLoading = true): Promise<void> {
     requestShowsLoading.value = showLoading

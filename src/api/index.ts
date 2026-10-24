@@ -221,11 +221,7 @@ export type {
   AppointmentSearchParams,
   AppointmentStatus
 } from '@tms/api/modules/appointment'
-export {
-  analyzeTransportAnomalyByAi,
-  fetchInTransitMonitorList,
-  subscribeInTransitMonitorChanges
-} from '@tms/api/modules/in-transit'
+export { analyzeTransportAnomalyByAi, fetchInTransitMonitorList } from '@tms/api/modules/in-transit'
 export {
   fetchTransportEventList,
   fetchTransportEventOverview

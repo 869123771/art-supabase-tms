@@ -4,7 +4,6 @@ import type { ApiFeedbackOptions } from '@/types/api/request'
 import { createDriverWaybillPayload } from '@tms/api/modules/waybill-shared'
 import { fetchSecureInTransitWaybills, fetchSecureOrders } from '@tms/api/modules/transport-secure'
 import { normalizeSupabaseFunctionError } from '@/utils/supabase'
-import { createPollingSubscription } from '@/utils/polling-subscription'
 
 type InTransitMonitorRecord = Api.Tms.InTransit.MonitorRecord
 type InTransitMonitorSearchParams = Api.Tms.InTransit.MonitorSearchParams
@@ -137,8 +136,4 @@ export async function analyzeTransportAnomalyByAi(
     data: data ?? null,
     error: await normalizeSupabaseFunctionError(error)
   }
-}
-
-export function subscribeInTransitMonitorChanges(onChange: () => void): () => void {
-  return createPollingSubscription(onChange)
 }
